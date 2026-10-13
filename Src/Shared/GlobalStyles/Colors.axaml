@@ -1,0 +1,135 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- ============================================================ -->
+  <!-- Base Surfaces & Chrome (GitHub Dark / Gitnuro Slate Navy)   -->
+  <!-- ============================================================ -->
+  <Color x:Key="AppBackgroundColor">#0D1117</Color>
+  <SolidColorBrush x:Key="AppBackgroundBrush" Color="{StaticResource AppBackgroundColor}" />
+
+  <Color x:Key="ShellHeaderFooterColor">#161B22</Color>
+  <SolidColorBrush x:Key="ShellHeaderFooterBrush" Color="{StaticResource ShellHeaderFooterColor}" />
+
+  <Color x:Key="SurfaceCardColor">#161B22</Color>
+  <SolidColorBrush x:Key="SurfaceCardBrush" Color="{StaticResource SurfaceCardColor}" />
+
+  <Color x:Key="SurfaceCardHoverColor">#21262D</Color>
+  <SolidColorBrush x:Key="SurfaceCardHoverBrush" Color="{StaticResource SurfaceCardHoverColor}" />
+
+  <Color x:Key="CardBorderColor">#30363D</Color>
+  <SolidColorBrush x:Key="CardBorderBrush" Color="{StaticResource CardBorderColor}" />
+
+  <Color x:Key="CardBorderHighlightColor">#388BFD</Color>
+  <SolidColorBrush x:Key="CardBorderHighlightBrush" Color="{StaticResource CardBorderHighlightColor}" />
+
+  <Color x:Key="ModalDialogCardColor">#161B22</Color>
+  <SolidColorBrush x:Key="ModalDialogCardBrush" Color="{StaticResource ModalDialogCardColor}" />
+
+  <Color x:Key="ModalOverlayColor">#B0010409</Color>
+  <SolidColorBrush x:Key="ModalOverlayBrush" Color="{StaticResource ModalOverlayColor}" />
+
+  <!-- ============================================================ -->
+  <!-- Typography & Text                                            -->
+  <!-- ============================================================ -->
+  <Color x:Key="TextPrimaryColor">#F0F6FC</Color>
+  <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}" />
+  <SolidColorBrush x:Key="TextFillColorPrimaryBrush" Color="{StaticResource TextPrimaryColor}" />
+
+  <Color x:Key="TextSecondaryColor">#C9D1D9</Color>
+  <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}" />
+
+  <Color x:Key="SubtleTextColor">#8B949E</Color>
+  <SolidColorBrush x:Key="SubtleTextBrush" Color="{StaticResource SubtleTextColor}" />
+
+  <!-- ============================================================ -->
+  <!-- Primary Brand & Action Accent (GitHub / Gitnuro Electric)    -->
+  <!-- ============================================================ -->
+  <Color x:Key="AccentPrimaryColor">#1F6FEB</Color>
+  <SolidColorBrush x:Key="AccentPrimaryBrush" Color="{StaticResource AccentPrimaryColor}" />
+  <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentPrimaryColor}" />
+  <SolidColorBrush x:Key="AccentButtonBackground" Color="{StaticResource AccentPrimaryColor}" />
+
+  <Color x:Key="AccentPrimaryHoverColor">#388BFD</Color>
+  <SolidColorBrush x:Key="AccentPrimaryHoverBrush" Color="{StaticResource AccentPrimaryHoverColor}" />
+
+  <Color x:Key="AccentPrimaryBorderColor">#388BFD</Color>
+  <SolidColorBrush x:Key="AccentPrimaryBorderBrush" Color="{StaticResource AccentPrimaryBorderColor}" />
+  <SolidColorBrush x:Key="AccentButtonBorderBrush" Color="{StaticResource AccentPrimaryBorderColor}" />
+
+  <Color x:Key="AccentPrimaryForegroundColor">#FFFFFF</Color>
+  <SolidColorBrush x:Key="AccentPrimaryForegroundBrush" Color="{StaticResource AccentPrimaryForegroundColor}" />
+  <SolidColorBrush x:Key="AccentButtonForeground" Color="{StaticResource AccentPrimaryForegroundColor}" />
+
+  <!-- ============================================================ -->
+  <!-- Git Graph & Branch Palette (Vibrant & High Contrast)         -->
+  <!-- ============================================================ -->
+  <Color x:Key="GitGraphBranch1Color">#388BFD</Color>
+  <SolidColorBrush x:Key="GitGraphBranch1Brush" Color="{StaticResource GitGraphBranch1Color}" />
+
+  <Color x:Key="GitGraphBranch2Color">#3FB950</Color>
+  <SolidColorBrush x:Key="GitGraphBranch2Brush" Color="{StaticResource GitGraphBranch2Color}" />
+
+  <Color x:Key="GitGraphBranch3Color">#D29922</Color>
+  <SolidColorBrush x:Key="GitGraphBranch3Brush" Color="{StaticResource GitGraphBranch3Color}" />
+
+  <Color x:Key="GitGraphBranch4Color">#F778BA</Color>
+  <SolidColorBrush x:Key="GitGraphBranch4Brush" Color="{StaticResource GitGraphBranch4Color}" />
+
+  <Color x:Key="GitGraphBranch5Color">#A371F7</Color>
+  <SolidColorBrush x:Key="GitGraphBranch5Brush" Color="{StaticResource GitGraphBranch5Color}" />
+
+  <!-- ============================================================ -->
+  <!-- Badges & Pills (Branch / Tag)                                -->
+  <!-- ============================================================ -->
+  <Color x:Key="BranchBadgeBackgroundColor">#15273F</Color>
+  <SolidColorBrush x:Key="BranchBadgeBackgroundBrush" Color="{StaticResource BranchBadgeBackgroundColor}" />
+
+  <Color x:Key="TagBadgeBackgroundColor">#2A2215</Color>
+  <SolidColorBrush x:Key="TagBadgeBackgroundBrush" Color="{StaticResource TagBadgeBackgroundColor}" />
+
+  <!-- ============================================================ -->
+  <!-- Git State & Severity Colors                                  -->
+  <!-- ============================================================ -->
+  <Color x:Key="SuccessColor">#238636</Color>
+  <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}" />
+  <Color x:Key="OnSuccessColor">#FFFFFF</Color>
+  <SolidColorBrush x:Key="OnSuccessBrush" Color="{StaticResource OnSuccessColor}" />
+
+  <Color x:Key="ErrorColor">#DA3633</Color>
+  <SolidColorBrush x:Key="ErrorBrush" Color="{StaticResource ErrorColor}" />
+  <Color x:Key="OnErrorColor">#FFFFFF</Color>
+  <SolidColorBrush x:Key="OnErrorBrush" Color="{StaticResource OnErrorColor}" />
+
+  <Color x:Key="ErrorBannerBackgroundColor">#3D1418</Color>
+  <SolidColorBrush x:Key="ErrorBannerBackgroundBrush" Color="{StaticResource ErrorBannerBackgroundColor}" />
+
+  <Color x:Key="WarningColor">#D29922</Color>
+  <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}" />
+  <Color x:Key="OnWarningColor">#FFFFFF</Color>
+  <SolidColorBrush x:Key="OnWarningBrush" Color="{StaticResource OnWarningColor}" />
+
+  <Color x:Key="WarningBannerBackgroundColor">#3B2300</Color>
+  <SolidColorBrush x:Key="WarningBannerBackgroundBrush" Color="{StaticResource WarningBannerBackgroundColor}" />
+
+  <Color x:Key="InfoColor">#388BFD</Color>
+  <SolidColorBrush x:Key="InfoBrush" Color="{StaticResource InfoColor}" />
+
+  <!-- ============================================================ -->
+  <!-- Diff Syntax & Diff Lines                                     -->
+  <!-- ============================================================ -->
+  <Color x:Key="DiffAdditionBackgroundColor">#132F1A</Color>
+  <SolidColorBrush x:Key="DiffAdditionBackgroundBrush" Color="{StaticResource DiffAdditionBackgroundColor}" />
+  <Color x:Key="DiffAdditionForegroundColor">#7EE787</Color>
+  <SolidColorBrush x:Key="DiffAdditionForegroundBrush" Color="{StaticResource DiffAdditionForegroundColor}" />
+
+  <Color x:Key="DiffDeletionBackgroundColor">#3D1418</Color>
+  <SolidColorBrush x:Key="DiffDeletionBackgroundBrush" Color="{StaticResource DiffDeletionBackgroundColor}" />
+  <Color x:Key="DiffDeletionForegroundColor">#FFA198</Color>
+  <SolidColorBrush x:Key="DiffDeletionForegroundBrush" Color="{StaticResource DiffDeletionForegroundColor}" />
+
+  <Color x:Key="DiffHunkHeaderBackgroundColor">#162234</Color>
+  <SolidColorBrush x:Key="DiffHunkHeaderBackgroundBrush" Color="{StaticResource DiffHunkHeaderBackgroundColor}" />
+  <Color x:Key="DiffHunkHeaderForegroundColor">#7D8590</Color>
+  <SolidColorBrush x:Key="DiffHunkHeaderForegroundBrush" Color="{StaticResource DiffHunkHeaderForegroundColor}" />
+
+</ResourceDictionary>

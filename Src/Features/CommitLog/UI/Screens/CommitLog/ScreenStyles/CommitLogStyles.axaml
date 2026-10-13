@@ -1,0 +1,124 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Branch Badge Pill -->
+  <Style Selector="Border.BranchBadge">
+    <Setter Property="Background" Value="{DynamicResource BranchBadgeBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource GitGraphBranch1Brush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Padding" Value="6,2" />
+    <Setter Property="Margin" Value="0,0,4,0" />
+  </Style>
+
+  <!-- Tag Badge Pill -->
+  <Style Selector="Border.TagBadge">
+    <Setter Property="Background" Value="{DynamicResource TagBadgeBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource GitGraphBranch3Brush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Padding" Value="6,2" />
+    <Setter Property="Margin" Value="0,0,4,0" />
+  </Style>
+
+  <!-- Commit Row Card -->
+  <Style Selector="ListBoxItem.CommitRowItem">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Margin" Value="0,1" />
+    <Setter Property="MinHeight" Value="28" />
+  </Style>
+
+  <!-- Changed File Row Item -->
+  <Style Selector="Border.ChangedFileCard">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
+    <Setter Property="Padding" Value="8,5" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.1" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="Border.ChangedFileCard:pointerover">
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardHoverBrush}" />
+  </Style>
+
+  <!-- Diff Line TextBlock Styles -->
+  <Style Selector="TextBlock.DiffAddition">
+    <Setter Property="Background" Value="{DynamicResource DiffAdditionBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource DiffAdditionForegroundBrush}" />
+    <Setter Property="FontFamily" Value="Noto Sans Mono, Consolas, Courier New, monospace" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Padding" Value="8,1" />
+  </Style>
+
+  <Style Selector="TextBlock.DiffDeletion">
+    <Setter Property="Background" Value="{DynamicResource DiffDeletionBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource DiffDeletionForegroundBrush}" />
+    <Setter Property="FontFamily" Value="Noto Sans Mono, Consolas, Courier New, monospace" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Padding" Value="8,1" />
+  </Style>
+
+  <Style Selector="TextBlock.DiffHunkHeader">
+    <Setter Property="Background" Value="{DynamicResource DiffHunkHeaderBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource DiffHunkHeaderForegroundBrush}" />
+    <Setter Property="FontFamily" Value="Noto Sans Mono, Consolas, Courier New, monospace" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Padding" Value="8,2" />
+  </Style>
+
+  <Style Selector="TextBlock.DiffContext">
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    <Setter Property="FontFamily" Value="Noto Sans Mono, Consolas, Courier New, monospace" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Padding" Value="8,1" />
+  </Style>
+
+  <!-- Sidebar Tab Buttons -->
+  <Style Selector="Button.SidebarTab">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="8,6" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource SubtleTextBrush}" />
+    <Setter Property="CornerRadius" Value="4" />
+  </Style>
+
+  <Style Selector="Button.SidebarTab:pointerover">
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardHoverBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+  </Style>
+
+  <!-- Toolbar Action Buttons -->
+  <Style Selector="Button.ToolbarAction">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
+    <Setter Property="Padding" Value="8,5" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="CornerRadius" Value="6" />
+  </Style>
+
+  <Style Selector="Button.ToolbarAction:pointerover">
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardHoverBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderHighlightBrush}" />
+  </Style>
+
+  <!-- Modal Backdrop and Card -->
+  <Style Selector="Grid.ModalBackdrop">
+    <Setter Property="Background" Value="{DynamicResource ModalOverlayBrush}" />
+  </Style>
+
+  <Style Selector="Border.ModalCard">
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="BoxShadow" Value="0 16 48 0 #70000000" />
+    <Setter Property="Padding" Value="24" />
+  </Style>
+
+</Styles>

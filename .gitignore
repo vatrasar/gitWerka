@@ -1,0 +1,97 @@
+# ==========================================
+# Build & Output Artifacts (.NET / C#)
+# ==========================================
+[Bb]in/
+[Oo]bj/
+[Aa]rchives/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Dd]rop/
+[Aa]rtifacts/
+package-output/
+*.deb
+
+# ==========================================
+# Visual Studio / Rider / IDEs
+# ==========================================
+.vs/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.sln.docstates
+
+# JetBrains Rider & ReSharper
+.idea/
+*.DotSettings.user
+_ReSharper*/
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/
+.ionide/
+
+# ==========================================
+# Testing & Code Coverage
+# ==========================================
+[Tt]est[Rr]esult*/
+TestResult.xml
+coverage*.json
+coverage*.xml
+*.coverage
+*.coveragexml
+
+# ==========================================
+# Local Database Files & Storage
+# ==========================================
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# ==========================================
+# NuGet & Packages
+# ==========================================
+*.nupkg
+*.snupkg
+*.lock.json
+project.lock.json
+project.fragment.lock.json
+
+# ==========================================
+# Logs & Diagnostic Dumps
+# ==========================================
+*.log
+*.binlog
+*.dmp
+*.crash
+*.stackdump
+
+# ==========================================
+# OS Generated Files
+# ==========================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*

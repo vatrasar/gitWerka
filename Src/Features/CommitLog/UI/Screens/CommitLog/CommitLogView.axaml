@@ -1,0 +1,1149 @@
+<rxui:ReactiveUserControl x:TypeArguments="vm:CommitLogViewModel"
+                          xmlns="https://github.com/avaloniaui"
+                          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                          xmlns:rxui="http://reactiveui.net"
+                          xmlns:res="using:GitWerka.Features.CommitLog.Resources"
+                          xmlns:sharedRes="using:GitWerka.Shared.Resources"
+                          xmlns:vm="using:GitWerka.Features.CommitLog.UI.Screens.CommitLog"
+                          xmlns:models="using:GitWerka.Core.Domain.Models"
+                          xmlns:enums="using:GitWerka.Core.Domain.Enums"
+                          xmlns:canvas="using:GitWerka.Features.CommitLog.UI.Screens.CommitLog.ScreenComponents.CommitGraphCanvas"
+                          xmlns:material="using:Material.Icons.Avalonia"
+                          x:Class="GitWerka.Features.CommitLog.UI.Screens.CommitLog.CommitLogView">
+
+  <UserControl.Styles>
+    <StyleInclude Source="avares://GitWerka/Src/Features/CommitLog/UI/Screens/CommitLog/ScreenStyles/CommitLogStyles.axaml" />
+  </UserControl.Styles>
+
+  <Grid>
+    <!-- Main Window Layout -->
+    <Grid RowDefinitions="Auto, Auto, *">
+      <!-- Top Workspace Toolbar -->
+      <Border Grid.Row="0"
+              Background="{DynamicResource ShellHeaderFooterBrush}"
+              BorderBrush="{DynamicResource CardBorderBrush}"
+              BorderThickness="0,0,0,1"
+              Padding="12,6">
+        <Grid ColumnDefinitions="Auto, 12, Auto, *, 240">
+          <!-- Current Branch Indicator -->
+          <Border Grid.Column="0"
+                  Background="{DynamicResource BranchBadgeBackgroundBrush}"
+                  BorderBrush="{DynamicResource GitGraphBranch1Brush}"
+                  BorderThickness="1"
+                  CornerRadius="6"
+                  Padding="8,4">
+            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+              <material:MaterialIcon Kind="SourceBranch" Width="16" Height="16" Foreground="{DynamicResource GitGraphBranch1Brush}" />
+              <TextBlock x:Name="CurrentBranchTextBlock"
+                         FontWeight="SemiBold"
+                         FontSize="12"
+                         Foreground="{DynamicResource TextPrimaryBrush}"
+                         VerticalAlignment="Center" />
+            </StackPanel>
+          </Border>
+
+          <!-- Toolbar Git Actions -->
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+            <Button x:Name="FetchButton" Classes="ToolbarAction">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <material:MaterialIcon Kind="CloudDownload" Width="14" Height="14" />
+                <TextBlock Text="{x:Static res:CommitLogStrings.FetchButton}" />
+              </StackPanel>
+            </Button>
+
+            <Button x:Name="PullButton" Classes="ToolbarAction">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <material:MaterialIcon Kind="ArrowDownBold" Width="14" Height="14" />
+                <TextBlock Text="{x:Static res:CommitLogStrings.PullButton}" />
+              </StackPanel>
+            </Button>
+
+            <Button x:Name="PushButton" Classes="ToolbarAction">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <material:MaterialIcon Kind="ArrowUpBold" Width="14" Height="14" />
+                <TextBlock Text="{x:Static res:CommitLogStrings.PushButton}" />
+              </StackPanel>
+            </Button>
+
+            <Rectangle Width="1" Height="20" Fill="{DynamicResource CardBorderBrush}" Margin="4,0" />
+
+            <Button x:Name="MergeButton" Classes="ToolbarAction">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <material:MaterialIcon Kind="SourceMerge" Width="14" Height="14" />
+                <TextBlock Text="{x:Static res:CommitLogStrings.MergeButton}" />
+              </StackPanel>
+            </Button>
+
+            <Rectangle Width="1" Height="20" Fill="{DynamicResource CardBorderBrush}" Margin="4,0" />
+
+            <!-- Separate buttons (Files, Terminal, Editor) shown on wide screens -->
+            <StackPanel x:Name="SeparateOpenActionsPanel"
+                        Orientation="Horizontal"
+                        Spacing="6"
+                        VerticalAlignment="Center">
+              <Button x:Name="OpenFileManagerButton" Classes="ToolbarAction" ToolTip.Tip="{x:Static res:CommitLogStrings.OpenFileManagerTooltip}">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <material:MaterialIcon Kind="FolderOpen" Width="14" Height="14" />
+                  <TextBlock Text="{x:Static res:CommitLogStrings.OpenFileManagerButton}" />
+                </StackPanel>
+              </Button>
+
+              <Button x:Name="OpenTerminalButton" Classes="ToolbarAction" ToolTip.Tip="{x:Static res:CommitLogStrings.OpenTerminalTooltip}">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <material:MaterialIcon Kind="Console" Width="14" Height="14" />
+                  <TextBlock Text="{x:Static res:CommitLogStrings.OpenTerminalButton}" />
+                </StackPanel>
+              </Button>
+
+              <Button x:Name="OpenEditorButton" Classes="ToolbarAction" ToolTip.Tip="{x:Static res:CommitLogStrings.OpenEditorTooltip}">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <material:MaterialIcon Kind="CodeTags" Width="14" Height="14" />
+                  <TextBlock Text="{x:Static res:CommitLogStrings.OpenEditorButton}" />
+                </StackPanel>
+              </Button>
+            </StackPanel>
+
+            <!-- Dropdown "Open in" menu button shown on compact/narrow screens -->
+            <Button x:Name="OpenInMenuButton"
+                    Classes="ToolbarAction"
+                    IsVisible="False"
+                    ToolTip.Tip="{x:Static res:CommitLogStrings.OpenInMenuTooltip}">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <material:MaterialIcon Kind="Launch" Width="14" Height="14" />
+                <TextBlock Text="{x:Static res:CommitLogStrings.OpenInMenuButton}" />
+                <material:MaterialIcon Kind="ChevronDown" Width="12" Height="12" />
+              </StackPanel>
+              <Button.Flyout>
+                <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                  <MenuItem x:Name="OpenInFileManagerMenuItem" Header="{x:Static res:CommitLogStrings.OpenFileManagerButton}">
+                    <MenuItem.Icon>
+                      <material:MaterialIcon Kind="FolderOpen" Width="14" Height="14" />
+                    </MenuItem.Icon>
+                  </MenuItem>
+                  <MenuItem x:Name="OpenInTerminalMenuItem" Header="{x:Static res:CommitLogStrings.OpenTerminalButton}">
+                    <MenuItem.Icon>
+                      <material:MaterialIcon Kind="Console" Width="14" Height="14" />
+                    </MenuItem.Icon>
+                  </MenuItem>
+                  <MenuItem x:Name="OpenInEditorMenuItem" Header="{x:Static res:CommitLogStrings.OpenEditorButton}">
+                    <MenuItem.Icon>
+                      <material:MaterialIcon Kind="CodeTags" Width="14" Height="14" />
+                    </MenuItem.Icon>
+                  </MenuItem>
+                </MenuFlyout>
+              </Button.Flyout>
+            </Button>
+          </StackPanel>
+
+          <!-- Search Bar -->
+          <TextBox Grid.Column="4"
+                   x:Name="SearchCommitsTextBox"
+                   Classes="SearchInput"
+                   Watermark="{x:Static res:CommitLogStrings.SearchCommitsPlaceholder}" />
+        </Grid>
+      </Border>
+
+      <!-- Ongoing Operation Banner (Merge / Rebase Conflict Status) -->
+      <Border Grid.Row="1"
+              x:Name="OperationStatusBanner"
+              Background="{DynamicResource WarningBannerBackgroundBrush}"
+              BorderBrush="{DynamicResource GitGraphBranch2Brush}"
+              BorderThickness="0,0,0,1"
+              Padding="14,8"
+              IsVisible="False">
+        <Grid ColumnDefinitions="Auto, 10, *, Auto">
+          <material:MaterialIcon Grid.Column="0"
+                                Kind="AlertCircleOutline"
+                                Width="20"
+                                Height="20"
+                                Foreground="{DynamicResource GitGraphBranch2Brush}"
+                                VerticalAlignment="Center" />
+          <StackPanel Grid.Column="2" VerticalAlignment="Center">
+            <TextBlock x:Name="OperationTitleTextBlock"
+                       FontWeight="SemiBold"
+                       FontSize="13"
+                       Foreground="{DynamicResource TextPrimaryBrush}" />
+            <TextBlock x:Name="OperationSubtitleTextBlock"
+                       FontSize="11"
+                       Foreground="{DynamicResource WarningBrush}" />
+          </StackPanel>
+          <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8">
+            <Button x:Name="AbortOperationButton"
+                    Classes="SecondaryAction"
+                    Content="{x:Static res:CommitLogStrings.AbortButton}" />
+            <Button x:Name="ContinueOperationButton"
+                    Classes="PrimaryAction"
+                    Content="{x:Static res:CommitLogStrings.ContinueButton}" />
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <!-- Main Workspace Split Area -->
+      <Grid Grid.Row="2" ColumnDefinitions="260, 1, *">
+        <!-- Left Sidebar: Tabbed Navigation -->
+        <Grid Grid.Column="0"
+              Background="{DynamicResource AppBackgroundBrush}"
+              RowDefinitions="Auto, *">
+          <!-- Sidebar Tabs Switcher -->
+          <Border Grid.Row="0"
+                  BorderBrush="{DynamicResource CardBorderBrush}"
+                  BorderThickness="0,0,0,1"
+                  Padding="6,6">
+            <UniformGrid Columns="4">
+              <Button x:Name="BranchesTabButton"
+                      Classes="SidebarTab"
+                      HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Center">
+                <material:MaterialIcon Kind="SourceBranch" Width="16" Height="16" />
+              </Button>
+
+              <Button x:Name="WorkingTreeTabButton"
+                      Classes="SidebarTab"
+                      HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Center">
+                <material:MaterialIcon Kind="FileDocumentEditOutline" Width="16" Height="16" />
+              </Button>
+
+              <Button x:Name="TagsTabButton"
+                      Classes="SidebarTab"
+                      HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Center">
+                <material:MaterialIcon Kind="TagOutline" Width="16" Height="16" />
+              </Button>
+
+              <Button x:Name="StashesTabButton"
+                      Classes="SidebarTab"
+                      HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Center">
+                <material:MaterialIcon Kind="PackageVariantClosed" Width="16" Height="16" />
+              </Button>
+            </UniformGrid>
+          </Border>
+
+          <!-- Sidebar Tabs Content Container -->
+          <Grid Grid.Row="1">
+            <!-- 1. Branches Tab -->
+            <Grid x:Name="BranchesTabPanel"
+                  RowDefinitions="Auto, *, Auto"
+                  IsVisible="True">
+              <TextBlock Grid.Row="0"
+                         Text="{x:Static res:CommitLogStrings.BranchesTitle}"
+                         Classes="SectionHeader"
+                         Margin="12,10,12,6" />
+
+              <ListBox Grid.Row="1"
+                       x:Name="BranchesListBox"
+                       Background="Transparent"
+                       BorderThickness="0">
+                <ListBox.ContextMenu>
+                  <ContextMenu x:Name="BranchesContextMenu">
+                    <MenuItem x:Name="BranchMergeMenuItem"
+                              Header="{x:Static res:CommitLogStrings.MergeBranchMenu}">
+                      <MenuItem.Icon>
+                        <material:MaterialIcon Kind="SourceMerge" Width="16" Height="16" />
+                      </MenuItem.Icon>
+                    </MenuItem>
+                  </ContextMenu>
+                </ListBox.ContextMenu>
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="models:BranchInfo">
+                    <Grid ColumnDefinitions="Auto, *">
+                      <material:MaterialIcon Grid.Column="0"
+                                            Kind="SourceBranch"
+                                            Width="16"
+                                            Height="16"
+                                            Foreground="{DynamicResource GitGraphBranch1Brush}"
+                                            Margin="0,0,6,0" />
+                      <TextBlock Grid.Column="1"
+                                 Text="{Binding Name}"
+                                 FontSize="12"
+                                 TextTrimming="CharacterEllipsis"
+                                 VerticalAlignment="Center" />
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+
+              <Border Grid.Row="2"
+                      BorderBrush="{DynamicResource CardBorderBrush}"
+                      BorderThickness="0,1,0,0"
+                      Padding="8">
+                <Button x:Name="NewBranchActionButton"
+                        Classes="SecondaryAction"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <material:MaterialIcon Kind="Plus" Width="14" Height="14" />
+                    <TextBlock Text="{x:Static res:CommitLogStrings.CreateBranchModalTitle}" FontSize="12" />
+                  </StackPanel>
+                </Button>
+              </Border>
+            </Grid>
+
+            <!-- 2. Working Tree Changes Tab -->
+            <Grid x:Name="WorkingTreeTabPanel"
+                  RowDefinitions="Auto, *, Auto, *, Auto"
+                  IsVisible="False">
+              <!-- Staged Changes Section Header -->
+              <Grid Grid.Row="0" ColumnDefinitions="*, Auto" Margin="12,8,8,4">
+                <TextBlock Grid.Column="0"
+                           Text="{x:Static res:CommitLogStrings.StagedChangesHeader}"
+                           Classes="SectionHeader"
+                           VerticalAlignment="Center" />
+                <Button Grid.Column="1"
+                        x:Name="UnstageAllButton"
+                        Classes="ToolbarAction"
+                        Padding="6,2">
+                  <TextBlock Text="{x:Static res:CommitLogStrings.UnstageAllButton}" FontSize="10" />
+                </Button>
+              </Grid>
+
+              <ListBox Grid.Row="1"
+                       x:Name="StagedChangesListBox"
+                       Background="Transparent"
+                       BorderThickness="0">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="models:WorkingTreeChange">
+                    <Grid ColumnDefinitions="Auto, *, Auto">
+                      <material:MaterialIcon Grid.Column="0"
+                                            Kind="CheckCircleOutline"
+                                            Width="14"
+                                            Height="14"
+                                            Foreground="{DynamicResource SuccessBrush}"
+                                            Margin="0,0,6,0" />
+                      <TextBlock Grid.Column="1"
+                                 Text="{Binding Path}"
+                                 FontSize="11"
+                                 TextTrimming="CharacterEllipsis"
+                                 VerticalAlignment="Center" />
+                      <TextBlock Grid.Column="2"
+                                 Text="{Binding Status}"
+                                 FontSize="10"
+                                 Foreground="{DynamicResource SubtleTextBrush}"
+                                 Margin="4,0,0,0"
+                                 VerticalAlignment="Center" />
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+
+              <!-- Unstaged Changes Section Header -->
+              <Grid Grid.Row="2" ColumnDefinitions="*, Auto" Margin="12,8,8,4">
+                <TextBlock Grid.Column="0"
+                           Text="{x:Static res:CommitLogStrings.UnstagedChangesHeader}"
+                           Classes="SectionHeader"
+                           VerticalAlignment="Center" />
+                <Button Grid.Column="1"
+                        x:Name="StageAllButton"
+                        Classes="ToolbarAction"
+                        Padding="6,2">
+                  <TextBlock Text="{x:Static res:CommitLogStrings.StageAllButton}" FontSize="10" />
+                </Button>
+              </Grid>
+
+              <ListBox Grid.Row="3"
+                       x:Name="UnstagedChangesListBox"
+                       Background="Transparent"
+                       BorderThickness="0">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="models:WorkingTreeChange">
+                    <Grid ColumnDefinitions="Auto, *, Auto">
+                      <material:MaterialIcon Grid.Column="0"
+                                            Kind="FileDocumentOutline"
+                                            Width="14"
+                                            Height="14"
+                                            Foreground="{DynamicResource GitGraphBranch3Brush}"
+                                            Margin="0,0,6,0" />
+                      <TextBlock Grid.Column="1"
+                                 Text="{Binding Path}"
+                                 FontSize="11"
+                                 TextTrimming="CharacterEllipsis"
+                                 VerticalAlignment="Center" />
+                      <TextBlock Grid.Column="2"
+                                 Text="{Binding Status}"
+                                 FontSize="10"
+                                 Foreground="{DynamicResource SubtleTextBrush}"
+                                 Margin="4,0,0,0"
+                                 VerticalAlignment="Center" />
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+
+              <!-- Commit Composer Panel -->
+              <Border Grid.Row="4"
+                      BorderThickness="0,1,0,0"
+                      BorderBrush="{DynamicResource CardBorderBrush}"
+                      Padding="10">
+                <StackPanel Spacing="8">
+                  <TextBox x:Name="CommitMessageTextBox"
+                           AcceptsReturn="True"
+                           Height="55"
+                           Watermark="{x:Static res:CommitLogStrings.CommitMessagePlaceholder}" />
+                  <CheckBox x:Name="AmendCommitCheckBox"
+                            Content="{x:Static res:CommitLogStrings.AmendCommitCheckbox}"
+                            FontSize="12" />
+                  <Button x:Name="CommitButton"
+                          Classes="PrimaryAction"
+                          HorizontalAlignment="Stretch"
+                          HorizontalContentAlignment="Center"
+                          Content="{x:Static res:CommitLogStrings.CommitButton}" />
+                </StackPanel>
+              </Border>
+            </Grid>
+
+            <!-- 3. Tags Tab -->
+            <Grid x:Name="TagsTabPanel"
+                  RowDefinitions="Auto, *, Auto"
+                  IsVisible="False">
+              <TextBlock Grid.Row="0"
+                         Text="{x:Static res:CommitLogStrings.TagsTitle}"
+                         Classes="SectionHeader"
+                         Margin="12,10,12,6" />
+
+              <ListBox Grid.Row="1"
+                       x:Name="TagsListBox"
+                       Background="Transparent"
+                       BorderThickness="0">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="models:TagInfo">
+                    <Grid ColumnDefinitions="Auto, *">
+                      <material:MaterialIcon Grid.Column="0"
+                                            Kind="TagOutline"
+                                            Width="16"
+                                            Height="16"
+                                            Foreground="{DynamicResource GitGraphBranch3Brush}"
+                                            Margin="0,0,6,0" />
+                      <TextBlock Grid.Column="1"
+                                 Text="{Binding Name}"
+                                 FontSize="12"
+                                 TextTrimming="CharacterEllipsis"
+                                 VerticalAlignment="Center" />
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+
+              <Border Grid.Row="2"
+                      BorderBrush="{DynamicResource CardBorderBrush}"
+                      BorderThickness="0,1,0,0"
+                      Padding="8">
+                <Button x:Name="NewTagActionButton"
+                        Classes="SecondaryAction"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <material:MaterialIcon Kind="Plus" Width="14" Height="14" />
+                    <TextBlock Text="{x:Static res:CommitLogStrings.CreateTagModalTitle}" FontSize="12" />
+                  </StackPanel>
+                </Button>
+              </Border>
+            </Grid>
+
+            <!-- 4. Stashes Tab -->
+            <Grid x:Name="StashesTabPanel"
+                  RowDefinitions="Auto, *, Auto"
+                  IsVisible="False">
+              <TextBlock Grid.Row="0"
+                         Text="{x:Static res:CommitLogStrings.StashesTitle}"
+                         Classes="SectionHeader"
+                         Margin="12,10,12,6" />
+
+              <ListBox Grid.Row="1"
+                       x:Name="StashesListBox"
+                       Background="Transparent"
+                       BorderThickness="0">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="models:StashInfo">
+                    <Grid ColumnDefinitions="Auto, *">
+                      <material:MaterialIcon Grid.Column="0"
+                                            Kind="PackageVariantClosed"
+                                            Width="16"
+                                            Height="16"
+                                            Foreground="{DynamicResource GitGraphBranch2Brush}"
+                                            Margin="0,0,6,0" />
+                      <TextBlock Grid.Column="1"
+                                 Text="{Binding Message}"
+                                 FontSize="12"
+                                 TextTrimming="CharacterEllipsis"
+                                 VerticalAlignment="Center" />
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+
+              <Border Grid.Row="2"
+                      BorderBrush="{DynamicResource CardBorderBrush}"
+                      BorderThickness="0,1,0,0"
+                      Padding="8">
+                <Button x:Name="NewStashActionButton"
+                        Classes="SecondaryAction"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <material:MaterialIcon Kind="Plus" Width="14" Height="14" />
+                    <TextBlock Text="{x:Static res:CommitLogStrings.StashModalTitle}" FontSize="12" />
+                  </StackPanel>
+                </Button>
+              </Border>
+            </Grid>
+          </Grid>
+        </Grid>
+
+        <!-- Sidebar Divider -->
+        <Rectangle Grid.Column="1" Fill="{DynamicResource CardBorderBrush}" />
+
+        <!-- Center & Right Area: Commit Graph + Details/Diff Split -->
+        <Grid Grid.Column="2" RowDefinitions="3*, 4, 2*">
+          <!-- Commits ListBox with Graph Lane Drawing -->
+          <ListBox Grid.Row="0"
+                   x:Name="CommitsListBox"
+                   Background="Transparent"
+                   BorderThickness="0">
+            <ListBox.ContextMenu>
+              <ContextMenu x:Name="CommitsContextMenu">
+                <MenuItem x:Name="ContextCherryPickMenuItem"
+                          Header="{x:Static res:CommitLogStrings.CherryPickMenu}">
+                  <MenuItem.Icon>
+                    <material:MaterialIcon Kind="FruitCherries" Width="16" Height="16" />
+                  </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem x:Name="ContextRevertMenuItem"
+                          Header="{x:Static res:CommitLogStrings.RevertMenu}">
+                  <MenuItem.Icon>
+                    <material:MaterialIcon Kind="UndoVariant" Width="16" Height="16" />
+                  </MenuItem.Icon>
+                </MenuItem>
+                <Separator />
+                <MenuItem x:Name="ContextResetMenuItem"
+                          Header="{x:Static res:CommitLogStrings.ResetMenu}">
+                  <MenuItem.Icon>
+                    <material:MaterialIcon Kind="History" Width="16" Height="16" />
+                  </MenuItem.Icon>
+                  <MenuItem x:Name="ContextResetSoftMenuItem"
+                            Header="{x:Static res:CommitLogStrings.ResetSoftMenu}" />
+                  <MenuItem x:Name="ContextResetMixedMenuItem"
+                            Header="{x:Static res:CommitLogStrings.ResetMixedMenu}" />
+                  <MenuItem x:Name="ContextResetHardMenuItem"
+                            Header="{x:Static res:CommitLogStrings.ResetHardMenu}" />
+                </MenuItem>
+                <Separator />
+                <MenuItem x:Name="ContextCreateBranchMenuItem"
+                          Header="{x:Static res:CommitLogStrings.CreateBranchFromCommitMenu}">
+                  <MenuItem.Icon>
+                    <material:MaterialIcon Kind="SourceBranchPlus" Width="16" Height="16" />
+                  </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem x:Name="ContextCreateTagMenuItem"
+                          Header="{x:Static res:CommitLogStrings.CreateTagFromCommitMenu}">
+                  <MenuItem.Icon>
+                    <material:MaterialIcon Kind="TagPlus" Width="16" Height="16" />
+                  </MenuItem.Icon>
+                </MenuItem>
+                <Separator />
+                <MenuItem x:Name="ContextInteractiveRebaseMenuItem"
+                          Header="{x:Static res:CommitLogStrings.InteractiveRebaseMenu}">
+                  <MenuItem.Icon>
+                    <material:MaterialIcon Kind="SourceFork" Width="16" Height="16" />
+                  </MenuItem.Icon>
+                </MenuItem>
+              </ContextMenu>
+            </ListBox.ContextMenu>
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="models:CommitSummary">
+                <Grid Height="28">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="70" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="140" />
+                    <ColumnDefinition Width="110" />
+                  </Grid.ColumnDefinitions>
+
+                  <!-- Visual Graph Lane Canvas -->
+                  <canvas:CommitGraphCanvas Grid.Column="0"
+                                           Width="80"
+                                           Height="28"
+                                           Lane="{Binding Lane}"
+                                           PassingLanes="{Binding PassingLanes}"
+                                           MergingLanes="{Binding MergingLanes}"
+                                           ForkingOffLanes="{Binding ForkingOffLanes}" />
+
+                  <!-- Commit Short SHA -->
+                  <TextBlock Grid.Column="1"
+                             Text="{Binding ShortSha}"
+                             Classes="Monospace"
+                             Foreground="{DynamicResource GitGraphBranch1Brush}"
+                             VerticalAlignment="Center" />
+
+                  <!-- Commit Message and Branch/Tag Badges -->
+                  <StackPanel Grid.Column="2"
+                              Orientation="Horizontal"
+                              Spacing="6"
+                              VerticalAlignment="Center">
+                    <ItemsControl ItemsSource="{Binding BranchNames}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <Border Classes="BranchBadge">
+                            <TextBlock Text="{Binding}" FontSize="10" Foreground="White" />
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <ItemsControl ItemsSource="{Binding TagNames}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <Border Classes="TagBadge">
+                            <TextBlock Text="{Binding}" FontSize="10" Foreground="White" />
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Text="{Binding MessageShort}"
+                               FontSize="13"
+                               TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+
+                  <!-- Author Name -->
+                  <TextBlock Grid.Column="3"
+                             Text="{Binding AuthorName}"
+                             Classes="SubtleCaption"
+                             TextTrimming="CharacterEllipsis"
+                             VerticalAlignment="Center" />
+
+                  <!-- Date -->
+                  <TextBlock Grid.Column="4"
+                             Text="{Binding AuthorDate, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"
+                             Classes="SubtleCaption"
+                             VerticalAlignment="Center" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+
+          <!-- Horizontal Splitter -->
+          <GridSplitter Grid.Row="1"
+                        Background="{DynamicResource CardBorderBrush}"
+                        ResizeDirection="Rows" />
+
+          <!-- Bottom Detail Area: Changed Files & Diff Inspection -->
+          <Grid Grid.Row="2" ColumnDefinitions="280, 1, *">
+            <!-- Changed Files List -->
+            <Grid Grid.Column="0" RowDefinitions="Auto, *">
+              <Border Grid.Row="0"
+                      Background="{DynamicResource ShellHeaderFooterBrush}"
+                      BorderBrush="{DynamicResource CardBorderBrush}"
+                      BorderThickness="0,0,0,1"
+                      Padding="10,6">
+                <TextBlock Text="{x:Static res:CommitLogStrings.ChangedFilesTitle}"
+                           Classes="SectionHeader" />
+              </Border>
+
+              <ListBox Grid.Row="1"
+                       x:Name="ChangedFilesListBox"
+                       Background="Transparent"
+                       BorderThickness="0">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="models:FileDiffSummary">
+                    <Border Classes="ChangedFileCard">
+                      <Grid ColumnDefinitions="*, Auto">
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding Path}"
+                                   FontSize="12"
+                                   TextTrimming="CharacterEllipsis" />
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                          <TextBlock Text="{Binding LinesAdded, StringFormat='+{0}'}"
+                                     Foreground="{DynamicResource SuccessBrush}"
+                                     FontSize="11" />
+                          <TextBlock Text="{Binding LinesDeleted, StringFormat='-{0}'}"
+                                     Foreground="{DynamicResource ErrorBrush}"
+                                     FontSize="11" />
+                        </StackPanel>
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </Grid>
+
+            <!-- Divider -->
+            <Rectangle Grid.Column="1" Fill="{DynamicResource CardBorderBrush}" />
+
+            <!-- Diff Inspection View -->
+            <Grid Grid.Column="2" RowDefinitions="Auto, *">
+              <Border Grid.Row="0"
+                      Background="{DynamicResource ShellHeaderFooterBrush}"
+                      BorderBrush="{DynamicResource CardBorderBrush}"
+                      BorderThickness="0,0,0,1"
+                      Padding="10,6">
+                <TextBlock Text="{x:Static res:CommitLogStrings.DiffTitle}"
+                           Classes="SectionHeader" />
+              </Border>
+
+              <ScrollViewer Grid.Row="1"
+                            HorizontalScrollBarVisibility="Auto"
+                            VerticalScrollBarVisibility="Auto">
+                <ItemsControl x:Name="DiffLinesItemsControl">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:DiffLine">
+                      <Grid ColumnDefinitions="45, 45, *">
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding OldLineNumber}"
+                                   Classes="Monospace SubtleCaption"
+                                   TextAlignment="Right"
+                                   Margin="0,0,6,0" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding NewLineNumber}"
+                                   Classes="Monospace SubtleCaption"
+                                   TextAlignment="Right"
+                                   Margin="0,0,8,0" />
+
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding Content}"
+                                   Classes="DiffAddition"
+                                   IsVisible="{Binding Type, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static enums:DiffLineType.Addition}}" />
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding Content}"
+                                   Classes="DiffDeletion"
+                                   IsVisible="{Binding Type, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static enums:DiffLineType.Deletion}}" />
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding Content}"
+                                   Classes="DiffHunkHeader"
+                                   IsVisible="{Binding Type, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static enums:DiffLineType.HunkHeader}}" />
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding Content}"
+                                   Classes="DiffContext"
+                                   IsVisible="{Binding Type, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static enums:DiffLineType.Context}}" />
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+            </Grid>
+          </Grid>
+        </Grid>
+      </Grid>
+    </Grid>
+
+    <!-- Modal Overlays -->
+
+    <!-- Create Branch Modal -->
+    <Grid x:Name="CreateBranchModalBackdrop"
+          Classes="ModalBackdrop"
+          IsVisible="False">
+      <Border Classes="ModalCard"
+              Width="420"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <StackPanel Spacing="16">
+          <TextBlock Text="{x:Static res:CommitLogStrings.CreateBranchModalTitle}"
+                     FontSize="16"
+                     FontWeight="SemiBold" />
+
+          <TextBox x:Name="NewBranchNameTextBox"
+                   Watermark="{x:Static res:CommitLogStrings.BranchNamePlaceholder}" />
+
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button x:Name="CancelCreateBranchButton"
+                    Classes="SecondaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.CancelButton}" />
+            <Button x:Name="ConfirmCreateBranchButton"
+                    Classes="PrimaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.SaveButton}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- Create Tag Modal -->
+    <Grid x:Name="CreateTagModalBackdrop"
+          Classes="ModalBackdrop"
+          IsVisible="False">
+      <Border Classes="ModalCard"
+              Width="420"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <StackPanel Spacing="14">
+          <TextBlock Text="{x:Static res:CommitLogStrings.CreateTagModalTitle}"
+                     FontSize="16"
+                     FontWeight="SemiBold" />
+
+          <TextBox x:Name="NewTagNameTextBox"
+                   Watermark="{x:Static res:CommitLogStrings.TagNamePlaceholder}" />
+
+          <TextBox x:Name="NewTagMessageTextBox"
+                   AcceptsReturn="True"
+                   Height="60"
+                   Watermark="{x:Static res:CommitLogStrings.TagMessagePlaceholder}" />
+
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button x:Name="CancelCreateTagButton"
+                    Classes="SecondaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.CancelButton}" />
+            <Button x:Name="ConfirmCreateTagButton"
+                    Classes="PrimaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.SaveButton}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- Create Stash Modal -->
+    <Grid x:Name="CreateStashModalBackdrop"
+          Classes="ModalBackdrop"
+          IsVisible="False">
+      <Border Classes="ModalCard"
+              Width="420"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <StackPanel Spacing="16">
+          <TextBlock Text="{x:Static res:CommitLogStrings.StashModalTitle}"
+                     FontSize="16"
+                     FontWeight="SemiBold" />
+
+          <TextBox x:Name="NewStashMessageTextBox"
+                   Watermark="{x:Static res:CommitLogStrings.StashMessagePlaceholder}" />
+
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button x:Name="CancelCreateStashButton"
+                    Classes="SecondaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.CancelButton}" />
+            <Button x:Name="ConfirmCreateStashButton"
+                    Classes="PrimaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.SaveButton}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- Settings Modal -->
+    <Grid x:Name="SettingsModalBackdrop"
+          Classes="ModalBackdrop"
+          IsVisible="False">
+      <Border Classes="ModalCard"
+              Width="460"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <StackPanel Spacing="14">
+          <TextBlock Text="{x:Static res:CommitLogStrings.SettingsModalTitle}"
+                     FontSize="16"
+                     FontWeight="SemiBold" />
+
+          <StackPanel Spacing="4">
+            <TextBlock Text="{x:Static res:CommitLogStrings.UserNameLabel}" FontSize="12" />
+            <TextBox x:Name="ConfigUserNameTextBox" />
+          </StackPanel>
+
+          <StackPanel Spacing="4">
+            <TextBlock Text="{x:Static res:CommitLogStrings.UserEmailLabel}" FontSize="12" />
+            <TextBox x:Name="ConfigUserEmailTextBox" />
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,10,0,0">
+            <Button x:Name="CancelSettingsButton"
+                    Classes="SecondaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.CancelButton}" />
+            <Button x:Name="ConfirmSettingsButton"
+                    Classes="PrimaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.SaveButton}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- Reset Confirmation Modal -->
+    <Grid x:Name="ResetConfirmModalBackdrop"
+          Classes="ModalBackdrop"
+          IsVisible="False">
+      <Border Classes="ModalCard"
+              Width="440"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <StackPanel Spacing="16">
+          <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+            <material:MaterialIcon Kind="AlertCircleOutline"
+                                  Width="24"
+                                  Height="24"
+                                  Foreground="{DynamicResource ErrorBrush}" />
+            <TextBlock Text="{x:Static res:CommitLogStrings.ResetConfirmModalTitle}"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       VerticalAlignment="Center" />
+          </StackPanel>
+
+          <TextBlock Text="{x:Static res:CommitLogStrings.ResetConfirmMessage}"
+                     TextWrapping="Wrap"
+                     FontSize="13" />
+
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button x:Name="CancelResetButton"
+                    Classes="SecondaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.CancelButton}" />
+            <Button x:Name="ConfirmResetButton"
+                    Classes="PrimaryAction"
+                    Background="{DynamicResource ErrorBrush}"
+                    Content="{x:Static res:CommitLogStrings.ConfirmResetButton}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- Merge Branch Modal -->
+    <Grid x:Name="MergeModalBackdrop"
+          Classes="ModalBackdrop"
+          IsVisible="False">
+      <Border Classes="ModalCard"
+              Width="440"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <StackPanel Spacing="16">
+          <TextBlock Text="{x:Static res:CommitLogStrings.MergeModalTitle}"
+                     FontSize="16"
+                     FontWeight="SemiBold" />
+
+          <StackPanel Spacing="6">
+            <TextBlock Text="{x:Static res:CommitLogStrings.MergeSourceBranchLabel}" FontSize="12" />
+            <ComboBox x:Name="MergeBranchesComboBox"
+                      HorizontalAlignment="Stretch">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="models:BranchInfo">
+                  <TextBlock Text="{Binding Name}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </StackPanel>
+
+          <StackPanel Spacing="8">
+            <RadioButton x:Name="MergeFastForwardRadioButton"
+                         GroupName="MergeStrategyGroup"
+                         IsChecked="True"
+                         Content="{x:Static res:CommitLogStrings.MergeFastForwardOption}" />
+            <RadioButton x:Name="MergeNoFastForwardRadioButton"
+                         GroupName="MergeStrategyGroup"
+                         Content="{x:Static res:CommitLogStrings.MergeNoFastForwardOption}" />
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button x:Name="CancelMergeButton"
+                    Classes="SecondaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.CancelButton}" />
+            <Button x:Name="ConfirmMergeButton"
+                    Classes="PrimaryAction"
+                    Content="{x:Static res:CommitLogStrings.ConfirmMergeButton}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- Interactive Rebase Modal -->
+    <Grid x:Name="InteractiveRebaseModalBackdrop"
+          Classes="ModalBackdrop"
+          IsVisible="False">
+      <Border Classes="ModalCard"
+              Width="760"
+              MaxHeight="650"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <Grid RowDefinitions="Auto, *, Auto, Auto">
+          <!-- Modal Header -->
+          <Grid Grid.Row="0" ColumnDefinitions="*, Auto" Margin="0,0,0,12">
+            <StackPanel Grid.Column="0" Spacing="4">
+              <TextBlock Text="{x:Static res:CommitLogStrings.InteractiveRebaseModalTitle}"
+                         FontSize="18"
+                         FontWeight="SemiBold" />
+              <TextBlock x:Name="RebaseUpstreamSubtitleTextBlock"
+                         Classes="SubtleCaption" />
+            </StackPanel>
+          </Grid>
+
+          <!-- Rebase Steps List -->
+          <Border Grid.Row="1"
+                  BorderBrush="{DynamicResource CardBorderBrush}"
+                  BorderThickness="1"
+                  CornerRadius="4"
+                  Background="{DynamicResource AppBackgroundBrush}"
+                  MinHeight="250"
+                  MaxHeight="350">
+            <ListBox x:Name="RebaseStepsListBox"
+                     Background="Transparent">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="models:RebaseStep">
+                  <Grid ColumnDefinitions="75, 75, *, 120" Height="28">
+                    <!-- Action Badge -->
+                    <Border Grid.Column="0"
+                            Classes="BranchBadge"
+                            Margin="0,2,6,2"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Action}"
+                                 FontSize="11"
+                                 FontWeight="SemiBold"
+                                 Foreground="{DynamicResource TextPrimaryBrush}" />
+                    </Border>
+
+                    <!-- Short SHA -->
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding ShortSha}"
+                               Classes="Monospace"
+                               Foreground="{DynamicResource GitGraphBranch1Brush}"
+                               VerticalAlignment="Center" />
+
+                    <!-- Message -->
+                    <TextBlock Grid.Column="2"
+                               Text="{Binding NewMessage}"
+                               FontSize="12"
+                               TextTrimming="CharacterEllipsis"
+                               VerticalAlignment="Center" />
+
+                    <!-- Author -->
+                    <TextBlock Grid.Column="3"
+                               Text="{Binding AuthorName}"
+                               Classes="SubtleCaption"
+                               TextTrimming="CharacterEllipsis"
+                               VerticalAlignment="Center" />
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </Border>
+
+          <!-- Selected Step Actions & Editor Panel -->
+          <Border Grid.Row="2"
+                  BorderBrush="{DynamicResource CardBorderBrush}"
+                  BorderThickness="1"
+                  CornerRadius="4"
+                  Padding="10"
+                  Margin="0,10,0,14"
+                  Background="{DynamicResource ShellHeaderFooterBrush}">
+            <Grid RowDefinitions="Auto, Auto" ColumnDefinitions="Auto, 12, *">
+              <!-- Reorder Buttons -->
+              <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Spacing="6">
+                <Button x:Name="MoveUpStepButton" Classes="ToolbarAction">
+                  <StackPanel Orientation="Horizontal" Spacing="4">
+                    <material:MaterialIcon Kind="ArrowUp" Width="14" Height="14" />
+                    <TextBlock Text="{x:Static res:CommitLogStrings.MoveUpButton}" FontSize="11" />
+                  </StackPanel>
+                </Button>
+                <Button x:Name="MoveDownStepButton" Classes="ToolbarAction">
+                  <StackPanel Orientation="Horizontal" Spacing="4">
+                    <material:MaterialIcon Kind="ArrowDown" Width="14" Height="14" />
+                    <TextBlock Text="{x:Static res:CommitLogStrings.MoveDownButton}" FontSize="11" />
+                  </StackPanel>
+                </Button>
+              </StackPanel>
+
+              <!-- Action Selector Buttons -->
+              <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
+                <Button x:Name="ActionPickButton" Classes="ToolbarAction" Content="{x:Static res:CommitLogStrings.RebaseActionPick}" />
+                <Button x:Name="ActionRewordButton" Classes="ToolbarAction" Content="{x:Static res:CommitLogStrings.RebaseActionReword}" />
+                <Button x:Name="ActionEditButton" Classes="ToolbarAction" Content="{x:Static res:CommitLogStrings.RebaseActionEdit}" />
+                <Button x:Name="ActionSquashButton" Classes="ToolbarAction" Content="{x:Static res:CommitLogStrings.RebaseActionSquash}" />
+                <Button x:Name="ActionFixupButton" Classes="ToolbarAction" Content="{x:Static res:CommitLogStrings.RebaseActionFixup}" />
+                <Button x:Name="ActionDropButton" Classes="ToolbarAction" Content="{x:Static res:CommitLogStrings.RebaseActionDrop}" />
+              </StackPanel>
+
+              <!-- Reword Message Input -->
+              <TextBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                       x:Name="RebaseStepMessageTextBox"
+                       Margin="0,8,0,0"
+                       Watermark="{x:Static res:CommitLogStrings.NewMessagePlaceholder}" />
+            </Grid>
+          </Border>
+
+          <!-- Modal Action Buttons -->
+          <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button x:Name="CancelInteractiveRebaseButton"
+                    Classes="SecondaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.CancelButton}" />
+            <Button x:Name="ConfirmInteractiveRebaseButton"
+                    Classes="PrimaryAction"
+                    Content="{x:Static res:CommitLogStrings.StartRebaseButton}" />
+          </StackPanel>
+        </Grid>
+      </Border>
+    </Grid>
+
+    <!-- Credentials Dialog Modal -->
+    <Grid x:Name="CredentialsModalBackdrop"
+          Classes="ModalBackdrop"
+          IsVisible="False">
+      <Border Classes="ModalCard"
+              Width="460"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <StackPanel Spacing="16">
+          <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+            <material:MaterialIcon Kind="KeyOutline"
+                                   Width="24"
+                                   Height="24"
+                                   Foreground="{DynamicResource GitGraphBranch1Brush}" />
+            <TextBlock Text="{x:Static res:CommitLogStrings.CredentialsModalTitle}"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       VerticalAlignment="Center" />
+          </StackPanel>
+
+          <TextBlock x:Name="CredentialsSubtitleTextBlock"
+                     TextWrapping="Wrap"
+                     Classes="SubtleCaption" />
+
+          <!-- Auth Type Selector Buttons -->
+          <StackPanel Orientation="Horizontal" Spacing="16">
+            <RadioButton x:Name="CredentialsHttpsRadioButton"
+                         GroupName="CredentialsAuthTypeGroup"
+                         IsChecked="True"
+                         Content="HTTPS / Personal Access Token" />
+            <RadioButton x:Name="CredentialsSshRadioButton"
+                         GroupName="CredentialsAuthTypeGroup"
+                         Content="SSH Key Passphrase" />
+          </StackPanel>
+
+          <!-- Username Input (HTTPS only) -->
+          <StackPanel x:Name="CredentialsUsernamePanel" Spacing="4">
+            <TextBlock Text="{x:Static res:CommitLogStrings.CredentialsUsernameLabel}" FontSize="12" />
+            <TextBox x:Name="CredentialsUsernameTextBox" />
+          </StackPanel>
+
+          <!-- Password / Token / Passphrase Input -->
+          <StackPanel x:Name="CredentialsPasswordPanel" Spacing="4">
+            <TextBlock x:Name="CredentialsPasswordLabelTextBlock"
+                       Text="{x:Static res:CommitLogStrings.CredentialsPasswordLabel}"
+                       FontSize="12" />
+            <TextBox x:Name="CredentialsPasswordTextBox"
+                     PasswordChar="•" />
+          </StackPanel>
+
+          <!-- Error message if auth retry failed -->
+          <TextBlock x:Name="CredentialsErrorMessageTextBlock"
+                     Foreground="{DynamicResource ErrorBrush}"
+                     FontSize="12"
+                     TextWrapping="Wrap"
+                     IsVisible="False" />
+
+          <!-- Action Buttons -->
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button x:Name="CancelCredentialsButton"
+                    Classes="SecondaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.CancelButton}" />
+            <Button x:Name="SubmitCredentialsButton"
+                    Classes="PrimaryAction"
+                    Content="{x:Static res:CommitLogStrings.CredentialsAuthenticateButton}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+  </Grid>
+</rxui:ReactiveUserControl>

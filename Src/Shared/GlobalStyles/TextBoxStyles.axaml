@@ -1,0 +1,19 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Search & Input Field Style -->
+  <Style Selector="TextBox.SearchInput">
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="10,7" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+  </Style>
+
+  <Style Selector="TextBox.SearchInput:focus">
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderHighlightBrush}" />
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardHoverBrush}" />
+  </Style>
+
+</Styles>

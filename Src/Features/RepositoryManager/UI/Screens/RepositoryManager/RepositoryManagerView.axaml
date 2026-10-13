@@ -1,0 +1,321 @@
+<rxui:ReactiveUserControl x:TypeArguments="vm:RepositoryManagerViewModel"
+                          xmlns="https://github.com/avaloniaui"
+                          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                          xmlns:rxui="http://reactiveui.net"
+                          xmlns:res="using:GitWerka.Features.RepositoryManager.Resources"
+                          xmlns:sharedRes="using:GitWerka.Shared.Resources"
+                          xmlns:vm="using:GitWerka.Features.RepositoryManager.UI.Screens.RepositoryManager"
+                          xmlns:models="using:GitWerka.Core.Domain.Models"
+                          xmlns:material="using:Material.Icons.Avalonia"
+                          x:Class="GitWerka.Features.RepositoryManager.UI.Screens.RepositoryManager.RepositoryManagerView">
+
+  <UserControl.Styles>
+    <StyleInclude Source="avares://GitWerka/Src/Features/RepositoryManager/UI/Screens/RepositoryManager/ScreenStyles/RepositoryManagerStyles.axaml" />
+  </UserControl.Styles>
+
+  <Grid x:Name="RootLayoutGrid">
+    <!-- Main Two-Column Content -->
+    <Grid Margin="32">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="360" />
+        <ColumnDefinition Width="32" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <!-- Left Column: Branding and Action Tiles -->
+      <StackPanel Grid.Column="0" Spacing="16">
+        <!-- Logo and App Title -->
+        <StackPanel Spacing="6" Margin="0,0,0,12">
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <material:MaterialIcon Kind="Git" Width="36" Height="36" Foreground="{DynamicResource GitGraphBranch1Brush}" />
+            <TextBlock Text="{x:Static res:RepositoryManagerStrings.WelcomeTitle}"
+                       Classes="PageTitle"
+                       VerticalAlignment="Center" />
+          </StackPanel>
+          <TextBlock Text="{x:Static res:RepositoryManagerStrings.WelcomeSubtitle}"
+                     Classes="SubtleCaption" />
+        </StackPanel>
+
+        <!-- Error Notification Banner -->
+        <Border x:Name="ErrorBannerBorder"
+                Classes="ErrorBanner"
+                IsVisible="False">
+          <DockPanel LastChildFill="True">
+            <Button x:Name="DismissErrorButton"
+                    DockPanel.Dock="Right"
+                    Classes="IconButton"
+                    VerticalAlignment="Center">
+              <material:MaterialIcon Kind="Close" Width="16" Height="16" Foreground="{DynamicResource OnErrorBrush}" />
+            </Button>
+            <TextBlock x:Name="ErrorBannerTextBlock"
+                       Foreground="{DynamicResource OnErrorBrush}"
+                       TextWrapping="Wrap"
+                       VerticalAlignment="Center" />
+          </DockPanel>
+        </Border>
+
+        <!-- Action Tile: Open Repository -->
+        <Button x:Name="OpenRepositoryTileButton"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                Padding="0"
+                Background="Transparent"
+                BorderThickness="0">
+          <Border Classes="ActionTile">
+            <Grid ColumnDefinitions="Auto, *">
+              <material:MaterialIcon Grid.Column="0"
+                                    Kind="FolderOpen"
+                                    Width="26"
+                                    Height="26"
+                                    Foreground="{DynamicResource GitGraphBranch1Brush}"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,14,0" />
+              <StackPanel Grid.Column="1" Spacing="2">
+                <TextBlock Text="{x:Static res:RepositoryManagerStrings.OpenRepositoryButton}"
+                           Classes="SectionHeader" />
+                <TextBlock Text="{x:Static res:RepositoryManagerStrings.OpenRepositoryDescription}"
+                           Classes="SubtleCaption"
+                           TextWrapping="Wrap" />
+              </StackPanel>
+            </Grid>
+          </Border>
+        </Button>
+
+        <!-- Action Tile: Clone Repository -->
+        <Button x:Name="CloneRepositoryTileButton"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                Padding="0"
+                Background="Transparent"
+                BorderThickness="0">
+          <Border Classes="ActionTile">
+            <Grid ColumnDefinitions="Auto, *">
+              <material:MaterialIcon Grid.Column="0"
+                                    Kind="Download"
+                                    Width="26"
+                                    Height="26"
+                                    Foreground="{DynamicResource GitGraphBranch2Brush}"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,14,0" />
+              <StackPanel Grid.Column="1" Spacing="2">
+                <TextBlock Text="{x:Static res:RepositoryManagerStrings.CloneRepositoryButton}"
+                           Classes="SectionHeader" />
+                <TextBlock Text="{x:Static res:RepositoryManagerStrings.CloneRepositoryDescription}"
+                           Classes="SubtleCaption"
+                           TextWrapping="Wrap" />
+              </StackPanel>
+            </Grid>
+          </Border>
+        </Button>
+
+        <!-- Action Tile: Create Local Repository -->
+        <Button x:Name="InitRepositoryTileButton"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                Padding="0"
+                Background="Transparent"
+                BorderThickness="0">
+          <Border Classes="ActionTile">
+            <Grid ColumnDefinitions="Auto, *">
+              <material:MaterialIcon Grid.Column="0"
+                                    Kind="PlusBoxOutline"
+                                    Width="26"
+                                    Height="26"
+                                    Foreground="{DynamicResource GitGraphBranch5Brush}"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,14,0" />
+              <StackPanel Grid.Column="1" Spacing="2">
+                <TextBlock Text="{x:Static res:RepositoryManagerStrings.InitRepositoryButton}"
+                           Classes="SectionHeader" />
+                <TextBlock Text="{x:Static res:RepositoryManagerStrings.InitRepositoryDescription}"
+                           Classes="SubtleCaption"
+                           TextWrapping="Wrap" />
+              </StackPanel>
+            </Grid>
+          </Border>
+        </Button>
+      </StackPanel>
+
+      <!-- Right Column: Recent Repositories Section -->
+      <Grid Grid.Column="2" RowDefinitions="Auto, 16, *">
+        <!-- Search and Section Header -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto, *, 240">
+          <TextBlock Grid.Column="0"
+                     Text="{x:Static res:RepositoryManagerStrings.RecentRepositoriesTitle}"
+                     Classes="SectionHeader"
+                     VerticalAlignment="Center" />
+
+          <TextBox Grid.Column="2"
+                   x:Name="SearchInputTextBox"
+                   Classes="SearchInput"
+                   Watermark="{x:Static res:RepositoryManagerStrings.SearchRecentPlaceholder}" />
+        </Grid>
+
+        <!-- Loading Indicator -->
+        <ProgressBar Grid.Row="2"
+                     x:Name="LoadingProgressBar"
+                     IsIndeterminate="True"
+                     VerticalAlignment="Top"
+                     IsVisible="False" />
+
+        <!-- Recent Repositories ListBox -->
+        <ListBox Grid.Row="2"
+                 x:Name="RecentRepositoriesListBox"
+                 Background="Transparent"
+                 BorderThickness="0">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="models:RecentRepository">
+              <Border Classes="RecentRepoCard">
+                <Grid ColumnDefinitions="Auto, *, Auto">
+                  <material:MaterialIcon Grid.Column="0"
+                                        Kind="SourceRepository"
+                                        Width="22"
+                                        Height="22"
+                                        Foreground="{DynamicResource GitGraphBranch1Brush}"
+                                        VerticalAlignment="Center"
+                                        Margin="0,0,12,0" />
+
+                  <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Name}"
+                               FontWeight="SemiBold"
+                               FontSize="14" />
+                    <TextBlock Text="{Binding Path}"
+                               Classes="SubtleCaption"
+                               TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+
+                  <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <material:MaterialIcon Kind="Pin"
+                                          Width="16"
+                                          Height="16"
+                                          Foreground="{DynamicResource GitGraphBranch3Brush}"
+                                          IsVisible="{Binding IsPinned}" />
+                  </StackPanel>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- Empty State Message -->
+        <TextBlock Grid.Row="2"
+                   x:Name="EmptyRepositoriesTextBlock"
+                   Text="{x:Static res:RepositoryManagerStrings.NoRecentRepositories}"
+                   Classes="SubtleCaption"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   IsVisible="False" />
+      </Grid>
+    </Grid>
+
+    <!-- Modal Dialog Overlay: Clone -->
+    <Border x:Name="CloneModalOverlay"
+            Background="{DynamicResource ModalOverlayBrush}"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            IsVisible="False">
+      <Border Classes="ModalDialogCard"
+              Width="520"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <StackPanel Spacing="16">
+          <TextBlock Text="{x:Static res:RepositoryManagerStrings.CloneModalTitle}"
+                     Classes="SectionHeader" />
+
+          <StackPanel Spacing="6">
+            <TextBlock Text="{x:Static res:RepositoryManagerStrings.RemoteUrlLabel}"
+                       Classes="SubtleCaption" />
+            <TextBox x:Name="CloneSourceUrlTextBox"
+                     Watermark="{x:Static res:RepositoryManagerStrings.RemoteUrlPlaceholder}" />
+          </StackPanel>
+
+          <StackPanel Spacing="6">
+            <TextBlock Text="{x:Static res:RepositoryManagerStrings.TargetDirectoryLabel}"
+                       Classes="SubtleCaption" />
+            <Grid ColumnDefinitions="*, 8, Auto">
+              <TextBox Grid.Column="0"
+                       x:Name="CloneTargetDirectoryTextBox" />
+              <Button Grid.Column="2"
+                      x:Name="BrowseCloneDirectoryButton"
+                      Classes="SecondaryAction"
+                      Content="{x:Static res:RepositoryManagerStrings.BrowseButton}" />
+            </Grid>
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal"
+                      HorizontalAlignment="Right"
+                      Spacing="10"
+                      Margin="0,8,0,0">
+            <Button x:Name="CancelCloneButton"
+                    Classes="SecondaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.CancelButton}" />
+            <Button x:Name="ConfirmCloneButton"
+                    Classes="PrimaryAction"
+                    Content="{x:Static res:RepositoryManagerStrings.CloneRepositoryButton}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Border>
+
+    <!-- Modal Dialog Overlay: Init -->
+    <Border x:Name="InitModalOverlay"
+            Background="{DynamicResource ModalOverlayBrush}"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            IsVisible="False">
+      <Border Classes="ModalDialogCard"
+              Width="520"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <StackPanel Spacing="16">
+          <TextBlock Text="{x:Static res:RepositoryManagerStrings.InitModalTitle}"
+                     Classes="SectionHeader" />
+
+          <StackPanel Spacing="6">
+            <TextBlock Text="{x:Static res:RepositoryManagerStrings.DirectoryLabel}"
+                       Classes="SubtleCaption" />
+            <Grid ColumnDefinitions="*, 8, Auto">
+              <TextBox Grid.Column="0"
+                       x:Name="InitDirectoryPathTextBox" />
+              <Button Grid.Column="2"
+                      x:Name="BrowseInitDirectoryButton"
+                      Classes="SecondaryAction"
+                      Content="{x:Static res:RepositoryManagerStrings.BrowseButton}" />
+            </Grid>
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal"
+                      HorizontalAlignment="Right"
+                      Spacing="10"
+                      Margin="0,8,0,0">
+            <Button x:Name="CancelInitButton"
+                    Classes="SecondaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.CancelButton}" />
+            <Button x:Name="ConfirmInitButton"
+                    Classes="PrimaryAction"
+                    Content="{x:Static res:RepositoryManagerStrings.InitRepositoryButton}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Border>
+
+    <!-- Operation Running Overlay -->
+    <Border x:Name="OperationRunningOverlay"
+            Background="{DynamicResource ModalOverlayBrush}"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            IsVisible="False">
+      <Border Classes="ModalDialogCard"
+              Width="320"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <StackPanel Spacing="16" HorizontalAlignment="Center">
+          <ProgressBar IsIndeterminate="True" Width="200" />
+          <TextBlock Text="{x:Static res:RepositoryManagerStrings.CloningProgress}"
+                     Classes="SubtleCaption"
+                     HorizontalAlignment="Center" />
+        </StackPanel>
+      </Border>
+    </Border>
+  </Grid>
+</rxui:ReactiveUserControl>

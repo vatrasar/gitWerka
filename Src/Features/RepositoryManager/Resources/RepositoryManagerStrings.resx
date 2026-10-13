@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="0" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="WelcomeTitle" xml:space="preserve">
+    <value>GitWerka</value>
+  </data>
+  <data name="WelcomeSubtitle" xml:space="preserve">
+    <value>Modern Git Client</value>
+  </data>
+  <data name="OpenRepositoryButton" xml:space="preserve">
+    <value>Open Repository</value>
+  </data>
+  <data name="OpenRepositoryDescription" xml:space="preserve">
+    <value>Open an existing Git repository from your local filesystem</value>
+  </data>
+  <data name="CloneRepositoryButton" xml:space="preserve">
+    <value>Clone Repository</value>
+  </data>
+  <data name="CloneRepositoryDescription" xml:space="preserve">
+    <value>Clone a remote repository via HTTPS or SSH</value>
+  </data>
+  <data name="InitRepositoryButton" xml:space="preserve">
+    <value>Create Local Repository</value>
+  </data>
+  <data name="InitRepositoryDescription" xml:space="preserve">
+    <value>Initialize a brand new Git repository in a folder</value>
+  </data>
+  <data name="RecentRepositoriesTitle" xml:space="preserve">
+    <value>Recent Repositories</value>
+  </data>
+  <data name="SearchRecentPlaceholder" xml:space="preserve">
+    <value>Search recent repositories...</value>
+  </data>
+  <data name="NoRecentRepositories" xml:space="preserve">
+    <value>No recent repositories found.</value>
+  </data>
+  <data name="CloneModalTitle" xml:space="preserve">
+    <value>Clone Remote Repository</value>
+  </data>
+  <data name="RemoteUrlLabel" xml:space="preserve">
+    <value>Repository URL</value>
+  </data>
+  <data name="RemoteUrlPlaceholder" xml:space="preserve">
+    <value>https://github.com/user/repo.git</value>
+  </data>
+  <data name="TargetDirectoryLabel" xml:space="preserve">
+    <value>Destination Directory</value>
+  </data>
+  <data name="BrowseButton" xml:space="preserve">
+    <value>Browse...</value>
+  </data>
+  <data name="InitModalTitle" xml:space="preserve">
+    <value>Initialize Git Repository</value>
+  </data>
+  <data name="DirectoryLabel" xml:space="preserve">
+    <value>Directory</value>
+  </data>
+  <data name="CloningProgress" xml:space="preserve">
+    <value>Cloning repository, please wait...</value>
+  </data>
+  <data name="InvalidRepositoryError" xml:space="preserve">
+    <value>The selected directory is not a valid Git repository.</value>
+  </data>
+</root>

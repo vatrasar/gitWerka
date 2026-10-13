@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="0" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="CommitLogTitle" xml:space="preserve">
+    <value>Commit History</value>
+  </data>
+  <data name="SearchCommitsPlaceholder" xml:space="preserve">
+    <value>Filter commits (message, author, hash)...</value>
+  </data>
+  <data name="BranchesTitle" xml:space="preserve">
+    <value>Branches</value>
+  </data>
+  <data name="LocalBranches" xml:space="preserve">
+    <value>Local</value>
+  </data>
+  <data name="RemoteBranches" xml:space="preserve">
+    <value>Remote</value>
+  </data>
+  <data name="WorkingTreeHeader" xml:space="preserve">
+    <value>Working Tree</value>
+  </data>
+  <data name="NoCommitsFound" xml:space="preserve">
+    <value>No commits found matching filter.</value>
+  </data>
+  <data name="CommitDetailsTitle" xml:space="preserve">
+    <value>Commit Details</value>
+  </data>
+  <data name="ChangedFilesTitle" xml:space="preserve">
+    <value>Changed Files</value>
+  </data>
+  <data name="AuthorLabel" xml:space="preserve">
+    <value>Author:</value>
+  </data>
+  <data name="DateLabel" xml:space="preserve">
+    <value>Date:</value>
+  </data>
+  <data name="ShaLabel" xml:space="preserve">
+    <value>Commit:</value>
+  </data>
+  <data name="DiffTitle" xml:space="preserve">
+    <value>Diff Inspection</value>
+  </data>
+  <data name="NoFileSelected" xml:space="preserve">
+    <value>Select a file to inspect diff.</value>
+  </data>
+  <data name="CheckoutBranchButton" xml:space="preserve">
+    <value>Checkout</value>
+  </data>
+  <data name="RefreshButton" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="StageButton" xml:space="preserve">
+    <value>Stage</value>
+  </data>
+  <data name="UnstageButton" xml:space="preserve">
+    <value>Unstage</value>
+  </data>
+  <data name="DiscardButton" xml:space="preserve">
+    <value>Discard</value>
+  </data>
+  <data name="CommitButton" xml:space="preserve">
+    <value>Commit</value>
+  </data>
+  <data name="CommitMessagePlaceholder" xml:space="preserve">
+    <value>Commit message...</value>
+  </data>
+  <data name="FetchButton" xml:space="preserve">
+    <value>Fetch</value>
+  </data>
+  <data name="PullButton" xml:space="preserve">
+    <value>Pull</value>
+  </data>
+  <data name="PushButton" xml:space="preserve">
+    <value>Push</value>
+  </data>
+  <data name="CreateBranchButton" xml:space="preserve">
+    <value>Branch</value>
+  </data>
+  <data name="CreateTagButton" xml:space="preserve">
+    <value>Tag</value>
+  </data>
+  <data name="StashButton" xml:space="preserve">
+    <value>Stash</value>
+  </data>
+  <data name="TagsTitle" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="StashesTitle" xml:space="preserve">
+    <value>Stashes</value>
+  </data>
+  <data name="SettingsButton" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="CreateBranchModalTitle" xml:space="preserve">
+    <value>Create New Branch</value>
+  </data>
+  <data name="BranchNamePlaceholder" xml:space="preserve">
+    <value>Branch name...</value>
+  </data>
+  <data name="CreateTagModalTitle" xml:space="preserve">
+    <value>Create New Tag</value>
+  </data>
+  <data name="TagNamePlaceholder" xml:space="preserve">
+    <value>Tag name...</value>
+  </data>
+  <data name="TagMessagePlaceholder" xml:space="preserve">
+    <value>Annotation message (optional)...</value>
+  </data>
+  <data name="StashModalTitle" xml:space="preserve">
+    <value>Create Stash</value>
+  </data>
+  <data name="StashMessagePlaceholder" xml:space="preserve">
+    <value>Stash description...</value>
+  </data>
+  <data name="SettingsModalTitle" xml:space="preserve">
+    <value>Git User Configuration</value>
+  </data>
+  <data name="UserNameLabel" xml:space="preserve">
+    <value>User Name</value>
+  </data>
+  <data name="UserEmailLabel" xml:space="preserve">
+    <value>User Email</value>
+  </data>
+  <data name="StagedChangesHeader" xml:space="preserve">
+    <value>Staged Changes</value>
+  </data>
+  <data name="UnstagedChangesHeader" xml:space="preserve">
+    <value>Unstaged Changes</value>
+  </data>
+  <data name="StageAllButton" xml:space="preserve">
+    <value>Stage All</value>
+  </data>
+  <data name="UnstageAllButton" xml:space="preserve">
+    <value>Unstage All</value>
+  </data>
+  <data name="BackToRepoManager" xml:space="preserve">
+    <value>Repositories</value>
+  </data>
+  <data name="DeleteBranchButton" xml:space="preserve">
+    <value>Delete Branch</value>
+  </data>
+  <data name="DeleteTagButton" xml:space="preserve">
+    <value>Delete Tag</value>
+  </data>
+  <data name="ApplyStashButton" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="PopStashButton" xml:space="preserve">
+    <value>Pop</value>
+  </data>
+  <data name="DropStashButton" xml:space="preserve">
+    <value>Drop</value>
+  </data>
+  <data name="CherryPickMenu" xml:space="preserve">
+    <value>Cherry-pick Commit</value>
+  </data>
+  <data name="RevertMenu" xml:space="preserve">
+    <value>Revert Commit</value>
+  </data>
+  <data name="ResetMenu" xml:space="preserve">
+    <value>Reset Current Branch to Here</value>
+  </data>
+  <data name="ResetSoftMenu" xml:space="preserve">
+    <value>Soft (Keep index and working tree)</value>
+  </data>
+  <data name="ResetMixedMenu" xml:space="preserve">
+    <value>Mixed (Reset index, keep working tree)</value>
+  </data>
+  <data name="ResetHardMenu" xml:space="preserve">
+    <value>Hard (Discard all changes)</value>
+  </data>
+  <data name="CreateBranchFromCommitMenu" xml:space="preserve">
+    <value>Create Branch Here...</value>
+  </data>
+  <data name="CreateTagFromCommitMenu" xml:space="preserve">
+    <value>Create Tag Here...</value>
+  </data>
+  <data name="ResetConfirmModalTitle" xml:space="preserve">
+    <value>Confirm Branch Reset</value>
+  </data>
+  <data name="ResetConfirmMessage" xml:space="preserve">
+    <value>Are you sure you want to reset the current branch to this commit? Uncommitted modifications may be discarded.</value>
+  </data>
+  <data name="ConfirmResetButton" xml:space="preserve">
+    <value>Reset Branch</value>
+  </data>
+  <data name="MergeButton" xml:space="preserve">
+    <value>Merge</value>
+  </data>
+  <data name="MergeModalTitle" xml:space="preserve">
+    <value>Merge Branch</value>
+  </data>
+  <data name="MergeSourceBranchLabel" xml:space="preserve">
+    <value>Select branch to merge into current branch:</value>
+  </data>
+  <data name="MergeFastForwardOption" xml:space="preserve">
+    <value>Fast-forward if possible</value>
+  </data>
+  <data name="MergeNoFastForwardOption" xml:space="preserve">
+    <value>Always create merge commit (--no-ff)</value>
+  </data>
+  <data name="ConfirmMergeButton" xml:space="preserve">
+    <value>Merge Branch</value>
+  </data>
+  <data name="MergeBranchMenu" xml:space="preserve">
+    <value>Merge into Current Branch...</value>
+  </data>
+  <data name="InteractiveRebaseMenu" xml:space="preserve">
+    <value>Interactive Rebase onto here...</value>
+  </data>
+  <data name="InteractiveRebaseModalTitle" xml:space="preserve">
+    <value>Interactive Rebase</value>
+  </data>
+  <data name="InteractiveRebaseSubtitle" xml:space="preserve">
+    <value>Rebase commits onto: {0}</value>
+  </data>
+  <data name="RebaseActionPick" xml:space="preserve">
+    <value>Pick</value>
+  </data>
+  <data name="RebaseActionReword" xml:space="preserve">
+    <value>Reword</value>
+  </data>
+  <data name="RebaseActionEdit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="RebaseActionSquash" xml:space="preserve">
+    <value>Squash</value>
+  </data>
+  <data name="RebaseActionFixup" xml:space="preserve">
+    <value>Fixup</value>
+  </data>
+  <data name="RebaseActionDrop" xml:space="preserve">
+    <value>Drop</value>
+  </data>
+  <data name="StartRebaseButton" xml:space="preserve">
+    <value>Start Rebase</value>
+  </data>
+  <data name="MoveUpButton" xml:space="preserve">
+    <value>Move Up</value>
+  </data>
+  <data name="MoveDownButton" xml:space="preserve">
+    <value>Move Down</value>
+  </data>
+  <data name="NewMessagePlaceholder" xml:space="preserve">
+    <value>New commit message...</value>
+  </data>
+  <data name="OngoingMergeTitle" xml:space="preserve">
+    <value>Merge in Progress</value>
+  </data>
+  <data name="OngoingRebaseTitle" xml:space="preserve">
+    <value>Rebase in Progress</value>
+  </data>
+  <data name="ConflictsDetectedSubtitle" xml:space="preserve">
+    <value>Conflicts detected. Resolve conflicted files, stage them, and click Continue.</value>
+  </data>
+  <data name="ContinueButton" xml:space="preserve">
+    <value>Continue</value>
+  </data>
+  <data name="AbortButton" xml:space="preserve">
+    <value>Abort</value>
+  </data>
+  <data name="AmendCommitCheckbox" xml:space="preserve">
+    <value>Amend previous commit</value>
+  </data>
+  <data name="AmendCommitButton" xml:space="preserve">
+    <value>Amend</value>
+  </data>
+  <data name="OpenFileManagerButton" xml:space="preserve">
+    <value>Files</value>
+  </data>
+  <data name="OpenTerminalButton" xml:space="preserve">
+    <value>Terminal</value>
+  </data>
+  <data name="OpenEditorButton" xml:space="preserve">
+    <value>Editor</value>
+  </data>
+  <data name="OpenFileManagerTooltip" xml:space="preserve">
+    <value>Open repository in system file manager</value>
+  </data>
+  <data name="OpenTerminalTooltip" xml:space="preserve">
+    <value>Open repository in system terminal</value>
+  </data>
+  <data name="OpenEditorTooltip" xml:space="preserve">
+    <value>Open repository in code editor</value>
+  </data>
+  <data name="CredentialsModalTitle" xml:space="preserve">
+    <value>Authentication Required</value>
+  </data>
+  <data name="CredentialsHttpsSubtitle" xml:space="preserve">
+    <value>Remote repository requires authentication. Enter your username and password or Personal Access Token.</value>
+  </data>
+  <data name="CredentialsSshSubtitle" xml:space="preserve">
+    <value>Your SSH key is protected with a passphrase. Enter the passphrase to continue.</value>
+  </data>
+  <data name="CredentialsUsernameLabel" xml:space="preserve">
+    <value>Username</value>
+  </data>
+  <data name="CredentialsPasswordLabel" xml:space="preserve">
+    <value>Password / Token</value>
+  </data>
+  <data name="CredentialsPassphraseLabel" xml:space="preserve">
+    <value>SSH Key Passphrase</value>
+  </data>
+  <data name="CredentialsAuthenticateButton" xml:space="preserve">
+    <value>Authenticate</value>
+  </data>
+  <data name="CredentialsCancelledMessage" xml:space="preserve">
+    <value>Authentication cancelled.</value>
+  </data>
+  <data name="OpenInMenuButton" xml:space="preserve">
+    <value>Open in</value>
+  </data>
+  <data name="OpenInMenuTooltip" xml:space="preserve">
+    <value>Open repository in external tool</value>
+  </data>
+</root>

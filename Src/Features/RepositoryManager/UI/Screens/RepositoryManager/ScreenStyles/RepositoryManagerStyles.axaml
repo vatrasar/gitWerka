@@ -1,0 +1,67 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Action Card Tile in Left Panel -->
+  <Style Selector="Border.ActionTile">
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="16,14" />
+    <Setter Property="Margin" Value="0,4" />
+    <Setter Property="ClipToBounds" Value="False" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.15" />
+        <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="Border.ActionTile:pointerover">
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardHoverBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderHighlightBrush}" />
+  </Style>
+
+  <!-- Recent Repository Item Card -->
+  <Style Selector="Border.RecentRepoCard">
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="14,10" />
+    <Setter Property="Margin" Value="0,3" />
+    <Setter Property="ClipToBounds" Value="False" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.15" />
+        <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="Border.RecentRepoCard:pointerover">
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardHoverBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderHighlightBrush}" />
+  </Style>
+
+  <!-- Modal Dialog Window Card -->
+  <Style Selector="Border.ModalDialogCard">
+    <Setter Property="Background" Value="{DynamicResource ModalDialogCardBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="BoxShadow" Value="0 8 32 0 #50000000" />
+    <Setter Property="Padding" Value="24" />
+  </Style>
+
+  <!-- Error Banner Card -->
+  <Style Selector="Border.ErrorBanner">
+    <Setter Property="Background" Value="{DynamicResource ErrorBannerBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource ErrorBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="12,8" />
+  </Style>
+
+</Styles>

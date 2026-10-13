@@ -1,0 +1,31 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Section Header -->
+  <Style Selector="TextBlock.SectionHeader">
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="16" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+  </Style>
+
+  <!-- Large Title -->
+  <Style Selector="TextBlock.PageTitle">
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="FontSize" Value="22" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+  </Style>
+
+  <!-- Subtle / Muted Caption -->
+  <Style Selector="TextBlock.SubtleCaption">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource SubtleTextBrush}" />
+  </Style>
+
+  <!-- Monospace / Code Text -->
+  <Style Selector="TextBlock.Monospace">
+    <Setter Property="FontFamily" Value="Noto Sans Mono, Consolas, Courier New, monospace" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+  </Style>
+
+</Styles>
