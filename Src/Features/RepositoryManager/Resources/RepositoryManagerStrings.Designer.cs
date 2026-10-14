@@ -61,5 +61,24 @@ namespace GitWerka.Features.RepositoryManager.Resources {
         public static string DirectoryLabel => ResourceManager.GetString("DirectoryLabel", resourceCulture) ?? "Directory";
         public static string CloningProgress => ResourceManager.GetString("CloningProgress", resourceCulture) ?? "Cloning repository, please wait...";
         public static string InvalidRepositoryError => ResourceManager.GetString("InvalidRepositoryError", resourceCulture) ?? "The selected directory is not a valid Git repository.";
+        public static string FavoritesTabTitle => ResourceManager.GetString("FavoritesTabTitle", resourceCulture) ?? "Favorites";
+        public static string RecentTabTitle => ResourceManager.GetString("RecentTabTitle", resourceCulture) ?? "Recent";
+        public static string NoFavoriteRepositories => ResourceManager.GetString("NoFavoriteRepositories", resourceCulture) ?? "No favorite repositories yet. You can star repositories in the workspace to pin them here.";
+        public static string SettingsButton => ResourceManager.GetString("SettingsButton", resourceCulture) ?? "Settings";
+        public static string SettingsDescription => ResourceManager.GetString("SettingsDescription", resourceCulture) ?? "Configure application preferences and AI assistant";
+        public static string SettingsModalTitle => ResourceManager.GetString("SettingsModalTitle", resourceCulture) ?? "Global Settings";
+        public static string GeneralSettingsSectionTitle => ResourceManager.GetString("GeneralSettingsSectionTitle", resourceCulture) ?? "General";
+        public static string DefaultProjectsDirectoryLabel => ResourceManager.GetString("DefaultProjectsDirectoryLabel", resourceCulture) ?? "Default Projects Directory";
+        public static string DefaultProjectsDirectoryDescription => ResourceManager.GetString("DefaultProjectsDirectoryDescription", resourceCulture) ?? "Directory used as the starting location when opening a repository";
+        public static string DefaultProjectsDirectoryPlaceholder => ResourceManager.GetString("DefaultProjectsDirectoryPlaceholder", resourceCulture) ?? "/path/to/projects";
+        public static string AiSettingsSectionTitle => ResourceManager.GetString("AiSettingsSectionTitle", resourceCulture) ?? "AI Commit Assistant (OpenRouter)";
+        public static string AiApiKeyLabel => ResourceManager.GetString("AiApiKeyLabel", resourceCulture) ?? "OpenRouter API Key";
+        public static string AiApiKeyPlaceholder => ResourceManager.GetString("AiApiKeyPlaceholder", resourceCulture) ?? "sk-or-v1-...";
+        public static string AiModelLabel => ResourceManager.GetString("AiModelLabel", resourceCulture) ?? "AI Model";
+        public static string AiModelPlaceholder => ResourceManager.GetString("AiModelPlaceholder", resourceCulture) ?? "google/gemini-2.5-flash";
+        public static string AiTokenLimitLabel => ResourceManager.GetString("AiTokenLimitLabel", resourceCulture) ?? "Token Limit";
+        public static string AiTokenLimitPlaceholder => ResourceManager.GetString("AiTokenLimitPlaceholder", resourceCulture) ?? "4000";
+        public static string AiCommitStyleLabel => ResourceManager.GetString("AiCommitStyleLabel", resourceCulture) ?? "Commit Message Style";
+        public static string AiCommitStylePlaceholder => ResourceManager.GetString("AiCommitStylePlaceholder", resourceCulture) ?? "Conventional Commits: <type>(<scope>): <subject>";
     }
 }

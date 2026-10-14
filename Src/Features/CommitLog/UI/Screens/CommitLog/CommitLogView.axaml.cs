@@ -11,15 +11,22 @@
 /// - Tag listing and new tag creation modal.
 /// - Stash listing and new stash creation modal.
 /// - Remote operations (Fetch, Pull, Push) with automatic credentials authentication dialog on challenge.
+/// - Profiles management: switch active Git profile from toolbar dropdown menu, or navigate to ProfileManagementView.
 /// - System shortcuts: Open repository in system file manager, default terminal, or code editor (direct toolbar buttons on wide layouts or compact 'Open in' dropdown).
 /// - Periodic automatic repository status refresh every 5 seconds.
 /// - Credentials modal for HTTPS username/token and SSH key passphrase input.
 /// - Working tree changes tracking (staged / unstaged) with bulk staging and commit composition.
 /// - Amend previous commit toggle in commit composer.
+/// - AI-assisted commit message generation from staged changes via OpenRouter integration.
 /// - Commit file changes and structured diff inspection.
-/// - Git configuration modal for user name and email settings.
+/// - Git configuration modal for user name and email settings, default projects directory, AI API key, model, commit style, token limit, and per-repository project description.
 /// - Commit context actions: Cherry-pick, Revert, Reset current branch (Soft, Mixed, Hard), Create branch or tag from commit, Interactive rebase onto commit.
+/// - Favorites drawer dock: shows recently opened repository not in favorites, list of favorite repositories sorted by last opened, add to favorites with custom name modal, remove from favorites button, switch repository on item selection.
 /// Key UI Elements:
+/// - FavoritesToggleButton, FavoritesDockBackdrop, FavoritesDockPanel, CloseFavoritesDockButton, OpenFolderFromDockButton.
+/// - RecentNonFavoriteSectionPanel, RecentNonFavoriteNameTextBlock, RecentNonFavoritePathTextBlock, OpenRecentNonFavoriteRepoButton, AddRecentToFavoritesButton.
+/// - FavoritesDividerRectangle, EmptyFavoritesTextBlock, FavoritesListBox, DeleteFavoriteItemButton.
+/// - AddFavoriteModalBackdrop, FavoriteNameTextBox, TargetFavoritePathTextBlock, CancelAddFavoriteButton, ConfirmAddFavoriteButton.
 /// - CurrentBranchTextBlock, FetchButton, PullButton, PushButton, MergeButton.
 /// - SeparateOpenActionsPanel, OpenFileManagerButton, OpenTerminalButton, OpenEditorButton.
 /// - OpenInMenuButton, OpenInFileManagerMenuItem, OpenInTerminalMenuItem, OpenInEditorMenuItem.
@@ -27,13 +34,13 @@
 /// - SearchCommitsTextBox, BranchesTabButton, WorkingTreeTabButton, TagsTabButton, StashesTabButton.
 /// - BranchesListBox, BranchesContextMenu, BranchMergeMenuItem, NewBranchActionButton.
 /// - StagedChangesListBox, UnstagedChangesListBox, TagsListBox, StashesListBox, NewTagActionButton, NewStashActionButton.
-/// - CommitMessageTextBox, AmendCommitCheckBox, CommitButton, StageAllButton, UnstageAllButton.
+/// - CommitMessageTextBox, AmendCommitCheckBox, CommitMessageRemainingCountTextBlock, CommitButton, GenerateAiCommitButton, GenerateAiCommitNormalIcon, GenerateAiCommitLoadingIcon, GenerateAiCommitButtonText, AiGeneratingProgressBar, AiErrorBanner, AiErrorTextBlock, AiErrorSettingsButton, AiErrorDismissButton, StageAllButton, UnstageAllButton.
 /// - CommitsListBox, CommitsContextMenu, ContextCherryPickMenuItem, ContextRevertMenuItem, ContextResetMenuItem, ContextResetSoftMenuItem, ContextResetMixedMenuItem, ContextResetHardMenuItem, ContextCreateBranchMenuItem, ContextCreateTagMenuItem, ContextInteractiveRebaseMenuItem.
 /// - ChangedFilesListBox, DiffLinesItemsControl.
 /// - CreateBranchModalBackdrop, MergeModalBackdrop, MergeBranchesComboBox, MergeFastForwardRadioButton, MergeNoFastForwardRadioButton, CancelMergeButton, ConfirmMergeButton.
 /// - InteractiveRebaseModalBackdrop, RebaseUpstreamSubtitleTextBlock, RebaseStepsListBox, MoveUpStepButton, MoveDownStepButton, ActionPickButton, ActionRewordButton, ActionEditButton, ActionSquashButton, ActionFixupButton, ActionDropButton, RebaseStepMessageTextBox, CancelInteractiveRebaseButton, ConfirmInteractiveRebaseButton.
 /// - CredentialsModalBackdrop, CredentialsSubtitleTextBlock, CredentialsHttpsRadioButton, CredentialsSshRadioButton, CredentialsUsernamePanel, CredentialsUsernameTextBox, CredentialsPasswordPanel, CredentialsPasswordLabelTextBlock, CredentialsPasswordTextBox, CredentialsErrorMessageTextBlock, CancelCredentialsButton, SubmitCredentialsButton.
-/// - CreateTagModalBackdrop, CreateStashModalBackdrop, SettingsModalBackdrop, ResetConfirmModalBackdrop, CancelResetButton, ConfirmResetButton, CancelSettingsButton, ConfirmSettingsButton.
+/// - CreateTagModalBackdrop, CreateStashModalBackdrop, SettingsModalBackdrop, ResetConfirmModalBackdrop, CancelResetButton, ConfirmResetButton, CancelSettingsButton, ConfirmSettingsButton, DefaultProjectsDirectoryTextBox, BrowseDefaultProjectsDirectoryButton, AiApiKeyTextBox, AiModelTextBox, AiTokenLimitTextBox, AiCommitStyleTextBox, AiProjectDescriptionTextBox.
 /// Navigation:
 /// - Navigate From: RepositoryManagerView on opening a repository.
 /// - Navigate To: RepositoryManagerView via shell header BackButton.
@@ -43,14 +50,19 @@ namespace GitWerka.Features.CommitLog.UI.Screens.CommitLog;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 using Avalonia.ReactiveUI;
+using Avalonia.VisualTree;
 using GitWerka.Core.Domain.Enums;
 using GitWerka.Core.Domain.Models;
 using GitWerka.Features.CommitLog.Domain.Enums;
@@ -97,8 +109,62 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
         this.OneWayBind(ViewModel, x => x.State.IsResetConfirmModalVisible, x => x.ResetConfirmModalBackdrop.IsVisible);
         this.OneWayBind(ViewModel, x => x.State.IsCredentialsModalVisible, x => x.CredentialsModalBackdrop.IsVisible);
 
+        this.OneWayBind(ViewModel, x => x.State.IsFavoritesDockOpen, x => x.FavoritesDockBackdrop.IsVisible);
+        this.OneWayBind(ViewModel, x => x.State.FavoriteRepositories, x => x.FavoritesListBox.ItemsSource);
+        this.OneWayBind(ViewModel, x => x.State.IsAddFavoriteModalVisible, x => x.AddFavoriteModalBackdrop.IsVisible);
+        this.OneWayBind(ViewModel, x => x.State.TargetFavoritePath, x => x.TargetFavoritePathTextBlock.Text);
+
+        this.WhenAnyValue(x => x.ViewModel!.State.RecentNonFavoriteRepository)
+            .Subscribe(Observer.Create<RecentRepository?>(repo =>
+            {
+                RecentNonFavoriteSectionPanel.IsVisible = repo != null;
+                FavoritesDividerRectangle.IsVisible = repo != null;
+                RecentNonFavoriteNameTextBlock.Text = repo?.DisplayName ?? string.Empty;
+                RecentNonFavoritePathTextBlock.Text = repo?.Path ?? string.Empty;
+            }))
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(x => x.ViewModel!.State.FavoriteRepositories.Count)
+            .Select(count => count == 0)
+            .Subscribe(Observer.Create<bool>(empty => EmptyFavoritesTextBlock.IsVisible = empty))
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(x => x.ViewModel!.State.IsAddFavoriteModalVisible)
+            .Where(visible => visible)
+            .Subscribe(Observer.Create<bool>(_ => FavoriteNameTextBox.Focus()))
+            .DisposeWith(disposables);
+
         this.OneWayBind(ViewModel, x => x.State.ConfigUserNameInput, x => x.ConfigUserNameTextBox.Text);
         this.OneWayBind(ViewModel, x => x.State.ConfigUserEmailInput, x => x.ConfigUserEmailTextBox.Text);
+        this.OneWayBind(ViewModel, x => x.State.DefaultProjectsDirectoryInput, x => x.DefaultProjectsDirectoryTextBox.Text);
+        this.OneWayBind(ViewModel, x => x.State.AiApiKeyInput, x => x.AiApiKeyTextBox.Text);
+        this.OneWayBind(ViewModel, x => x.State.AiModelInput, x => x.AiModelTextBox.Text);
+        this.OneWayBind(ViewModel, x => x.State.AiTokenLimitInput, x => x.AiTokenLimitTextBox.Text);
+        this.OneWayBind(ViewModel, x => x.State.AiCommitStyleInput, x => x.AiCommitStyleTextBox.Text);
+        this.OneWayBind(ViewModel, x => x.State.AiProjectDescriptionInput, x => x.AiProjectDescriptionTextBox.Text);
+
+        this.WhenAnyValue(x => x.ViewModel!.State.IsGeneratingAiCommit)
+            .Subscribe(Observer.Create<bool>(generating =>
+            {
+                GenerateAiCommitButton.IsEnabled = !generating;
+                GenerateAiCommitNormalIcon.IsVisible = !generating;
+                GenerateAiCommitLoadingIcon.IsVisible = generating;
+                AiGeneratingProgressBar.IsVisible = generating;
+                GenerateAiCommitButtonText.Text = generating
+                    ? CommitLogStrings.GeneratingAiCommitMessage
+                    : CommitLogStrings.GenerateAiCommitButton;
+            }))
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(x => x.ViewModel!.State.AiErrorMessage)
+            .Subscribe(Observer.Create<string?>(err =>
+            {
+                AiErrorBanner.IsVisible = !string.IsNullOrWhiteSpace(err);
+                AiErrorTextBlock.Text = err ?? string.Empty;
+            }))
+            .DisposeWith(disposables);
+
+        this.OneWayBind(ViewModel, x => x.State.IsAiErrorSettingsActionVisible, x => x.AiErrorSettingsButton.IsVisible);
 
         this.WhenAnyValue(x => x.ViewModel!.State.OperationStatus)
             .Subscribe(Observer.Create<RepositoryOperationStatus>(status =>
@@ -158,6 +224,23 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
             }))
             .DisposeWith(disposables);
 
+        this.WhenAnyValue(x => x.ViewModel!.State.CommitSubjectRemainingChars)
+            .Subscribe(Observer.Create<int>(remaining =>
+            {
+                if (remaining >= 0)
+                {
+                    CommitMessageRemainingCountTextBlock.Text = string.Format(CommitLogStrings.CommitSubjectRemainingChars, remaining);
+                }
+                else
+                {
+                    CommitMessageRemainingCountTextBlock.Text = string.Format(CommitLogStrings.CommitSubjectOverLimitChars, Math.Abs(remaining));
+                }
+
+                CommitMessageRemainingCountTextBlock.Classes.Set("CommitCounterWarning", remaining >= 0 && remaining <= 10);
+                CommitMessageRemainingCountTextBlock.Classes.Set("CommitCounterError", remaining < 0);
+            }))
+            .DisposeWith(disposables);
+
         this.WhenAnyValue(x => x.ViewModel!.State.CredentialsAuthType)
             .Subscribe(Observer.Create<GitCredentialType>(type =>
             {
@@ -209,6 +292,17 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
         this.BindCommand(ViewModel, x => x.PullCommand, x => x.PullButton);
         this.BindCommand(ViewModel, x => x.PushCommand, x => x.PushButton);
 
+        this.BindCommand(ViewModel, x => x.ToggleFavoritesDockCommand, x => x.FavoritesToggleButton);
+        this.BindCommand(ViewModel, x => x.CloseFavoritesDockCommand, x => x.CloseFavoritesDockButton);
+        this.BindCommand(ViewModel, x => x.HideAddFavoriteModalCommand, x => x.CancelAddFavoriteButton);
+        this.BindCommand(ViewModel, x => x.ConfirmAddFavoriteCommand, x => x.ConfirmAddFavoriteButton);
+
+        FavoritesBackdropDismissBorder.PointerPressed += (s, e) => ViewModel?.CloseFavoritesDockCommand.Execute().Subscribe();
+        OpenFolderFromDockButton.Click += async (s, e) => await HandleOpenFolderFromDockClickAsync();
+        OpenRecentNonFavoriteRepoButton.Click += (s, e) => HandleOpenRecentNonFavoriteRepoClick();
+        AddRecentToFavoritesButton.Click += (s, e) => HandleAddRecentToFavoritesClick();
+        SetupFavoritesList(disposables);
+
         this.BindCommand(ViewModel, x => x.ShowCreateBranchModalCommand, x => x.NewBranchActionButton);
         this.BindCommand(ViewModel, x => x.HideCreateBranchModalCommand, x => x.CancelCreateBranchButton);
         this.BindCommand(ViewModel, x => x.ExecuteCreateBranchCommand, x => x.ConfirmCreateBranchButton);
@@ -246,7 +340,11 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
 
         this.BindCommand(ViewModel, x => x.HideSettingsModalCommand, x => x.CancelSettingsButton);
         this.BindCommand(ViewModel, x => x.ExecuteSaveSettingsCommand, x => x.ConfirmSettingsButton);
+        BrowseDefaultProjectsDirectoryButton.Click += async (s, e) => await HandleBrowseDefaultProjectsDirectoryClickAsync();
 
+        this.BindCommand(ViewModel, x => x.ExecuteGenerateAiCommitMessageCommand, x => x.GenerateAiCommitButton);
+        this.BindCommand(ViewModel, x => x.DismissAiErrorCommand, x => x.AiErrorDismissButton);
+        this.BindCommand(ViewModel, x => x.ShowSettingsModalCommand, x => x.AiErrorSettingsButton);
         this.BindCommand(ViewModel, x => x.ExecuteCommitCommand, x => x.CommitButton);
         AmendCommitCheckBox.IsCheckedChanged += (s, e) => HandleAmendCommitOptionChanged();
         this.BindCommand(ViewModel, x => x.StageAllCommand, x => x.StageAllButton);
@@ -445,6 +543,30 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
             .Subscribe(Observer.Create<string?>(email => ViewModel?.UpdateConfigUserEmailInput(email ?? string.Empty)))
             .DisposeWith(disposables);
 
+        this.WhenAnyValue(x => x.DefaultProjectsDirectoryTextBox.Text)
+            .Subscribe(Observer.Create<string?>(dir => ViewModel?.UpdateDefaultProjectsDirectoryInput(dir ?? string.Empty)))
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(x => x.AiApiKeyTextBox.Text)
+            .Subscribe(Observer.Create<string?>(key => ViewModel?.UpdateAiApiKeyInput(key ?? string.Empty)))
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(x => x.AiModelTextBox.Text)
+            .Subscribe(Observer.Create<string?>(model => ViewModel?.UpdateAiModelInput(model ?? string.Empty)))
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(x => x.AiTokenLimitTextBox.Text)
+            .Subscribe(Observer.Create<string?>(limit => ViewModel?.UpdateAiTokenLimitInput(limit ?? string.Empty)))
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(x => x.AiCommitStyleTextBox.Text)
+            .Subscribe(Observer.Create<string?>(style => ViewModel?.UpdateAiCommitStyleInput(style ?? string.Empty)))
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(x => x.AiProjectDescriptionTextBox.Text)
+            .Subscribe(Observer.Create<string?>(desc => ViewModel?.UpdateAiProjectDescriptionInput(desc ?? string.Empty)))
+            .DisposeWith(disposables);
+
         this.WhenAnyValue(x => x.RebaseStepMessageTextBox.Text)
             .Subscribe(Observer.Create<string?>(text =>
             {
@@ -462,6 +584,28 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
         this.WhenAnyValue(x => x.CredentialsPasswordTextBox.Text)
             .Subscribe(Observer.Create<string?>(pass => ViewModel?.UpdateCredentialsPasswordInput(pass ?? string.Empty)))
             .DisposeWith(disposables);
+
+        this.WhenAnyValue(x => x.FavoriteNameTextBox.Text)
+            .Subscribe(Observer.Create<string?>(name => ViewModel?.UpdateNewFavoriteNameInput(name ?? string.Empty)))
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(x => x.ViewModel!.State.NewFavoriteNameInput)
+            .Subscribe(Observer.Create<string>(name =>
+            {
+                if (FavoriteNameTextBox.Text != name)
+                {
+                    FavoriteNameTextBox.Text = name;
+                }
+            }))
+            .DisposeWith(disposables);
+
+        FavoriteNameTextBox.KeyUp += (s, e) =>
+        {
+            if (e.Key == Key.Enter)
+            {
+                ViewModel?.ConfirmAddFavoriteCommand.Execute().Subscribe();
+            }
+        };
     }
 
     private void SetupSelectionHandlers(CompositeDisposable disposables)
@@ -561,5 +705,105 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
         }
 
         return status.Message ?? string.Empty;
+    }
+
+    private void SetupFavoritesList(CompositeDisposable disposables)
+    {
+        FavoritesListBox.SelectionChanged += (sender, e) =>
+        {
+            if (FavoritesListBox.SelectedItem is RecentRepository repo && ViewModel != null)
+            {
+                ViewModel.OpenRepositoryFromDockCommand.Execute(repo.Path).Subscribe();
+                FavoritesListBox.SelectedItem = null;
+            }
+        };
+
+        FavoritesListBox.AddHandler(Button.ClickEvent, (sender, e) =>
+        {
+            if (e.Source is Visual source)
+            {
+                Button? button = source as Button ?? source.FindAncestorOfType<Button>(true);
+                if (button != null && button.Classes.Contains("DeleteFavoriteButton") && button.DataContext is RecentRepository repo && ViewModel != null)
+                {
+                    ViewModel.RemoveFromFavoritesCommand.Execute(repo.Path).Subscribe();
+                    e.Handled = true;
+                }
+            }
+        });
+    }
+
+    private void HandleOpenRecentNonFavoriteRepoClick()
+    {
+        if (ViewModel?.State.RecentNonFavoriteRepository != null)
+        {
+            ViewModel.OpenRepositoryFromDockCommand.Execute(ViewModel.State.RecentNonFavoriteRepository.Path).Subscribe();
+        }
+    }
+
+    private void HandleAddRecentToFavoritesClick()
+    {
+        if (ViewModel?.State.RecentNonFavoriteRepository != null)
+        {
+            ViewModel.ShowAddFavoriteModalCommand.Execute(ViewModel.State.RecentNonFavoriteRepository.Path).Subscribe();
+        }
+    }
+
+    private async Task HandleOpenFolderFromDockClickAsync()
+    {
+        string? pickedPath = await PickFolderAsync();
+        if (!string.IsNullOrEmpty(pickedPath) && ViewModel != null)
+        {
+            ViewModel.OpenRepositoryFromDockCommand.Execute(pickedPath).Subscribe();
+        }
+    }
+
+    private async Task<string?> PickFolderAsync()
+    {
+        TopLevel? topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null)
+        {
+            return null;
+        }
+
+        IReadOnlyList<IStorageFolder> folders = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = "Select Git Repository Directory",
+            AllowMultiple = false
+        });
+
+        if (folders.Count == 0)
+        {
+            return null;
+        }
+
+        return folders[0].Path.LocalPath;
+    }
+
+    private async Task HandleBrowseDefaultProjectsDirectoryClickAsync()
+    {
+        TopLevel? topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null)
+        {
+            return;
+        }
+
+        IStorageFolder? startLocation = null;
+        string? currentInput = ViewModel?.State.DefaultProjectsDirectoryInput;
+        if (!string.IsNullOrWhiteSpace(currentInput) && Directory.Exists(currentInput))
+        {
+            startLocation = await topLevel.StorageProvider.TryGetFolderFromPathAsync(currentInput);
+        }
+
+        IReadOnlyList<IStorageFolder> folders = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = "Select Default Projects Directory",
+            AllowMultiple = false,
+            SuggestedStartLocation = startLocation
+        });
+
+        if (folders.Count > 0 && ViewModel != null)
+        {
+            ViewModel.UpdateDefaultProjectsDirectoryInput(folders[0].Path.LocalPath);
+        }
     }
 }

@@ -1,5 +1,6 @@
 <Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:material="using:Material.Icons.Avalonia">
 
   <!-- Branch Badge Pill -->
   <Style Selector="Border.BranchBadge">
@@ -119,6 +120,153 @@
     <Setter Property="CornerRadius" Value="12" />
     <Setter Property="BoxShadow" Value="0 16 48 0 #70000000" />
     <Setter Property="Padding" Value="24" />
+  </Style>
+
+  <!-- Favorites Drawer Panel & Overlay -->
+  <Style Selector="Grid.FavoritesOverlay">
+    <Setter Property="Transitions">
+      <Transitions>
+        <DoubleTransition Property="Opacity" Duration="0:0:0.2" Easing="CubicEaseOut" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="Border.FavoritesDrawer">
+    <Setter Property="Width" Value="340" />
+    <Setter Property="Background" Value="{DynamicResource ShellHeaderFooterBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,1,0" />
+    <Setter Property="BoxShadow" Value="4 0 24 0 #60000000" />
+    <Setter Property="RenderTransform" Value="translateX(0px)" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.25" Easing="CubicEaseOut" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="Border.FavoritesHeaderBorder">
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+    <Setter Property="Padding" Value="14,10" />
+  </Style>
+
+  <!-- Favorites Repository Card -->
+  <Style Selector="Border.FavoritesRepoCard">
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="10,8" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.1" />
+        <BrushTransition Property="BorderBrush" Duration="0:0:0.1" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="Border.FavoritesRepoCard:pointerover">
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardHoverBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderHighlightBrush}" />
+  </Style>
+
+  <!-- Repo Select Button inside Card -->
+  <Style Selector="Button.RepoSelectButton">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+
+  <!-- Delete Favorite Button -->
+  <Style Selector="Button.DeleteFavoriteButton">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="5" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.1" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="Button.DeleteFavoriteButton:pointerover">
+    <Setter Property="Background" Value="{DynamicResource ErrorBannerBackgroundBrush}" />
+  </Style>
+
+  <Style Selector="Button.DeleteFavoriteButton:pointerover material|MaterialIcon">
+    <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}" />
+  </Style>
+
+  <!-- Add Favorite Icon Button -->
+  <Style Selector="Button.AddFavoriteIconButton">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="5" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.1" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="Button.AddFavoriteIconButton:pointerover">
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardHoverBrush}" />
+  </Style>
+
+  <Style Selector="Button.AddFavoriteIconButton:pointerover material|MaterialIcon">
+    <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+  </Style>
+
+  <!-- Favorites ListBox -->
+  <Style Selector="ListBox.FavoritesList">
+    <Setter Property="ClipToBounds" Value="False" />
+    <Setter Property="Padding" Value="0,2" />
+  </Style>
+
+  <Style Selector="ListBox.FavoritesList ListBoxItem">
+    <Setter Property="Margin" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="ClipToBounds" Value="False" />
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+
+  <Style Selector="ListBox.FavoritesList ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+
+  <!-- AI Loading Spinner Animation -->
+  <Style Selector="material|MaterialIcon.RotatingSpinner">
+    <Style.Animations>
+      <Animation Duration="0:0:1" IterationCount="Infinite">
+        <KeyFrame Cue="0%">
+          <Setter Property="RotateTransform.Angle" Value="0.0" />
+        </KeyFrame>
+        <KeyFrame Cue="100%">
+          <Setter Property="RotateTransform.Angle" Value="360.0" />
+        </KeyFrame>
+      </Animation>
+    </Style.Animations>
+  </Style>
+
+  <!-- Commit Subject Character Counter -->
+  <Style Selector="TextBlock.CommitSubjectCounter">
+    <Setter Property="Foreground" Value="{DynamicResource SubtleTextBrush}" />
+  </Style>
+
+  <Style Selector="TextBlock.CommitSubjectCounter.CommitCounterWarning">
+    <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+  </Style>
+
+  <Style Selector="TextBlock.CommitSubjectCounter.CommitCounterError">
+    <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
 
 </Styles>

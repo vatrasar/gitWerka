@@ -1,3 +1,6 @@
+using System.Collections.Immutable;
+using GitWerka.Core.Domain.Models;
+
 namespace GitWerka.Features.Shell.UI.Screens.Host;
 
 /// <summary>
@@ -12,4 +15,10 @@ public record HostState
     public bool IsRepositoryLoaded { get; init; }
 
     public string StatusMessage { get; init; } = "Ready";
+
+    public ImmutableList<GitProfile> AvailableProfiles { get; init; } = ImmutableList<GitProfile>.Empty;
+
+    public GitProfile? ActiveProfile { get; init; }
+
+    public bool IsSettingsButtonVisible { get; init; } = true;
 }

@@ -20,11 +20,22 @@ public class MainWindowViewModel : ViewModelBase, IScreen
 
     public MainWindowViewModel(
         IRecentRepositoriesRepository recentRepositoriesRepository,
-        IGitService gitService)
+        IGitService gitService,
+        IProfileRepository? profileRepository = null,
+        IApplicationSettingsRepository? applicationSettingsRepository = null,
+        IAiConfigurationRepository? aiConfigurationRepository = null,
+        IAiCommitMessageService? aiCommitMessageService = null)
     {
-        HostViewModel = new HostViewModel(this);
+        HostViewModel = new HostViewModel(this, profileRepository);
 
-        RepositoryManagerViewModel initialScreen = new(this, recentRepositoriesRepository, gitService);
+        RepositoryManagerViewModel initialScreen = new(
+            this,
+            recentRepositoriesRepository,
+            gitService,
+            profileRepository: profileRepository,
+            applicationSettingsRepository: applicationSettingsRepository,
+            aiConfigurationRepository: aiConfigurationRepository,
+            aiCommitMessageService: aiCommitMessageService);
         Router.Navigate.Execute(initialScreen).Subscribe();
     }
 }

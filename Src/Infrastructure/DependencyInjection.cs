@@ -33,14 +33,20 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IRecentRepositoriesRepository, RecentRepositoriesRepository>();
+        services.AddScoped<IProfileRepository, ProfileRepository>();
+        services.AddScoped<IAiConfigurationRepository, AiConfigurationRepository>();
+        services.AddScoped<IApplicationSettingsRepository, ApplicationSettingsRepository>();
         services.AddSingleton<IGitService, GitService>();
         services.AddSingleton<ISystemLauncherService, SystemLauncherService>();
+        services.AddSingleton<System.Net.Http.HttpClient>();
+        services.AddScoped<IAiCommitMessageService, OpenRouterAiCommitMessageService>();
 
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<MainWindow>();
         services.AddTransient<HostViewModel>();
         services.AddTransient<RepositoryManagerViewModel>();
         services.AddTransient<GitWerka.Features.CommitLog.UI.Screens.CommitLog.CommitLogViewModel>();
+        services.AddTransient<GitWerka.Features.ProfileManagement.UI.Screens.ProfileManagement.ProfileManagementViewModel>();
 
         return services;
     }

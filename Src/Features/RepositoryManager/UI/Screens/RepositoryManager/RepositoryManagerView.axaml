@@ -134,16 +134,56 @@
             </Grid>
           </Border>
         </Button>
+
+        <!-- Action Tile: Settings -->
+        <Button x:Name="SettingsTileButton"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                Padding="0"
+                Background="Transparent"
+                BorderThickness="0">
+          <Border Classes="ActionTile">
+            <Grid ColumnDefinitions="Auto, *">
+              <material:MaterialIcon Grid.Column="0"
+                                    Kind="CogOutline"
+                                    Width="26"
+                                    Height="26"
+                                    Foreground="{DynamicResource AccentPrimaryBrush}"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,14,0" />
+              <StackPanel Grid.Column="1" Spacing="2">
+                <TextBlock Text="{x:Static res:RepositoryManagerStrings.SettingsButton}"
+                           Classes="SectionHeader" />
+                <TextBlock Text="{x:Static res:RepositoryManagerStrings.SettingsDescription}"
+                           Classes="SubtleCaption"
+                           TextWrapping="Wrap" />
+              </StackPanel>
+            </Grid>
+          </Border>
+        </Button>
       </StackPanel>
 
       <!-- Right Column: Recent Repositories Section -->
       <Grid Grid.Column="2" RowDefinitions="Auto, 16, *">
-        <!-- Search and Section Header -->
+        <!-- Tabs and Search Header -->
         <Grid Grid.Row="0" ColumnDefinitions="Auto, *, 240">
-          <TextBlock Grid.Column="0"
-                     Text="{x:Static res:RepositoryManagerStrings.RecentRepositoriesTitle}"
-                     Classes="SectionHeader"
-                     VerticalAlignment="Center" />
+          <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4">
+            <Button x:Name="FavoritesTabButton"
+                    Classes="RepoManagerTab active">
+              <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <material:MaterialIcon Kind="Star" Width="16" Height="16" Foreground="{DynamicResource WarningBrush}" />
+                <TextBlock Text="{x:Static res:RepositoryManagerStrings.FavoritesTabTitle}" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+
+            <Button x:Name="RecentTabButton"
+                    Classes="RepoManagerTab">
+              <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <material:MaterialIcon Kind="History" Width="16" Height="16" />
+                <TextBlock Text="{x:Static res:RepositoryManagerStrings.RecentTabTitle}" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
 
           <TextBox Grid.Column="2"
                    x:Name="SearchInputTextBox"
@@ -176,7 +216,7 @@
                                         Margin="0,0,12,0" />
 
                   <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Name}"
+                    <TextBlock Text="{Binding DisplayName}"
                                FontWeight="SemiBold"
                                FontSize="14" />
                     <TextBlock Text="{Binding Path}"
@@ -185,6 +225,11 @@
                   </StackPanel>
 
                   <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <material:MaterialIcon Kind="Star"
+                                          Width="16"
+                                          Height="16"
+                                          Foreground="{DynamicResource WarningBrush}"
+                                          IsVisible="{Binding IsFavorite}" />
                     <material:MaterialIcon Kind="Pin"
                                           Width="16"
                                           Height="16"
@@ -315,6 +360,102 @@
                      Classes="SubtleCaption"
                      HorizontalAlignment="Center" />
         </StackPanel>
+      </Border>
+    </Border>
+
+    <!-- Modal Dialog Overlay: Settings (Global Settings Only) -->
+    <Border x:Name="SettingsModalOverlay"
+            Background="{DynamicResource ModalOverlayBrush}"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            IsVisible="False">
+      <Border Classes="ModalDialogCard"
+              Width="520"
+              MaxHeight="620"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto"
+                      Padding="0,0,6,0">
+          <StackPanel Spacing="14">
+            <TextBlock Text="{x:Static res:RepositoryManagerStrings.SettingsModalTitle}"
+                       Classes="SectionHeader" />
+
+            <!-- General Section: Default Projects Directory -->
+            <TextBlock Text="{x:Static res:RepositoryManagerStrings.GeneralSettingsSectionTitle}"
+                       FontSize="14"
+                       FontWeight="SemiBold" />
+
+            <StackPanel Spacing="4">
+              <TextBlock Text="{x:Static res:RepositoryManagerStrings.DefaultProjectsDirectoryLabel}"
+                         Classes="SubtleCaption" />
+              <Grid ColumnDefinitions="*, 8, Auto">
+                <TextBox Grid.Column="0"
+                         x:Name="DefaultProjectsDirectoryTextBox"
+                         Watermark="{x:Static res:RepositoryManagerStrings.DefaultProjectsDirectoryPlaceholder}" />
+                <Button Grid.Column="2"
+                        x:Name="BrowseDefaultProjectsDirectoryButton"
+                        Classes="SecondaryAction"
+                        Content="{x:Static res:RepositoryManagerStrings.BrowseButton}" />
+              </Grid>
+              <TextBlock Text="{x:Static res:RepositoryManagerStrings.DefaultProjectsDirectoryDescription}"
+                         Classes="SubtleCaption"
+                         TextWrapping="Wrap" />
+            </StackPanel>
+
+            <Border Height="1"
+                    Background="{DynamicResource CardBorderBrush}"
+                    Margin="0,4" />
+
+            <!-- AI Section: Global OpenRouter Configuration -->
+            <TextBlock Text="{x:Static res:RepositoryManagerStrings.AiSettingsSectionTitle}"
+                       FontSize="14"
+                       FontWeight="SemiBold" />
+
+            <StackPanel Spacing="4">
+              <TextBlock Text="{x:Static res:RepositoryManagerStrings.AiApiKeyLabel}"
+                         Classes="SubtleCaption" />
+              <TextBox x:Name="AiApiKeyTextBox"
+                       PasswordChar="*"
+                       Watermark="{x:Static res:RepositoryManagerStrings.AiApiKeyPlaceholder}" />
+            </StackPanel>
+
+            <Grid ColumnDefinitions="*, 110">
+              <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,10,0">
+                <TextBlock Text="{x:Static res:RepositoryManagerStrings.AiModelLabel}"
+                           Classes="SubtleCaption" />
+                <TextBox x:Name="AiModelTextBox"
+                         Watermark="{x:Static res:RepositoryManagerStrings.AiModelPlaceholder}" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Spacing="4">
+                <TextBlock Text="{x:Static res:RepositoryManagerStrings.AiTokenLimitLabel}"
+                           Classes="SubtleCaption" />
+                <TextBox x:Name="AiTokenLimitTextBox"
+                         Watermark="{x:Static res:RepositoryManagerStrings.AiTokenLimitPlaceholder}" />
+              </StackPanel>
+            </Grid>
+
+            <StackPanel Spacing="4">
+              <TextBlock Text="{x:Static res:RepositoryManagerStrings.AiCommitStyleLabel}"
+                         Classes="SubtleCaption" />
+              <TextBox x:Name="AiCommitStyleTextBox"
+                       Watermark="{x:Static res:RepositoryManagerStrings.AiCommitStylePlaceholder}" />
+            </StackPanel>
+
+            <!-- Buttons -->
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Spacing="10"
+                        Margin="0,8,0,0">
+              <Button x:Name="CancelSettingsButton"
+                      Classes="SecondaryAction"
+                      Content="{x:Static sharedRes:GlobalStrings.CancelButton}" />
+              <Button x:Name="ConfirmSettingsButton"
+                      Classes="PrimaryAction"
+                      Content="{x:Static sharedRes:GlobalStrings.SaveButton}" />
+            </StackPanel>
+          </StackPanel>
+        </ScrollViewer>
       </Border>
     </Border>
   </Grid>

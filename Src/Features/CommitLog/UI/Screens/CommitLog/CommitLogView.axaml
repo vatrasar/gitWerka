@@ -24,23 +24,31 @@
               BorderBrush="{DynamicResource CardBorderBrush}"
               BorderThickness="0,0,0,1"
               Padding="12,6">
-        <Grid ColumnDefinitions="Auto, 12, Auto, *, 240">
-          <!-- Current Branch Indicator -->
-          <Border Grid.Column="0"
-                  Background="{DynamicResource BranchBadgeBackgroundBrush}"
-                  BorderBrush="{DynamicResource GitGraphBranch1Brush}"
-                  BorderThickness="1"
-                  CornerRadius="6"
-                  Padding="8,4">
-            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-              <material:MaterialIcon Kind="SourceBranch" Width="16" Height="16" Foreground="{DynamicResource GitGraphBranch1Brush}" />
-              <TextBlock x:Name="CurrentBranchTextBlock"
-                         FontWeight="SemiBold"
-                         FontSize="12"
-                         Foreground="{DynamicResource TextPrimaryBrush}"
-                         VerticalAlignment="Center" />
-            </StackPanel>
-          </Border>
+        <Grid ColumnDefinitions="Auto, 12, Auto, *, 220">
+          <!-- Current Branch Indicator & Favorites Star Button -->
+          <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <Button x:Name="FavoritesToggleButton"
+                    Classes="ToolbarAction"
+                    ToolTip.Tip="{x:Static res:CommitLogStrings.FavoritesTooltip}"
+                    Padding="7,5">
+              <material:MaterialIcon Kind="FolderOutline" Width="16" Height="16" Foreground="{DynamicResource GitGraphBranch1Brush}" />
+            </Button>
+
+            <Border Background="{DynamicResource BranchBadgeBackgroundBrush}"
+                    BorderBrush="{DynamicResource GitGraphBranch1Brush}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="8,4">
+              <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <material:MaterialIcon Kind="SourceBranch" Width="16" Height="16" Foreground="{DynamicResource GitGraphBranch1Brush}" />
+                <TextBlock x:Name="CurrentBranchTextBlock"
+                           FontWeight="SemiBold"
+                           FontSize="12"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           VerticalAlignment="Center" />
+              </StackPanel>
+            </Border>
+          </StackPanel>
 
           <!-- Toolbar Git Actions -->
           <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
@@ -376,13 +384,104 @@
                       BorderBrush="{DynamicResource CardBorderBrush}"
                       Padding="10">
                 <StackPanel Spacing="8">
+                  <Grid ColumnDefinitions="*, Auto">
+                    <TextBlock Grid.Column="0"
+                               Text="{x:Static res:CommitLogStrings.CommitButton}"
+                               Classes="SectionHeader"
+                               VerticalAlignment="Center" />
+                    <Button x:Name="GenerateAiCommitButton"
+                            Grid.Column="1"
+                            Classes="SecondaryAction"
+                            Padding="8,4"
+                            ToolTip.Tip="{x:Static res:CommitLogStrings.GenerateAiCommitToolTip}">
+                      <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <material:MaterialIcon x:Name="GenerateAiCommitNormalIcon"
+                                              Kind="AutoFixHigh"
+                                              Width="14"
+                                              Height="14"
+                                              Foreground="{DynamicResource GitGraphBranch3Brush}" />
+                        <material:MaterialIcon x:Name="GenerateAiCommitLoadingIcon"
+                                              Kind="Loading"
+                                              Classes="RotatingSpinner"
+                                              Width="14"
+                                              Height="14"
+                                              Foreground="{DynamicResource AccentPrimaryBrush}"
+                                              IsVisible="False" />
+                        <TextBlock x:Name="GenerateAiCommitButtonText"
+                                   Text="{x:Static res:CommitLogStrings.GenerateAiCommitButton}"
+                                   FontSize="11"
+                                   VerticalAlignment="Center" />
+                      </StackPanel>
+                    </Button>
+                  </Grid>
+
+                  <!-- AI Notification / Error Banner -->
+                  <Border x:Name="AiErrorBanner"
+                          Background="{DynamicResource ErrorBannerBackgroundBrush}"
+                          BorderBrush="{DynamicResource ErrorBrush}"
+                          BorderThickness="1"
+                          CornerRadius="6"
+                          Padding="8,6"
+                          IsVisible="False">
+                    <Grid ColumnDefinitions="Auto, *, Auto, Auto">
+                      <material:MaterialIcon Grid.Column="0"
+                                            Kind="AlertCircleOutline"
+                                            Width="16"
+                                            Height="16"
+                                            Foreground="{DynamicResource ErrorBrush}"
+                                            VerticalAlignment="Center"
+                                            Margin="0,0,6,0" />
+                      <TextBlock x:Name="AiErrorTextBlock"
+                                 Grid.Column="1"
+                                 FontSize="11"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 TextWrapping="Wrap"
+                                 VerticalAlignment="Center" />
+                      <Button x:Name="AiErrorSettingsButton"
+                              Grid.Column="2"
+                              Classes="SecondaryAction"
+                              Content="{x:Static res:CommitLogStrings.SettingsButton}"
+                              Padding="6,2"
+                              Margin="6,0,4,0"
+                              FontSize="11"
+                              VerticalAlignment="Center"
+                              IsVisible="False" />
+                      <Button x:Name="AiErrorDismissButton"
+                              Grid.Column="3"
+                              Classes="SecondaryAction"
+                              Padding="4,2"
+                              VerticalAlignment="Center">
+                        <material:MaterialIcon Kind="Close" Width="12" Height="12" />
+                      </Button>
+                    </Grid>
+                  </Border>
+
+                  <!-- Progress bar for active AI generation -->
+                  <ProgressBar x:Name="AiGeneratingProgressBar"
+                               IsIndeterminate="True"
+                               Height="2"
+                               Margin="0,0,0,2"
+                               Foreground="{DynamicResource AccentPrimaryBrush}"
+                               IsVisible="False" />
+
                   <TextBox x:Name="CommitMessageTextBox"
                            AcceptsReturn="True"
-                           Height="55"
+                           TextWrapping="Wrap"
+                           ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                           Height="90"
                            Watermark="{x:Static res:CommitLogStrings.CommitMessagePlaceholder}" />
-                  <CheckBox x:Name="AmendCommitCheckBox"
-                            Content="{x:Static res:CommitLogStrings.AmendCommitCheckbox}"
-                            FontSize="12" />
+                  <Grid ColumnDefinitions="*, Auto">
+                    <CheckBox x:Name="AmendCommitCheckBox"
+                              Grid.Column="0"
+                              Content="{x:Static res:CommitLogStrings.AmendCommitCheckbox}"
+                              FontSize="12" />
+                    <TextBlock x:Name="CommitMessageRemainingCountTextBlock"
+                               Grid.Column="1"
+                               Classes="CommitSubjectCounter"
+                               FontSize="11"
+                               VerticalAlignment="Center"
+                               ToolTip.Tip="{x:Static res:CommitLogStrings.CommitSubjectLimitToolTip}" />
+                  </Grid>
                   <Button x:Name="CommitButton"
                           Classes="PrimaryAction"
                           HorizontalAlignment="Stretch"
@@ -833,33 +932,101 @@
           Classes="ModalBackdrop"
           IsVisible="False">
       <Border Classes="ModalCard"
-              Width="460"
+              Width="520"
+              MaxHeight="620"
               HorizontalAlignment="Center"
               VerticalAlignment="Center">
-        <StackPanel Spacing="14">
-          <TextBlock Text="{x:Static res:CommitLogStrings.SettingsModalTitle}"
-                     FontSize="16"
-                     FontWeight="SemiBold" />
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto"
+                      Padding="0,0,6,0">
+          <StackPanel Spacing="14">
+            <TextBlock Text="{x:Static res:CommitLogStrings.SettingsModalTitle}"
+                       FontSize="16"
+                       FontWeight="SemiBold" />
 
-          <StackPanel Spacing="4">
-            <TextBlock Text="{x:Static res:CommitLogStrings.UserNameLabel}" FontSize="12" />
-            <TextBox x:Name="ConfigUserNameTextBox" />
-          </StackPanel>
+            <StackPanel Spacing="4">
+              <TextBlock Text="{x:Static res:CommitLogStrings.UserNameLabel}" FontSize="12" />
+              <TextBox x:Name="ConfigUserNameTextBox" />
+            </StackPanel>
 
-          <StackPanel Spacing="4">
-            <TextBlock Text="{x:Static res:CommitLogStrings.UserEmailLabel}" FontSize="12" />
-            <TextBox x:Name="ConfigUserEmailTextBox" />
-          </StackPanel>
+            <StackPanel Spacing="4">
+              <TextBlock Text="{x:Static res:CommitLogStrings.UserEmailLabel}" FontSize="12" />
+              <TextBox x:Name="ConfigUserEmailTextBox" />
+            </StackPanel>
 
-          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,10,0,0">
-            <Button x:Name="CancelSettingsButton"
-                    Classes="SecondaryAction"
-                    Content="{x:Static sharedRes:GlobalStrings.CancelButton}" />
-            <Button x:Name="ConfirmSettingsButton"
-                    Classes="PrimaryAction"
-                    Content="{x:Static sharedRes:GlobalStrings.SaveButton}" />
+            <Border Height="1"
+                    Background="{DynamicResource CardBorderBrush}"
+                    Margin="0,4" />
+
+            <TextBlock Text="{x:Static res:CommitLogStrings.GeneralSettingsSectionTitle}"
+                       FontSize="14"
+                       FontWeight="SemiBold" />
+
+            <StackPanel Spacing="4">
+              <TextBlock Text="{x:Static res:CommitLogStrings.DefaultProjectsDirectoryLabel}" FontSize="12" />
+              <Grid ColumnDefinitions="*, 8, Auto">
+                <TextBox Grid.Column="0"
+                         x:Name="DefaultProjectsDirectoryTextBox"
+                         Watermark="{x:Static res:CommitLogStrings.DefaultProjectsDirectoryPlaceholder}" />
+                <Button Grid.Column="2"
+                        x:Name="BrowseDefaultProjectsDirectoryButton"
+                        Classes="SecondaryAction"
+                        Content="{x:Static res:CommitLogStrings.BrowseButton}" />
+              </Grid>
+            </StackPanel>
+
+            <Border Height="1"
+                    Background="{DynamicResource CardBorderBrush}"
+                    Margin="0,4" />
+
+            <TextBlock Text="{x:Static res:CommitLogStrings.AiSettingsSectionTitle}"
+                       FontSize="14"
+                       FontWeight="SemiBold" />
+
+            <StackPanel Spacing="4">
+              <TextBlock Text="{x:Static res:CommitLogStrings.AiApiKeyLabel}" FontSize="12" />
+              <TextBox x:Name="AiApiKeyTextBox"
+                       PasswordChar="*"
+                       Watermark="{x:Static res:CommitLogStrings.AiApiKeyPlaceholder}" />
+            </StackPanel>
+
+            <Grid ColumnDefinitions="*, 110">
+              <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,10,0">
+                <TextBlock Text="{x:Static res:CommitLogStrings.AiModelLabel}" FontSize="12" />
+                <TextBox x:Name="AiModelTextBox"
+                         Watermark="{x:Static res:CommitLogStrings.AiModelPlaceholder}" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Spacing="4">
+                <TextBlock Text="{x:Static res:CommitLogStrings.AiTokenLimitLabel}" FontSize="12" />
+                <TextBox x:Name="AiTokenLimitTextBox"
+                         Watermark="{x:Static res:CommitLogStrings.AiTokenLimitPlaceholder}" />
+              </StackPanel>
+            </Grid>
+
+            <StackPanel Spacing="4">
+              <TextBlock Text="{x:Static res:CommitLogStrings.AiCommitStyleLabel}" FontSize="12" />
+              <TextBox x:Name="AiCommitStyleTextBox"
+                       Watermark="{x:Static res:CommitLogStrings.AiCommitStylePlaceholder}" />
+            </StackPanel>
+
+            <StackPanel Spacing="4">
+              <TextBlock Text="{x:Static res:CommitLogStrings.AiProjectDescriptionLabel}" FontSize="12" />
+              <TextBox x:Name="AiProjectDescriptionTextBox"
+                       AcceptsReturn="True"
+                       Height="65"
+                       Watermark="{x:Static res:CommitLogStrings.AiProjectDescriptionPlaceholder}" />
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,10,0,0">
+              <Button x:Name="CancelSettingsButton"
+                      Classes="SecondaryAction"
+                      Content="{x:Static sharedRes:GlobalStrings.CancelButton}" />
+              <Button x:Name="ConfirmSettingsButton"
+                      Classes="PrimaryAction"
+                      Content="{x:Static sharedRes:GlobalStrings.SaveButton}" />
+            </StackPanel>
           </StackPanel>
-        </StackPanel>
+        </ScrollViewer>
       </Border>
     </Grid>
 
@@ -1140,6 +1307,225 @@
             <Button x:Name="SubmitCredentialsButton"
                     Classes="PrimaryAction"
                     Content="{x:Static res:CommitLogStrings.CredentialsAuthenticateButton}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- Favorites Drawer Dock Overlay -->
+    <Grid x:Name="FavoritesDockBackdrop"
+          Classes="FavoritesOverlay"
+          IsVisible="False">
+      <Border x:Name="FavoritesBackdropDismissBorder"
+              Background="{DynamicResource ModalOverlayBrush}"
+              HorizontalAlignment="Stretch"
+              VerticalAlignment="Stretch" />
+
+      <Border x:Name="FavoritesDockPanel"
+              Classes="FavoritesDrawer"
+              HorizontalAlignment="Left"
+              VerticalAlignment="Stretch">
+        <Grid RowDefinitions="Auto, Auto, Auto, Auto, *">
+          <!-- Dock Header -->
+          <Border Grid.Row="0" Classes="FavoritesHeaderBorder">
+            <Grid ColumnDefinitions="Auto, *, Auto">
+              <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <material:MaterialIcon Kind="Folder" Width="18" Height="18" Foreground="{DynamicResource GitGraphBranch1Brush}" />
+                <TextBlock Text="{x:Static res:CommitLogStrings.FavoritesDockTitle}"
+                           FontWeight="SemiBold"
+                           FontSize="14"
+                           VerticalAlignment="Center" />
+              </StackPanel>
+
+              <Button Grid.Column="2"
+                      x:Name="CloseFavoritesDockButton"
+                      Classes="IconButton"
+                      ToolTip.Tip="{x:Static sharedRes:GlobalStrings.CloseButton}">
+                <material:MaterialIcon Kind="Close" Width="18" Height="18" />
+              </Button>
+            </Grid>
+          </Border>
+
+          <!-- Open Local Folder Action Button -->
+          <Button Grid.Row="1"
+                  x:Name="OpenFolderFromDockButton"
+                  Classes="PrimaryAction"
+                  Margin="12,12,12,6"
+                  HorizontalAlignment="Stretch"
+                  ToolTip.Tip="{x:Static res:CommitLogStrings.OpenFolderTooltip}">
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+              <material:MaterialIcon Kind="FolderOpenOutline" Width="16" Height="16" />
+              <TextBlock Text="{x:Static res:CommitLogStrings.OpenFolderButton}"
+                         FontWeight="SemiBold"
+                         VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+
+          <!-- Top Section: Recently opened repository NOT in favorites -->
+          <StackPanel Grid.Row="2"
+                      x:Name="RecentNonFavoriteSectionPanel"
+                      Spacing="6"
+                      Margin="12,6,12,6"
+                      IsVisible="False">
+            <TextBlock Text="{x:Static res:CommitLogStrings.RecentNonFavoriteHeader}"
+                       Classes="SubtleCaption"
+                       FontWeight="SemiBold"
+                       FontSize="11" />
+
+            <Border Classes="FavoritesRepoCard" Margin="0">
+              <Grid ColumnDefinitions="Auto, *, Auto">
+                <material:MaterialIcon Grid.Column="0"
+                                       Kind="SourceRepository"
+                                       Width="20"
+                                       Height="20"
+                                       Foreground="{DynamicResource GitGraphBranch2Brush}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,10,0" />
+
+                <Button Grid.Column="1"
+                        x:Name="OpenRecentNonFavoriteRepoButton"
+                        Classes="RepoSelectButton"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Left">
+                  <StackPanel Spacing="2">
+                    <TextBlock x:Name="RecentNonFavoriteNameTextBlock"
+                               FontWeight="SemiBold"
+                               FontSize="13"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="RecentNonFavoritePathTextBlock"
+                               Classes="SubtleCaption"
+                               FontSize="11"
+                               TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                </Button>
+
+                <!-- Star button to add to favorites -->
+                <Button Grid.Column="2"
+                        x:Name="AddRecentToFavoritesButton"
+                        Classes="AddFavoriteIconButton"
+                        ToolTip.Tip="{x:Static res:CommitLogStrings.AddToFavoritesTooltip}"
+                        VerticalAlignment="Center"
+                        Margin="6,0,0,0">
+                  <material:MaterialIcon Kind="StarOutline" Width="18" Height="18" Foreground="{DynamicResource WarningBrush}" />
+                </Button>
+              </Grid>
+            </Border>
+          </StackPanel>
+
+          <!-- Divider between recent and favorites -->
+          <Rectangle Grid.Row="3"
+                     x:Name="FavoritesDividerRectangle"
+                     Height="1"
+                     Fill="{DynamicResource CardBorderBrush}"
+                     Margin="12,6"
+                     IsVisible="False" />
+
+          <!-- Favorite Repositories Section -->
+          <Grid Grid.Row="4" RowDefinitions="Auto, *">
+            <TextBlock Grid.Row="0"
+                       Text="{x:Static res:CommitLogStrings.FavoritesSectionHeader}"
+                       Classes="SubtleCaption"
+                       FontWeight="SemiBold"
+                       FontSize="11"
+                       Margin="12,6,12,6" />
+
+            <!-- Empty Favorites Text -->
+            <TextBlock Grid.Row="1"
+                       x:Name="EmptyFavoritesTextBlock"
+                       Text="{x:Static res:CommitLogStrings.NoFavoritesYet}"
+                       Classes="SubtleCaption"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Margin="16"
+                       IsVisible="False" />
+
+            <!-- Favorites ListBox -->
+            <ListBox Grid.Row="1"
+                     x:Name="FavoritesListBox"
+                     Classes="FavoritesList"
+                     Background="Transparent"
+                     BorderThickness="0">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="models:RecentRepository">
+                  <Border Classes="FavoritesRepoCard">
+                    <Grid ColumnDefinitions="Auto, *, Auto">
+                      <material:MaterialIcon Grid.Column="0"
+                                             Kind="Star"
+                                             Width="18"
+                                             Height="18"
+                                             Foreground="{DynamicResource WarningBrush}"
+                                             VerticalAlignment="Center"
+                                             Margin="0,0,10,0" />
+
+                      <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding DisplayName}"
+                                   FontWeight="SemiBold"
+                                   FontSize="13"
+                                   TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding Path}"
+                                   Classes="SubtleCaption"
+                                   FontSize="11"
+                                   TextTrimming="CharacterEllipsis" />
+                      </StackPanel>
+
+                      <Button Grid.Column="2"
+                              x:Name="DeleteFavoriteItemButton"
+                              Classes="DeleteFavoriteButton"
+                              ToolTip.Tip="{x:Static res:CommitLogStrings.RemoveFromFavoritesTooltip}"
+                              VerticalAlignment="Center"
+                              Margin="6,0,0,0">
+                        <material:MaterialIcon Kind="DeleteOutline" Width="18" Height="18" Foreground="{DynamicResource SubtleTextBrush}" />
+                      </Button>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </Grid>
+        </Grid>
+      </Border>
+    </Grid>
+
+    <!-- Add Repository to Favorites Modal -->
+    <Grid x:Name="AddFavoriteModalBackdrop"
+          Classes="ModalBackdrop"
+          IsVisible="False">
+      <Border Classes="ModalCard"
+              Width="420"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <StackPanel Spacing="16">
+          <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+            <material:MaterialIcon Kind="Star"
+                                   Width="24"
+                                   Height="24"
+                                   Foreground="{DynamicResource WarningBrush}" />
+            <TextBlock Text="{x:Static res:CommitLogStrings.AddFavoriteModalTitle}"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       VerticalAlignment="Center" />
+          </StackPanel>
+
+          <StackPanel Spacing="4">
+            <TextBlock Text="{x:Static res:CommitLogStrings.FavoriteNameLabel}" FontSize="12" />
+            <TextBox x:Name="FavoriteNameTextBox"
+                     Watermark="{x:Static res:CommitLogStrings.FavoriteNamePlaceholder}" />
+          </StackPanel>
+
+          <StackPanel Spacing="2">
+            <TextBlock Text="Path" FontSize="11" Classes="SubtleCaption" />
+            <TextBlock x:Name="TargetFavoritePathTextBlock"
+                       Classes="SubtleCaption"
+                       TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button x:Name="CancelAddFavoriteButton"
+                    Classes="SecondaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.CancelButton}" />
+            <Button x:Name="ConfirmAddFavoriteButton"
+                    Classes="PrimaryAction"
+                    Content="{x:Static res:CommitLogStrings.ConfirmAddFavoriteButton}" />
           </StackPanel>
         </StackPanel>
       </Border>

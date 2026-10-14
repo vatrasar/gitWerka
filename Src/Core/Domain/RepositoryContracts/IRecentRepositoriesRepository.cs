@@ -41,4 +41,39 @@ public interface IRecentRepositoriesRepository
     /// <param name="repositoryPath">The file system path of the repository.</param>
     /// <param name="cancellationToken">Cancellation token for async operation.</param>
     Task TogglePinRecentRepositoryAsync(string repositoryPath, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves a single recent repository by path if it exists.
+    /// Usages: CommitLogViewModel.
+    /// </summary>
+    /// <param name="repositoryPath">The file system path of the repository.</param>
+    /// <param name="cancellationToken">Cancellation token for async operation.</param>
+    /// <returns>Repository domain model or null.</returns>
+    Task<RecentRepository?> GetRepositoryByPathAsync(string repositoryPath, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sets or clears favorite status and optional custom display name for a repository.
+    /// Usages: CommitLogViewModel.
+    /// </summary>
+    /// <param name="repositoryPath">The file system path of the repository.</param>
+    /// <param name="isFavorite">True to add to favorites, false to remove.</param>
+    /// <param name="customName">Optional custom display name when adding to favorites.</param>
+    /// <param name="cancellationToken">Cancellation token for async operation.</param>
+    Task SetFavoriteAsync(string repositoryPath, bool isFavorite, string? customName = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves all favorite repositories ordered by last opened timestamp.
+    /// Usages: CommitLogViewModel.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token for async operation.</param>
+    /// <returns>Read-only list of favorite repository domain models.</returns>
+    Task<IReadOnlyList<RecentRepository>> GetFavoriteRepositoriesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves the most recently opened repository that is not marked as favorite.
+    /// Usages: CommitLogViewModel.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token for async operation.</param>
+    /// <returns>Recent repository model or null if none exist.</returns>
+    Task<RecentRepository?> GetMostRecentNonFavoriteRepositoryAsync(CancellationToken cancellationToken = default);
 }

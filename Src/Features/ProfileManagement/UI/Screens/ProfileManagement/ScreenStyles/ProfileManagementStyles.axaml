@@ -1,0 +1,121 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Workspace Header Bar -->
+  <Style Selector="Border.ProfileHeader">
+    <Setter Property="Background" Value="{DynamicResource ShellHeaderFooterBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+    <Setter Property="Padding" Value="16,12" />
+  </Style>
+
+  <!-- Segmented Tab Navigation Button -->
+  <Style Selector="Button.WorkspaceTab">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource SubtleTextBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,0,2" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Padding" Value="14,10" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="13" />
+  </Style>
+
+  <Style Selector="Button.WorkspaceTab:pointerover">
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardHoverBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+  </Style>
+
+  <Style Selector="Button.WorkspaceTab.active">
+    <Setter Property="Foreground" Value="{DynamicResource AccentPrimaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}" />
+  </Style>
+
+  <!-- Profile Card Container -->
+  <Style Selector="Border.EntityCard">
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="12" />
+    <Setter Property="Margin" Value="0,0,0,8" />
+  </Style>
+
+  <Style Selector="Border.EntityCard:pointerover">
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardHoverBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimaryBorderBrush}" />
+  </Style>
+
+  <!-- Editor Container Panel -->
+  <Style Selector="Border.EditorCard">
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="20" />
+  </Style>
+
+  <!-- Primary Action Button -->
+  <Style Selector="Button.PrimaryAction">
+    <Setter Property="Background" Value="{DynamicResource AccentPrimaryBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentPrimaryForegroundBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Padding" Value="14,7" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+
+  <Style Selector="Button.PrimaryAction:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AccentPrimaryHoverBrush}" />
+  </Style>
+
+  <!-- Secondary Action Button -->
+  <Style Selector="Button.SecondaryAction">
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Padding" Value="12,6" />
+    <Setter Property="CornerRadius" Value="6" />
+  </Style>
+
+  <Style Selector="Button.SecondaryAction:pointerover">
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardHoverBrush}" />
+  </Style>
+
+  <!-- Danger Action Button -->
+  <Style Selector="Button.DangerAction">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource ErrorBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Padding" Value="12,6" />
+    <Setter Property="CornerRadius" Value="6" />
+  </Style>
+
+  <Style Selector="Button.DangerAction:pointerover">
+    <Setter Property="Background" Value="#33DA3633" />
+  </Style>
+
+  <!-- Form Field Label -->
+  <Style Selector="TextBlock.FieldLabel">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+    <Setter Property="Margin" Value="0,0,0,4" />
+  </Style>
+
+  <!-- Active Repo Badge -->
+  <Style Selector="Border.ActiveRepoBadge">
+    <Setter Property="Background" Value="{DynamicResource BranchBadgeBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource GitGraphBranch2Brush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Padding" Value="6,2" />
+  </Style>
+</Styles>

@@ -22,4 +22,9 @@ public class RecentRepositoryEntity
     public DateTime LastOpenedAtUtc { get; set; }
 
     public bool IsPinned { get; set; }
+
+    public bool IsFavorite { get; set; }
+
+    [MaxLength(256)]
+    public string? CustomName { get; set; }
 }

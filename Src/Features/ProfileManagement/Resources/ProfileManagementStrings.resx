@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="0" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <data name="ScreenTitle" xml:space="preserve">
+    <value>Profile Management</value>
+  </data>
+  <data name="ScreenSubtitle" xml:space="preserve">
+    <value>Manage authors and GitHub credentials for repository commit signatures and push authentication</value>
+  </data>
+  <data name="BackTooltip" xml:space="preserve">
+    <value>Back to repository workspace</value>
+  </data>
+  <data name="ProfilesTab" xml:space="preserve">
+    <value>Profiles</value>
+  </data>
+  <data name="AuthorsTab" xml:space="preserve">
+    <value>Authors</value>
+  </data>
+  <data name="CredentialsTab" xml:space="preserve">
+    <value>Credentials</value>
+  </data>
+  <data name="ProfilesSectionTitle" xml:space="preserve">
+    <value>Configured Profiles</value>
+  </data>
+  <data name="NewProfileButton" xml:space="preserve">
+    <value>New Profile</value>
+  </data>
+  <data name="ProfileNameLabel" xml:space="preserve">
+    <value>Profile Name</value>
+  </data>
+  <data name="ProfileNamePlaceholder" xml:space="preserve">
+    <value>e.g. Work GitHub, Personal OpenSource</value>
+  </data>
+  <data name="AuthorSelectLabel" xml:space="preserve">
+    <value>Commit Author (Signature)</value>
+  </data>
+  <data name="CredentialsSelectLabel" xml:space="preserve">
+    <value>GitHub Credentials (Push Auth)</value>
+  </data>
+  <data name="SelectAuthorPlaceholder" xml:space="preserve">
+    <value>Select commit author...</value>
+  </data>
+  <data name="SelectCredentialsPlaceholder" xml:space="preserve">
+    <value>Select credentials...</value>
+  </data>
+  <data name="QuickNewAuthorButton" xml:space="preserve">
+    <value>+ New Author</value>
+  </data>
+  <data name="QuickNewCredentialsButton" xml:space="preserve">
+    <value>+ New Credentials</value>
+  </data>
+  <data name="SaveProfileButton" xml:space="preserve">
+    <value>Save Profile</value>
+  </data>
+  <data name="DeleteProfileButton" xml:space="preserve">
+    <value>Delete Profile</value>
+  </data>
+  <data name="EditButton" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="DeleteButton" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="SetActiveForRepoButton" xml:space="preserve">
+    <value>Use for Current Repository</value>
+  </data>
+  <data name="ActiveForCurrentRepoBadge" xml:space="preserve">
+    <value>Active for this repo</value>
+  </data>
+  <data name="NoProfilesMessage" xml:space="preserve">
+    <value>No profiles created yet. Click 'New Profile' to create one by pairing an author and GitHub credentials.</value>
+  </data>
+  <data name="AuthorsSectionTitle" xml:space="preserve">
+    <value>Authors (Commit Signatures)</value>
+  </data>
+  <data name="NewAuthorButton" xml:space="preserve">
+    <value>New Author</value>
+  </data>
+  <data name="AuthorNameLabel" xml:space="preserve">
+    <value>Full Name</value>
+  </data>
+  <data name="AuthorNamePlaceholder" xml:space="preserve">
+    <value>e.g. Jane Doe</value>
+  </data>
+  <data name="AuthorEmailLabel" xml:space="preserve">
+    <value>Email Address</value>
+  </data>
+  <data name="AuthorEmailPlaceholder" xml:space="preserve">
+    <value>e.g. jane.doe@example.com</value>
+  </data>
+  <data name="SaveAuthorButton" xml:space="preserve">
+    <value>Save Author</value>
+  </data>
+  <data name="NoAuthorsMessage" xml:space="preserve">
+    <value>No authors saved yet. Create authors to reuse their signature across multiple profiles.</value>
+  </data>
+  <data name="CredentialsSectionTitle" xml:space="preserve">
+    <value>GitHub Credentials</value>
+  </data>
+  <data name="NewCredentialsButton" xml:space="preserve">
+    <value>New Credentials</value>
+  </data>
+  <data name="CredentialsUsernameLabel" xml:space="preserve">
+    <value>GitHub Username</value>
+  </data>
+  <data name="CredentialsUsernamePlaceholder" xml:space="preserve">
+    <value>e.g. octocat</value>
+  </data>
+  <data name="CredentialsTokenLabel" xml:space="preserve">
+    <value>Personal Access Token</value>
+  </data>
+  <data name="CredentialsTokenPlaceholder" xml:space="preserve">
+    <value>e.g. ghp_xxxxxxxxxxxx</value>
+  </data>
+  <data name="SaveCredentialsButton" xml:space="preserve">
+    <value>Save Credentials</value>
+  </data>
+  <data name="NoCredentialsMessage" xml:space="preserve">
+    <value>No credentials saved yet. Create credentials to reuse your GitHub tokens across multiple profiles.</value>
+  </data>
+  <data name="ProfileEditorHeader" xml:space="preserve">
+    <value>Profile Details</value>
+  </data>
+  <data name="AuthorEditorHeader" xml:space="preserve">
+    <value>Author Details</value>
+  </data>
+  <data name="CredentialsEditorHeader" xml:space="preserve">
+    <value>Credentials Details</value>
+  </data>
+  <data name="CancelEditButton" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+</root>

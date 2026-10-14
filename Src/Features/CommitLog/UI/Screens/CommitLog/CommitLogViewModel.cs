@@ -10,11 +10,14 @@ using System.Reactive.Linq;
 using System.Threading.Tasks;
 using GitWerka.Core.Domain.Enums;
 using GitWerka.Core.Domain.Models;
+using GitWerka.Core.Domain.RepositoryContracts;
 using GitWerka.Core.Domain.Services;
 using GitWerka.Core.Mvvm;
 using GitWerka.Features.CommitLog.Domain.Enums;
+using GitWerka.Features.ProfileManagement.UI.Screens.ProfileManagement;
 using ReactiveUI;
 using ReactiveUI.SourceGenerators;
+using Splat;
 
 /// <summary>
 /// ViewModel for the CommitLog workspace screen displaying history graph, branch pointers, commit details, and diffs.
@@ -23,6 +26,11 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
 {
     private readonly IGitService _gitService;
     private readonly ISystemLauncherService _systemLauncherService;
+    private readonly IProfileRepository? _profileRepository;
+    private readonly IRecentRepositoriesRepository? _recentRepositoriesRepository;
+    private readonly IAiCommitMessageService? _aiCommitMessageService;
+    private readonly IAiConfigurationRepository? _aiConfigurationRepository;
+    private readonly IApplicationSettingsRepository? _applicationSettingsRepository;
 
     public string? UrlPathSegment => "commit-log";
 
@@ -32,7 +40,12 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
         IScreen hostScreen,
         string repositoryPath,
         IGitService gitService,
-        ISystemLauncherService? systemLauncherService = null) : base(new CommitLogState
+        ISystemLauncherService? systemLauncherService = null,
+        IProfileRepository? profileRepository = null,
+        IRecentRepositoriesRepository? recentRepositoriesRepository = null,
+        IAiCommitMessageService? aiCommitMessageService = null,
+        IAiConfigurationRepository? aiConfigurationRepository = null,
+        IApplicationSettingsRepository? applicationSettingsRepository = null) : base(new CommitLogState
         {
             RepositoryPath = repositoryPath,
             RepositoryName = new DirectoryInfo(repositoryPath).Name
@@ -41,6 +54,11 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
         HostScreen = hostScreen;
         _gitService = gitService;
         _systemLauncherService = systemLauncherService ?? new GitWerka.Infrastructure.Services.SystemLauncherService();
+        _profileRepository = profileRepository ?? Locator.Current.GetService<IProfileRepository>();
+        _recentRepositoriesRepository = recentRepositoriesRepository ?? Locator.Current.GetService<IRecentRepositoriesRepository>();
+        _aiCommitMessageService = aiCommitMessageService ?? Locator.Current.GetService<IAiCommitMessageService>();
+        _aiConfigurationRepository = aiConfigurationRepository ?? Locator.Current.GetService<IAiConfigurationRepository>();
+        _applicationSettingsRepository = applicationSettingsRepository ?? Locator.Current.GetService<IApplicationSettingsRepository>();
 
         LoadRepositoryDataCommand.Execute().Subscribe();
     }
@@ -70,6 +88,16 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
     public void UpdateCommitMessageInput(string message)
     {
         UpdateState(s => s with { CommitMessageInput = message ?? string.Empty });
+    }
+
+    /// <summary>
+    /// Updates the custom repository name input for the Add to Favorites modal.
+    /// Usages: CommitLogView favorite name text box.
+    /// </summary>
+    /// <param name="name">New custom repository name input.</param>
+    public void UpdateNewFavoriteNameInput(string name)
+    {
+        UpdateState(s => s with { NewFavoriteNameInput = name ?? string.Empty });
     }
 
     /// <summary>
@@ -193,6 +221,66 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
     public void UpdateConfigUserEmailInput(string text)
     {
         UpdateState(s => s with { ConfigUserEmailInput = text ?? string.Empty });
+    }
+
+    /// <summary>
+    /// Updates default projects directory input in settings modal.
+    /// Usages: CommitLogView settings modal.
+    /// </summary>
+    /// <param name="text">Default directory path string.</param>
+    public void UpdateDefaultProjectsDirectoryInput(string text)
+    {
+        UpdateState(s => s with { DefaultProjectsDirectoryInput = text ?? string.Empty });
+    }
+
+    /// <summary>
+    /// Updates OpenRouter API key configuration input in settings modal.
+    /// Usages: CommitLogView settings modal.
+    /// </summary>
+    /// <param name="text">API key string.</param>
+    public void UpdateAiApiKeyInput(string text)
+    {
+        UpdateState(s => s with { AiApiKeyInput = text ?? string.Empty });
+    }
+
+    /// <summary>
+    /// Updates AI model identifier input in settings modal.
+    /// Usages: CommitLogView settings modal.
+    /// </summary>
+    /// <param name="text">Model identifier.</param>
+    public void UpdateAiModelInput(string text)
+    {
+        UpdateState(s => s with { AiModelInput = text ?? string.Empty });
+    }
+
+    /// <summary>
+    /// Updates requested commit style input in settings modal.
+    /// Usages: CommitLogView settings modal.
+    /// </summary>
+    /// <param name="text">Commit style instructions.</param>
+    public void UpdateAiCommitStyleInput(string text)
+    {
+        UpdateState(s => s with { AiCommitStyleInput = text ?? string.Empty });
+    }
+
+    /// <summary>
+    /// Updates token limit input in settings modal.
+    /// Usages: CommitLogView settings modal.
+    /// </summary>
+    /// <param name="text">Token limit number string.</param>
+    public void UpdateAiTokenLimitInput(string text)
+    {
+        UpdateState(s => s with { AiTokenLimitInput = text ?? string.Empty });
+    }
+
+    /// <summary>
+    /// Updates project description input for the active repository in settings modal.
+    /// Usages: CommitLogView settings modal.
+    /// </summary>
+    /// <param name="text">Project description context.</param>
+    public void UpdateAiProjectDescriptionInput(string text)
+    {
+        UpdateState(s => s with { AiProjectDescriptionInput = text ?? string.Empty });
     }
 
     /// <summary>
@@ -346,6 +434,9 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
                 OperationStatus = opStatus
             });
 
+            await LoadProfilesDataAsync();
+            await InitializeFavoriteAndRecentStateAsync();
+
             if (filtered.Count > 0 && State.SelectedCommit == null)
             {
                 await SelectCommitAsync(filtered[0]);
@@ -432,6 +523,65 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
     }
 
     [ReactiveCommand]
+    private async Task ExecuteGenerateAiCommitMessage()
+    {
+        if (State.IsGeneratingAiCommit)
+        {
+            return;
+        }
+
+        if (_aiCommitMessageService == null)
+        {
+            UpdateState(s => s with
+            {
+                AiErrorMessage = "AI commit message service is not available.",
+                IsAiErrorSettingsActionVisible = false
+            });
+            return;
+        }
+
+        UpdateState(s => s with
+        {
+            IsGeneratingAiCommit = true,
+            AiErrorMessage = null,
+            IsAiErrorSettingsActionVisible = false
+        });
+
+        try
+        {
+            string proposal = await _aiCommitMessageService.GenerateCommitMessageAsync(State.RepositoryPath);
+            UpdateState(s => s with
+            {
+                CommitMessageInput = proposal,
+                IsGeneratingAiCommit = false,
+                AiErrorMessage = null,
+                IsAiErrorSettingsActionVisible = false
+            });
+        }
+        catch (Exception ex)
+        {
+            bool isMissingApiKey = ex.Message.Contains("API key", StringComparison.OrdinalIgnoreCase);
+
+            UpdateState(s => s with
+            {
+                IsGeneratingAiCommit = false,
+                AiErrorMessage = ex.Message,
+                IsAiErrorSettingsActionVisible = isMissingApiKey
+            });
+        }
+    }
+
+    [ReactiveCommand]
+    private void DismissAiError()
+    {
+        UpdateState(s => s with
+        {
+            AiErrorMessage = null,
+            IsAiErrorSettingsActionVisible = false
+        });
+    }
+
+    [ReactiveCommand]
     private async Task ExecuteCommit()
     {
         if (string.IsNullOrWhiteSpace(State.CommitMessageInput))
@@ -444,11 +594,18 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
 
         try
         {
+            string authorName = !string.IsNullOrWhiteSpace(State.ActiveProfile?.Author?.Name)
+                ? State.ActiveProfile.Author.Name
+                : "GitWerka User";
+            string authorEmail = !string.IsNullOrWhiteSpace(State.ActiveProfile?.Author?.Email)
+                ? State.ActiveProfile.Author.Email
+                : "user@gitwerka.local";
+
             await _gitService.CreateCommitAsync(
                 State.RepositoryPath,
                 State.CommitMessageInput.Trim(),
-                "GitWerka User",
-                "user@gitwerka.local",
+                authorName,
+                authorEmail,
                 State.IsAmendCommit);
 
             UpdateState(s => s with
@@ -549,7 +706,18 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
         UpdateState(s => s with { IsLoading = true, ErrorMessage = null });
         try
         {
-            await _gitService.PushAsync(State.RepositoryPath);
+            GitCredentials? credentials = null;
+            if (State.ActiveProfile?.Credentials != null)
+            {
+                credentials = new GitCredentials
+                {
+                    Type = GitCredentialType.Https,
+                    Username = State.ActiveProfile.Credentials.Username,
+                    PasswordOrToken = State.ActiveProfile.Credentials.AccessToken
+                };
+            }
+
+            await _gitService.PushAsync(State.RepositoryPath, credentials: credentials);
             await LoadRepositoryData();
         }
         catch (Exception ex)
@@ -801,17 +969,41 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
         try
         {
             GitConfigInfo config = await _gitService.GetGitConfigAsync(State.RepositoryPath);
+            (AiConfiguration aiConfig, string? projectDesc) = await LoadAiSettingsAsync();
+            ApplicationSettings appSettings = _applicationSettingsRepository != null
+                ? await _applicationSettingsRepository.GetSettingsAsync()
+                : new ApplicationSettings();
+
             UpdateState(s => s with
             {
                 IsSettingsModalVisible = true,
                 ConfigUserNameInput = config.UserName,
-                ConfigUserEmailInput = config.UserEmail
+                ConfigUserEmailInput = config.UserEmail,
+                DefaultProjectsDirectoryInput = appSettings.DefaultProjectsDirectory,
+                AiApiKeyInput = aiConfig.ApiKey ?? string.Empty,
+                AiModelInput = aiConfig.Model,
+                AiCommitStyleInput = aiConfig.CommitStyle,
+                AiTokenLimitInput = aiConfig.TokenLimit.ToString(),
+                AiProjectDescriptionInput = projectDesc ?? string.Empty
             });
         }
         catch (Exception ex)
         {
             UpdateState(s => s with { ErrorMessage = ex.Message });
         }
+    }
+
+    private async Task<(AiConfiguration, string?)> LoadAiSettingsAsync()
+    {
+        if (_aiConfigurationRepository == null)
+        {
+            return (new AiConfiguration(), null);
+        }
+
+        AiConfiguration aiConfig = await _aiConfigurationRepository.GetConfigurationAsync();
+        string? projectDesc = await _aiConfigurationRepository.GetProjectDescriptionAsync(State.RepositoryPath);
+
+        return (aiConfig, projectDesc);
     }
 
     [ReactiveCommand]
@@ -830,11 +1022,48 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
                 State.RepositoryPath,
                 State.ConfigUserNameInput.Trim(),
                 State.ConfigUserEmailInput.Trim());
+
+            if (_applicationSettingsRepository != null)
+            {
+                await _applicationSettingsRepository.SaveSettingsAsync(new ApplicationSettings
+                {
+                    DefaultProjectsDirectory = State.DefaultProjectsDirectoryInput.Trim()
+                });
+            }
+
+            await SaveAiSettingsAsync();
         }
         catch (Exception ex)
         {
             UpdateState(s => s with { ErrorMessage = ex.Message });
         }
+    }
+
+    private async Task SaveAiSettingsAsync()
+    {
+        if (_aiConfigurationRepository == null)
+        {
+            return;
+        }
+
+        int.TryParse(State.AiTokenLimitInput, out int tokenLimit);
+        if (tokenLimit <= 0)
+        {
+            tokenLimit = 4000;
+        }
+
+        AiConfiguration updatedAiConfig = new()
+        {
+            ApiKey = string.IsNullOrWhiteSpace(State.AiApiKeyInput) ? null : State.AiApiKeyInput.Trim(),
+            Model = string.IsNullOrWhiteSpace(State.AiModelInput) ? "google/gemini-2.5-flash" : State.AiModelInput.Trim(),
+            CommitStyle = string.IsNullOrWhiteSpace(State.AiCommitStyleInput) ? "Conventional Commits: <type>(<scope>): <subject>" : State.AiCommitStyleInput.Trim(),
+            TokenLimit = tokenLimit
+        };
+
+        await _aiConfigurationRepository.SaveConfigurationAsync(updatedAiConfig);
+        await _aiConfigurationRepository.SaveProjectDescriptionAsync(
+            State.RepositoryPath,
+            string.IsNullOrWhiteSpace(State.AiProjectDescriptionInput) ? null : State.AiProjectDescriptionInput.Trim());
     }
 
     [ReactiveCommand]
@@ -1319,5 +1548,301 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
             default:
                 break;
         }
+    }
+
+    /// <summary>
+    /// Selects an active Git profile for this repository and persists the selection.
+    /// Usages: CommitLogView profile dropdown selection.
+    /// </summary>
+    /// <param name="profile">The profile to activate or null to clear.</param>
+    public async Task SelectProfileAsync(GitProfile? profile)
+    {
+        UpdateState(s => s with { ActiveProfile = profile });
+
+        if (_profileRepository == null)
+        {
+            return;
+        }
+
+        if (profile != null)
+        {
+            await _profileRepository.SetActiveProfileForRepositoryAsync(State.RepositoryPath, profile.Id);
+            await ConfigureGitAuthorIfAvailableAsync(profile);
+            return;
+        }
+
+        await _profileRepository.ClearActiveProfileForRepositoryAsync(State.RepositoryPath);
+    }
+
+    /// <summary>
+    /// Navigates to the ProfileManagement screen.
+    /// Usages: CommitLogView profile menu 'Manage profiles' action.
+    /// </summary>
+    public void NavigateToProfileManagement()
+    {
+        if (_profileRepository == null)
+        {
+            return;
+        }
+
+        HostScreen.Router.Navigate.Execute(
+            new ProfileManagementViewModel(HostScreen, _profileRepository, State.RepositoryPath)
+        ).Subscribe();
+    }
+
+    [ReactiveCommand]
+    private async Task SelectProfile(GitProfile? profile)
+    {
+        await SelectProfileAsync(profile);
+    }
+
+    [ReactiveCommand]
+    private void NavigateToProfiles()
+    {
+        NavigateToProfileManagement();
+    }
+
+    private async Task ConfigureGitAuthorIfAvailableAsync(GitProfile profile)
+    {
+        if (profile.Author == null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _gitService.SetGitConfigAsync(State.RepositoryPath, profile.Author.Name, profile.Author.Email);
+        }
+        catch (Exception ex)
+        {
+            UpdateState(s => s with { ErrorMessage = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Reloads all profiles and the active profile from the repository.
+    /// Usages: HostViewModel navigation sync, HostViewModel refresh.
+    /// </summary>
+    /// <returns>Task tracking async profiles reload.</returns>
+    public async Task ReloadProfilesAsync()
+    {
+        await LoadProfilesDataAsync();
+        if (State.ActiveProfile != null)
+        {
+            await ConfigureGitAuthorIfAvailableAsync(State.ActiveProfile);
+        }
+    }
+
+    private async Task LoadProfilesDataAsync()
+    {
+        if (_profileRepository == null)
+        {
+            return;
+        }
+
+        try
+        {
+            IReadOnlyList<GitProfile> profiles = await _profileRepository.GetAllProfilesAsync();
+            GitProfile? activeProfile = await _profileRepository.GetActiveProfileForRepositoryAsync(State.RepositoryPath);
+
+            UpdateState(s => s with
+            {
+                AvailableProfiles = profiles.ToImmutableList(),
+                ActiveProfile = activeProfile
+            });
+        }
+        catch (Exception ex)
+        {
+            UpdateState(s => s with { ErrorMessage = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Refreshes favorite repositories and the most recently opened non-favorite repository from storage.
+    /// Usages: CommitLogView favorites dock, repository open handlers.
+    /// </summary>
+    /// <returns>Task tracking async refresh.</returns>
+    public async Task RefreshFavoritesDockDataAsync()
+    {
+        if (_recentRepositoriesRepository == null)
+        {
+            return;
+        }
+
+        try
+        {
+            var favorites = await _recentRepositoriesRepository.GetFavoriteRepositoriesAsync();
+            var recentNonFav = await _recentRepositoriesRepository.GetMostRecentNonFavoriteRepositoryAsync();
+
+            UpdateState(s => s with
+            {
+                FavoriteRepositories = favorites.ToImmutableList(),
+                RecentNonFavoriteRepository = recentNonFav
+            });
+        }
+        catch (Exception ex)
+        {
+            UpdateState(s => s with { ErrorMessage = ex.Message });
+        }
+    }
+
+    private async Task InitializeFavoriteAndRecentStateAsync()
+    {
+        if (_recentRepositoriesRepository == null || string.IsNullOrWhiteSpace(State.RepositoryPath))
+        {
+            return;
+        }
+
+        try
+        {
+            RecentRepository? existing = await _recentRepositoriesRepository.GetRepositoryByPathAsync(State.RepositoryPath);
+            string folderName = new DirectoryInfo(State.RepositoryPath).Name;
+            bool isFavorite = existing?.IsFavorite ?? false;
+            string? customName = existing?.CustomName;
+            string displayName = ResolveRepositoryDisplayName(isFavorite, customName, folderName);
+
+            UpdateState(s => s with { RepositoryName = displayName });
+
+            await _recentRepositoriesRepository.AddOrUpdateRecentRepositoryAsync(new RecentRepository
+            {
+                Path = State.RepositoryPath,
+                Name = folderName,
+                LastOpenedAtUtc = DateTime.UtcNow,
+                IsFavorite = isFavorite,
+                CustomName = customName
+            });
+
+            await RefreshFavoritesDockDataAsync();
+        }
+        catch (Exception ex)
+        {
+            UpdateState(s => s with { ErrorMessage = ex.Message });
+        }
+    }
+
+    private static string ResolveRepositoryDisplayName(bool isFavorite, string? customName, string fallbackName)
+    {
+        if (isFavorite && !string.IsNullOrWhiteSpace(customName))
+        {
+            return customName;
+        }
+
+        return fallbackName;
+    }
+
+    [ReactiveCommand]
+    private async Task ToggleFavoritesDock()
+    {
+        bool nextOpen = !State.IsFavoritesDockOpen;
+        if (nextOpen)
+        {
+            await RefreshFavoritesDockDataAsync();
+        }
+
+        UpdateState(s => s with { IsFavoritesDockOpen = nextOpen });
+    }
+
+    [ReactiveCommand]
+    private void CloseFavoritesDock()
+    {
+        UpdateState(s => s with { IsFavoritesDockOpen = false });
+    }
+
+    [ReactiveCommand]
+    private void ShowAddFavoriteModal(string? path = null)
+    {
+        string targetPath = string.IsNullOrWhiteSpace(path) ? State.RepositoryPath : path;
+        string defaultName = new DirectoryInfo(targetPath).Name;
+
+        UpdateState(s => s with
+        {
+            IsAddFavoriteModalVisible = true,
+            TargetFavoritePath = targetPath,
+            NewFavoriteNameInput = defaultName
+        });
+    }
+
+    [ReactiveCommand]
+    private void HideAddFavoriteModal()
+    {
+        UpdateState(s => s with { IsAddFavoriteModalVisible = false });
+    }
+
+    [ReactiveCommand]
+    private async Task ConfirmAddFavorite()
+    {
+        if (_recentRepositoriesRepository == null || string.IsNullOrWhiteSpace(State.TargetFavoritePath))
+        {
+            UpdateState(s => s with { IsAddFavoriteModalVisible = false });
+            return;
+        }
+
+        string rawName = State.NewFavoriteNameInput?.Trim() ?? string.Empty;
+        string nameToUse = string.IsNullOrWhiteSpace(rawName)
+            ? new DirectoryInfo(State.TargetFavoritePath).Name
+            : rawName;
+
+        await _recentRepositoriesRepository.SetFavoriteAsync(State.TargetFavoritePath, true, nameToUse);
+
+        if (string.Equals(State.TargetFavoritePath, State.RepositoryPath, StringComparison.OrdinalIgnoreCase))
+        {
+            UpdateState(s => s with { RepositoryName = nameToUse });
+        }
+
+        await RefreshFavoritesDockDataAsync();
+        UpdateState(s => s with { IsAddFavoriteModalVisible = false });
+    }
+
+    [ReactiveCommand]
+    private async Task RemoveFromFavorites(string path)
+    {
+        if (_recentRepositoriesRepository == null || string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        await _recentRepositoriesRepository.SetFavoriteAsync(path, false, null);
+
+        if (string.Equals(path, State.RepositoryPath, StringComparison.OrdinalIgnoreCase))
+        {
+            string fallbackName = new DirectoryInfo(State.RepositoryPath).Name;
+            UpdateState(s => s with { RepositoryName = fallbackName });
+        }
+
+        await RefreshFavoritesDockDataAsync();
+    }
+
+    [ReactiveCommand]
+    private void OpenRepositoryFromDock(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        UpdateState(s => s with { IsFavoritesDockOpen = false });
+
+        if (string.Equals(path, State.RepositoryPath, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (!_gitService.IsValidRepository(path))
+        {
+            UpdateState(s => s with { ErrorMessage = "Selected directory is not a valid Git repository." });
+            return;
+        }
+
+        HostScreen.Router.Navigate.Execute(new CommitLogViewModel(
+            HostScreen,
+            path,
+            _gitService,
+            _systemLauncherService,
+            _profileRepository,
+            _recentRepositoriesRepository,
+            _aiCommitMessageService,
+            _aiConfigurationRepository,
+            _applicationSettingsRepository
+        )).Subscribe();
     }
 }

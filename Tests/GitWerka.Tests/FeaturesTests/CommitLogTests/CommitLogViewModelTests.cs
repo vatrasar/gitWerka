@@ -7,10 +7,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using GitWerka.Core.Domain.Enums;
 using GitWerka.Core.Domain.Models;
+using GitWerka.Core.Domain.RepositoryContracts;
 using GitWerka.Core.Domain.Services;
 using GitWerka.Features.CommitLog.Domain.Enums;
 using GitWerka.Features.CommitLog.UI.Screens.CommitLog;
 using ReactiveUI;
+using System.Reactive.Linq;
+using System.Linq;
 using Xunit;
 
 public class CommitLogViewModelTests
@@ -122,11 +125,15 @@ public class CommitLogViewModelTests
 
         public string? LastCommitMessage { get; private set; }
         public bool LastCommitWasAmend { get; private set; }
+        public string? LastCommitAuthorName { get; private set; }
+        public string? LastCommitAuthorEmail { get; private set; }
 
         public Task<string> CreateCommitAsync(string repositoryPath, string message, string authorName, string authorEmail, bool amendPreviousCommit = false, CancellationToken cancellationToken = default)
         {
             LastCommitMessage = message;
             LastCommitWasAmend = amendPreviousCommit;
+            LastCommitAuthorName = authorName;
+            LastCommitAuthorEmail = authorEmail;
             return Task.FromResult("new-sha");
         }
 
@@ -1029,5 +1036,510 @@ public class CommitLogViewModelTests
 
         Assert.True(vm.State.IsCredentialsModalVisible);
         Assert.False(string.IsNullOrWhiteSpace(vm.State.CredentialsErrorMessage));
+    }
+
+    private class TestProfileRepository : IProfileRepository
+    {
+        public List<GitProfile> Profiles { get; } = new();
+        public Dictionary<string, int> Mappings { get; } = new();
+
+        public Task<IReadOnlyList<GitProfile>> GetAllProfilesAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<GitProfile>>(Profiles);
+
+        public Task<GitProfile?> GetProfileByIdAsync(int id, CancellationToken cancellationToken = default) =>
+            Task.FromResult(Profiles.FirstOrDefault(p => p.Id == id));
+
+        public Task<GitProfile> SaveProfileAsync(GitProfile profile, CancellationToken cancellationToken = default)
+        {
+            Profiles.Add(profile);
+            return Task.FromResult(profile);
+        }
+
+        public Task DeleteProfileAsync(int id, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<IReadOnlyList<GitAuthor>> GetAllAuthorsAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<GitAuthor>>(new List<GitAuthor>());
+        public Task<GitAuthor?> GetAuthorByIdAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult<GitAuthor?>(null);
+        public Task<GitAuthor> SaveAuthorAsync(GitAuthor author, CancellationToken cancellationToken = default) => Task.FromResult(author);
+        public Task DeleteAuthorAsync(int id, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<IReadOnlyList<GitProfileCredentials>> GetAllCredentialsAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<GitProfileCredentials>>(new List<GitProfileCredentials>());
+        public Task<GitProfileCredentials?> GetCredentialsByIdAsync(int id, CancellationToken cancellationToken = default) => Task.FromResult<GitProfileCredentials?>(null);
+        public Task<GitProfileCredentials> SaveCredentialsAsync(GitProfileCredentials credentials, CancellationToken cancellationToken = default) => Task.FromResult(credentials);
+        public Task DeleteCredentialsAsync(int id, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public Task<GitProfile?> GetActiveProfileForRepositoryAsync(string repositoryPath, CancellationToken cancellationToken = default)
+        {
+            if (Mappings.TryGetValue(repositoryPath, out int id))
+            {
+                return GetProfileByIdAsync(id, cancellationToken);
+            }
+            return Task.FromResult<GitProfile?>(null);
+        }
+
+        public Task SetActiveProfileForRepositoryAsync(string repositoryPath, int profileId, CancellationToken cancellationToken = default)
+        {
+            Mappings[repositoryPath] = profileId;
+            return Task.CompletedTask;
+        }
+
+        public Task ClearActiveProfileForRepositoryAsync(string repositoryPath, CancellationToken cancellationToken = default)
+        {
+            Mappings.Remove(repositoryPath);
+            return Task.CompletedTask;
+        }
+    }
+
+    [Fact]
+    public async Task SelectProfileCommand_SetsActiveProfileAndSavesMapping()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        TestProfileRepository profileRepo = new();
+
+        GitAuthor author = new() { Id = 1, Name = "Alice", Email = "alice@example.com" };
+        GitProfileCredentials creds = new() { Id = 1, Username = "alicegh", AccessToken = "token" };
+        GitProfile profile = new() { Id = 5, Name = "AliceProfile", AuthorId = 1, CredentialsId = 1, Author = author, Credentials = creds };
+        profileRepo.Profiles.Add(profile);
+
+        CommitLogViewModel vm = new(screen, "/my/repo", gitService, profileRepository: profileRepo);
+        await vm.SelectProfileAsync(profile);
+
+        Assert.NotNull(vm.State.ActiveProfile);
+        Assert.Equal("AliceProfile", vm.State.ActiveProfile.Name);
+        Assert.True(profileRepo.Mappings.ContainsKey("/my/repo"));
+        Assert.Equal(5, profileRepo.Mappings["/my/repo"]);
+    }
+
+    [Fact]
+    public async Task PushCommand_WhenActiveProfileHasCredentials_AutomaticallyPassesCredentials()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        TestProfileRepository profileRepo = new();
+
+        GitAuthor author = new() { Id = 1, Name = "Alice", Email = "alice@example.com" };
+        GitProfileCredentials creds = new() { Id = 1, Username = "alicegh", AccessToken = "ghp_secure_access_token_999" };
+        GitProfile profile = new() { Id = 7, Name = "AliceProfile", AuthorId = 1, CredentialsId = 1, Author = author, Credentials = creds };
+        profileRepo.Profiles.Add(profile);
+        profileRepo.Mappings["/my/repo"] = 7;
+
+        CommitLogViewModel vm = new(screen, "/my/repo", gitService, profileRepository: profileRepo);
+        await vm.SelectProfileAsync(profile);
+
+        await vm.PushCommand.Execute().FirstAsync();
+
+        Assert.True(gitService.PushCalled);
+        Assert.NotNull(gitService.LastCredentialsUsed);
+        Assert.Equal("alicegh", gitService.LastCredentialsUsed.Username);
+        Assert.Equal("ghp_secure_access_token_999", gitService.LastCredentialsUsed.PasswordOrToken);
+        Assert.Equal(GitCredentialType.Https, gitService.LastCredentialsUsed.Type);
+    }
+
+    [Fact]
+    public async Task CreateCommitCommand_WhenActiveProfileHasAuthor_UsesAuthorForCommitSignature()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        TestProfileRepository profileRepo = new();
+
+        GitAuthor author = new() { Id = 3, Name = "Bob Dev", Email = "bob@company.com" };
+        GitProfile profile = new() { Id = 9, Name = "WorkProfile", AuthorId = 3, Author = author };
+        profileRepo.Profiles.Add(profile);
+
+        CommitLogViewModel vm = new(screen, "/my/repo", gitService, profileRepository: profileRepo);
+        await vm.SelectProfileAsync(profile);
+
+        vm.UpdateCommitMessageInput("feat: add feature");
+        await vm.ExecuteCommitCommand.Execute().FirstAsync();
+
+        Assert.Equal("feat: add feature", gitService.LastCommitMessage);
+        Assert.Equal("Bob Dev", gitService.LastCommitAuthorName);
+        Assert.Equal("bob@company.com", gitService.LastCommitAuthorEmail);
+    }
+
+    private class TestRecentRepositoriesRepository : IRecentRepositoriesRepository
+    {
+        public List<RecentRepository> Items { get; } = new();
+
+        public Task<IReadOnlyList<RecentRepository>> GetRecentRepositoriesAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<RecentRepository>>(Items);
+        }
+
+        public Task AddOrUpdateRecentRepositoryAsync(RecentRepository repository, CancellationToken cancellationToken = default)
+        {
+            Items.RemoveAll(x => x.Path == repository.Path);
+            Items.Add(repository);
+            return Task.CompletedTask;
+        }
+
+        public Task RemoveRecentRepositoryAsync(string repositoryPath, CancellationToken cancellationToken = default)
+        {
+            Items.RemoveAll(x => x.Path == repositoryPath);
+            return Task.CompletedTask;
+        }
+
+        public Task TogglePinRecentRepositoryAsync(string repositoryPath, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task<RecentRepository?> GetRepositoryByPathAsync(string repositoryPath, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(Items.FirstOrDefault(x => x.Path == repositoryPath));
+        }
+
+        public Task SetFavoriteAsync(string repositoryPath, bool isFavorite, string? customName = null, CancellationToken cancellationToken = default)
+        {
+            var existing = Items.FirstOrDefault(x => x.Path == repositoryPath);
+            if (existing != null)
+            {
+                Items.Remove(existing);
+                Items.Add(existing with { IsFavorite = isFavorite, CustomName = isFavorite ? customName : null });
+            }
+            else
+            {
+                Items.Add(new RecentRepository
+                {
+                    Path = repositoryPath,
+                    Name = new System.IO.DirectoryInfo(repositoryPath).Name,
+                    IsFavorite = isFavorite,
+                    CustomName = isFavorite ? customName : null,
+                    LastOpenedAtUtc = DateTime.UtcNow
+                });
+            }
+            return Task.CompletedTask;
+        }
+
+        public Task<IReadOnlyList<RecentRepository>> GetFavoriteRepositoriesAsync(CancellationToken cancellationToken = default)
+        {
+            IReadOnlyList<RecentRepository> favorites = Items
+                .Where(x => x.IsFavorite)
+                .OrderByDescending(x => x.LastOpenedAtUtc)
+                .ToList();
+            return Task.FromResult(favorites);
+        }
+
+        public Task<RecentRepository?> GetMostRecentNonFavoriteRepositoryAsync(CancellationToken cancellationToken = default)
+        {
+            RecentRepository? mostRecent = Items
+                .Where(x => !x.IsFavorite)
+                .OrderByDescending(x => x.LastOpenedAtUtc)
+                .FirstOrDefault();
+            return Task.FromResult(mostRecent);
+        }
+    }
+
+    [Fact]
+    public async Task ToggleFavoritesDockCommand_WhenExecuted_TogglesIsFavoritesDockOpenAndRefreshesData()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        TestRecentRepositoriesRepository repo = new();
+        repo.Items.Add(new RecentRepository
+        {
+            Path = "/repo/fav",
+            Name = "fav",
+            IsFavorite = true,
+            LastOpenedAtUtc = DateTime.UtcNow
+        });
+        repo.Items.Add(new RecentRepository
+        {
+            Path = "/repo/recent",
+            Name = "recent",
+            IsFavorite = false,
+            LastOpenedAtUtc = DateTime.UtcNow.AddMinutes(-5)
+        });
+
+        CommitLogViewModel vm = new(screen, "/repo/fav", gitService, recentRepositoriesRepository: repo);
+        await vm.LoadRepositoryDataCommand.Execute().FirstAsync();
+
+        Assert.False(vm.State.IsFavoritesDockOpen);
+
+        await vm.ToggleFavoritesDockCommand.Execute().FirstAsync();
+
+        Assert.True(vm.State.IsFavoritesDockOpen);
+        Assert.Single(vm.State.FavoriteRepositories);
+        Assert.Equal("/repo/fav", vm.State.FavoriteRepositories[0].Path);
+        Assert.NotNull(vm.State.RecentNonFavoriteRepository);
+        Assert.Equal("/repo/recent", vm.State.RecentNonFavoriteRepository.Path);
+
+        vm.CloseFavoritesDockCommand.Execute().Subscribe();
+
+        Assert.False(vm.State.IsFavoritesDockOpen);
+    }
+
+    [Fact]
+    public void ShowAddFavoriteModalCommand_And_HideAddFavoriteModalCommand_TogglesModalAndInitializesInput()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        TestRecentRepositoriesRepository repo = new();
+        CommitLogViewModel vm = new(screen, "/repo/my-project", gitService, recentRepositoriesRepository: repo);
+
+        vm.ShowAddFavoriteModalCommand.Execute().Subscribe();
+
+        Assert.True(vm.State.IsAddFavoriteModalVisible);
+        Assert.Equal("/repo/my-project", vm.State.TargetFavoritePath);
+        Assert.Equal("my-project", vm.State.NewFavoriteNameInput);
+
+        vm.UpdateNewFavoriteNameInput("Custom Project Name");
+        Assert.Equal("Custom Project Name", vm.State.NewFavoriteNameInput);
+
+        vm.HideAddFavoriteModalCommand.Execute().Subscribe();
+        Assert.False(vm.State.IsAddFavoriteModalVisible);
+    }
+
+    [Fact]
+    public async Task ConfirmAddFavoriteCommand_WhenCurrentRepositoryFavorited_UpdatesRepositoryNameAndFavoriteList()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        TestRecentRepositoriesRepository repo = new();
+        repo.Items.Add(new RecentRepository
+        {
+            Path = "/repo/my-project",
+            Name = "my-project",
+            IsFavorite = false,
+            LastOpenedAtUtc = DateTime.UtcNow
+        });
+
+        CommitLogViewModel vm = new(screen, "/repo/my-project", gitService, recentRepositoriesRepository: repo);
+        await vm.LoadRepositoryDataCommand.Execute().FirstAsync();
+
+        vm.ShowAddFavoriteModalCommand.Execute().Subscribe();
+        vm.UpdateNewFavoriteNameInput("My Super Project");
+
+        await vm.ConfirmAddFavoriteCommand.Execute().FirstAsync();
+
+        Assert.False(vm.State.IsAddFavoriteModalVisible);
+        Assert.Equal("My Super Project", vm.State.RepositoryName);
+        Assert.Single(vm.State.FavoriteRepositories);
+        Assert.Equal("My Super Project", vm.State.FavoriteRepositories[0].DisplayName);
+        Assert.True(vm.State.FavoriteRepositories[0].IsFavorite);
+    }
+
+    [Fact]
+    public async Task RemoveFromFavoritesCommand_WhenCurrentRepositoryUnfavorited_RevertsRepositoryNameToDirectoryName()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        TestRecentRepositoriesRepository repo = new();
+        repo.Items.Add(new RecentRepository
+        {
+            Path = "/repo/my-project",
+            Name = "my-project",
+            IsFavorite = true,
+            CustomName = "Custom Name",
+            LastOpenedAtUtc = DateTime.UtcNow
+        });
+
+        CommitLogViewModel vm = new(screen, "/repo/my-project", gitService, recentRepositoriesRepository: repo);
+        await vm.LoadRepositoryDataCommand.Execute().FirstAsync();
+
+        Assert.Equal("Custom Name", vm.State.RepositoryName);
+
+        await vm.RemoveFromFavoritesCommand.Execute("/repo/my-project").FirstAsync();
+
+        Assert.Equal("my-project", vm.State.RepositoryName);
+        Assert.Empty(vm.State.FavoriteRepositories);
+        Assert.NotNull(vm.State.RecentNonFavoriteRepository);
+        Assert.Equal("/repo/my-project", vm.State.RecentNonFavoriteRepository.Path);
+    }
+
+    [Fact]
+    public void OpenRepositoryFromDockCommand_WithDifferentValidRepository_NavigatesToNewCommitLog()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        TestRecentRepositoriesRepository repo = new();
+        CommitLogViewModel vm = new(screen, "/repo/first", gitService, recentRepositoriesRepository: repo);
+
+        vm.ToggleFavoritesDockCommand.Execute().Subscribe();
+        Assert.True(vm.State.IsFavoritesDockOpen);
+
+        vm.OpenRepositoryFromDockCommand.Execute("/repo/second").Subscribe();
+
+        Assert.False(vm.State.IsFavoritesDockOpen);
+        Assert.IsType<CommitLogViewModel>(screen.Router.NavigationStack.Last());
+        CommitLogViewModel nextVm = (CommitLogViewModel)screen.Router.NavigationStack.Last();
+        Assert.Equal("/repo/second", nextVm.State.RepositoryPath);
+    }
+
+    private class MockAiCommitMessageService : IAiCommitMessageService
+    {
+        public string ProposalToReturn { get; set; } = "feat(core): add feature";
+        public Exception? ExceptionToThrow { get; set; }
+        public string? LastRepositoryPath { get; private set; }
+
+        public Task<string> GenerateCommitMessageAsync(string repositoryPath, CancellationToken cancellationToken = default)
+        {
+            LastRepositoryPath = repositoryPath;
+            if (ExceptionToThrow != null)
+            {
+                throw ExceptionToThrow;
+            }
+            return Task.FromResult(ProposalToReturn);
+        }
+    }
+
+    private class MockAiConfigurationRepository : IAiConfigurationRepository
+    {
+        public AiConfiguration ConfigurationToReturn { get; set; } = new();
+        public AiConfiguration? LastSavedConfiguration { get; private set; }
+        public Dictionary<string, string?> Descriptions { get; } = new();
+        public (string Path, string? Desc)? LastSavedDescription { get; private set; }
+
+        public Task<AiConfiguration> GetConfigurationAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(ConfigurationToReturn);
+
+        public Task SaveConfigurationAsync(AiConfiguration configuration, CancellationToken cancellationToken = default)
+        {
+            LastSavedConfiguration = configuration;
+            return Task.CompletedTask;
+        }
+
+        public Task<string?> GetProjectDescriptionAsync(string repositoryPath, CancellationToken cancellationToken = default) =>
+            Task.FromResult(Descriptions.GetValueOrDefault(repositoryPath));
+
+        public Task SaveProjectDescriptionAsync(string repositoryPath, string? description, CancellationToken cancellationToken = default)
+        {
+            LastSavedDescription = (repositoryPath, description);
+            Descriptions[repositoryPath] = description;
+            return Task.CompletedTask;
+        }
+    }
+
+    [Fact]
+    public async Task ExecuteGenerateAiCommitMessageCommand_WhenSuccessful_SetsCommitMessageInput()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        MockAiCommitMessageService aiService = new() { ProposalToReturn = "feat(auth): add login flow" };
+
+        CommitLogViewModel vm = new(screen, "/repo/test", gitService, aiCommitMessageService: aiService);
+
+        await vm.ExecuteGenerateAiCommitMessageCommand.Execute().FirstAsync();
+
+        Assert.Equal("feat(auth): add login flow", vm.State.CommitMessageInput);
+        Assert.False(vm.State.IsGeneratingAiCommit);
+        Assert.Null(vm.State.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task ExecuteGenerateAiCommitMessageCommand_WhenFailsWithApiKeyError_SetsAiErrorMessageAndSettingsAction()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        MockAiCommitMessageService aiService = new() { ExceptionToThrow = new InvalidOperationException("OpenRouter API key is not configured.") };
+
+        CommitLogViewModel vm = new(screen, "/repo/test", gitService, aiCommitMessageService: aiService);
+
+        await vm.ExecuteGenerateAiCommitMessageCommand.Execute().FirstAsync();
+
+        Assert.Empty(vm.State.CommitMessageInput);
+        Assert.False(vm.State.IsGeneratingAiCommit);
+        Assert.Equal("OpenRouter API key is not configured.", vm.State.AiErrorMessage);
+        Assert.True(vm.State.IsAiErrorSettingsActionVisible);
+    }
+
+    [Fact]
+    public async Task ExecuteGenerateAiCommitMessageCommand_WhenFailsWithNetworkError_SetsAiErrorMessageWithoutSettingsAction()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        MockAiCommitMessageService aiService = new() { ExceptionToThrow = new InvalidOperationException("Failed to connect to OpenRouter API.") };
+
+        CommitLogViewModel vm = new(screen, "/repo/test", gitService, aiCommitMessageService: aiService);
+
+        await vm.ExecuteGenerateAiCommitMessageCommand.Execute().FirstAsync();
+
+        Assert.Empty(vm.State.CommitMessageInput);
+        Assert.False(vm.State.IsGeneratingAiCommit);
+        Assert.Equal("Failed to connect to OpenRouter API.", vm.State.AiErrorMessage);
+        Assert.False(vm.State.IsAiErrorSettingsActionVisible);
+    }
+
+    [Fact]
+    public void DismissAiErrorCommand_ClearsAiErrorMessageAndSettingsAction()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        CommitLogViewModel vm = new(screen, "/repo/test", gitService);
+
+        vm.UpdateAiApiKeyInput("sk-test");
+        vm.DismissAiErrorCommand.Execute().Subscribe();
+
+        Assert.Null(vm.State.AiErrorMessage);
+        Assert.False(vm.State.IsAiErrorSettingsActionVisible);
+    }
+
+    [Fact]
+    public async Task ShowSettingsModal_LoadsAiConfigurationAndProjectDescription()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        MockAiConfigurationRepository aiRepo = new()
+        {
+            ConfigurationToReturn = new AiConfiguration
+            {
+                ApiKey = "sk-secret-123",
+                Model = "anthropic/claude-3.5-sonnet",
+                CommitStyle = "gitmoji",
+                TokenLimit = 6000
+            }
+        };
+        aiRepo.Descriptions["/repo/test"] = "Test repository project";
+
+        CommitLogViewModel vm = new(screen, "/repo/test", gitService, aiConfigurationRepository: aiRepo);
+
+        await vm.ShowSettingsModalCommand.Execute().FirstAsync();
+
+        Assert.True(vm.State.IsSettingsModalVisible);
+        Assert.Equal("sk-secret-123", vm.State.AiApiKeyInput);
+        Assert.Equal("anthropic/claude-3.5-sonnet", vm.State.AiModelInput);
+        Assert.Equal("gitmoji", vm.State.AiCommitStyleInput);
+        Assert.Equal("6000", vm.State.AiTokenLimitInput);
+        Assert.Equal("Test repository project", vm.State.AiProjectDescriptionInput);
+    }
+
+    [Fact]
+    public async Task ExecuteSaveSettings_SavesAiConfigurationAndProjectDescription()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        MockAiConfigurationRepository aiRepo = new();
+
+        CommitLogViewModel vm = new(screen, "/repo/test", gitService, aiConfigurationRepository: aiRepo);
+
+        vm.UpdateAiApiKeyInput("sk-new-key");
+        vm.UpdateAiModelInput("google/gemini-2.5-flash");
+        vm.UpdateAiCommitStyleInput("Conventional Commits");
+        vm.UpdateAiTokenLimitInput("5000");
+        vm.UpdateAiProjectDescriptionInput("Updated description");
+
+        await vm.ExecuteSaveSettingsCommand.Execute().FirstAsync();
+
+        Assert.NotNull(aiRepo.LastSavedConfiguration);
+        Assert.Equal("sk-new-key", aiRepo.LastSavedConfiguration.ApiKey);
+        Assert.Equal("google/gemini-2.5-flash", aiRepo.LastSavedConfiguration.Model);
+        Assert.Equal("Conventional Commits", aiRepo.LastSavedConfiguration.CommitStyle);
+        Assert.Equal(5000, aiRepo.LastSavedConfiguration.TokenLimit);
+
+        Assert.NotNull(aiRepo.LastSavedDescription);
+        Assert.Equal("/repo/test", aiRepo.LastSavedDescription.Value.Path);
+        Assert.Equal("Updated description", aiRepo.LastSavedDescription.Value.Desc);
+    }
+
+    [Theory]
+    [InlineData("", 72)]
+    [InlineData("feat: short title", 55)]
+    [InlineData("feat: exactly seventy-two characters long title for conventional commit!", 0)]
+    [InlineData("feat: a commit title that is seventy-five characters long for test purpose!", -3)]
+    [InlineData("feat: title line\n\nLong body line with lots of details and explanations.", 56)]
+    public void CommitSubjectRemainingChars_CalculatesFirstLineRemainingAccurately(string input, int expectedRemaining)
+    {
+        CommitLogState state = new() { CommitMessageInput = input };
+        Assert.Equal(expectedRemaining, state.CommitSubjectRemainingChars);
     }
 }

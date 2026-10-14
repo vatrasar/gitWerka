@@ -4,6 +4,7 @@
                           xmlns:rxui="http://reactiveui.net"
                           xmlns:res="using:GitWerka.Features.Shell.Resources"
                           xmlns:vm="using:GitWerka.Features.Shell.UI.Screens.Host"
+                          xmlns:models="using:GitWerka.Core.Domain.Models"
                           xmlns:material="using:Material.Icons.Avalonia"
                           x:Class="GitWerka.Features.Shell.UI.Screens.Host.HostView">
 
@@ -48,13 +49,94 @@
                      VerticalAlignment="Center" />
         </StackPanel>
 
-        <!-- Right Window Actions (Settings) -->
-        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+        <!-- Right Window Actions (Settings, Profiles) -->
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
           <Button x:Name="SettingsButton"
                   Classes="IconButton"
                   ToolTip.Tip="{x:Static res:ShellStrings.SettingsButton}"
                   IsVisible="False">
             <material:MaterialIcon Kind="Cog" Width="20" Height="20" />
+          </Button>
+
+          <!-- Profile Selector & Management Dropdown Button to the right of Settings -->
+          <Button x:Name="ProfileMenuButton"
+                  Classes="ShellProfileButton"
+                  ToolTip.Tip="{x:Static res:ShellStrings.ProfilesTooltip}"
+                  IsVisible="False">
+            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+              <material:MaterialIcon Kind="AccountCircleOutline" Width="16" Height="16" Foreground="{DynamicResource AccentPrimaryBrush}" />
+              <TextBlock x:Name="ActiveProfileNameTextBlock"
+                         Text="{x:Static res:ShellStrings.NoActiveProfile}"
+                         MaxWidth="130"
+                         TextTrimming="CharacterEllipsis"
+                         VerticalAlignment="Center"
+                         FontSize="12" />
+              <material:MaterialIcon Kind="ChevronDown" Width="12" Height="12" VerticalAlignment="Center" />
+            </StackPanel>
+            <Button.Flyout>
+              <Flyout Placement="BottomEdgeAlignedRight">
+                <Border MinWidth="240"
+                        Padding="8"
+                        Background="{DynamicResource SurfaceCardBrush}"
+                        BorderBrush="{DynamicResource CardBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8">
+                  <StackPanel Spacing="6">
+                    <TextBlock Text="{x:Static res:ShellStrings.ProfilesMenuTitle}"
+                               FontWeight="SemiBold"
+                               FontSize="11"
+                               Foreground="{DynamicResource SubtleTextBrush}"
+                               Margin="4,2,4,2" />
+
+                    <TextBlock x:Name="NoProfilesFlyoutTextBlock"
+                               Text="{x:Static res:ShellStrings.NoProfilesCreatedYet}"
+                               FontSize="12"
+                               Foreground="{DynamicResource SubtleTextBrush}"
+                               Margin="6,4"
+                               IsVisible="False" />
+
+                    <ListBox x:Name="ProfilesFlyoutListBox"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             MaxHeight="200">
+                      <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:GitProfile">
+                          <Grid ColumnDefinitions="Auto, *">
+                            <material:MaterialIcon Grid.Column="0"
+                                                   Kind="AccountOutline"
+                                                   Width="14"
+                                                   Height="14"
+                                                   Foreground="{DynamicResource AccentPrimaryBrush}"
+                                                   Margin="0,0,6,0" />
+                            <StackPanel Grid.Column="1" Spacing="1">
+                              <TextBlock Text="{Binding Name}"
+                                         FontWeight="SemiBold"
+                                         FontSize="12"
+                                         Foreground="{DynamicResource TextPrimaryBrush}" />
+                              <TextBlock Text="{Binding Author.Name}"
+                                         FontSize="10"
+                                         Foreground="{DynamicResource SubtleTextBrush}" />
+                            </StackPanel>
+                          </Grid>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <Rectangle Height="1" Fill="{DynamicResource CardBorderBrush}" Margin="0,4" />
+
+                    <Button x:Name="ManageProfilesButton"
+                            Classes="MenuAction"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <material:MaterialIcon Kind="AccountCogOutline" Width="15" Height="15" Foreground="{DynamicResource AccentPrimaryBrush}" />
+                        <TextBlock Text="{x:Static res:ShellStrings.ManageProfilesButton}" FontWeight="Medium" />
+                      </StackPanel>
+                    </Button>
+                  </StackPanel>
+                </Border>
+              </Flyout>
+            </Button.Flyout>
           </Button>
         </StackPanel>
       </Grid>

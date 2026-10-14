@@ -1,0 +1,490 @@
+<rxui:ReactiveUserControl x:TypeArguments="vm:ProfileManagementViewModel"
+                           xmlns="https://github.com/avaloniaui"
+                           xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                           xmlns:rxui="http://reactiveui.net"
+                           xmlns:vm="using:GitWerka.Features.ProfileManagement.UI.Screens.ProfileManagement"
+                           xmlns:res="using:GitWerka.Features.ProfileManagement.Resources"
+                           xmlns:sharedRes="using:GitWerka.Shared.Resources"
+                           xmlns:models="using:GitWerka.Core.Domain.Models"
+                           xmlns:material="using:Material.Icons.Avalonia"
+                           x:Class="GitWerka.Features.ProfileManagement.UI.Screens.ProfileManagement.ProfileManagementView">
+
+  <UserControl.Styles>
+    <StyleInclude Source="avares://GitWerka/Src/Features/ProfileManagement/UI/Screens/ProfileManagement/ScreenStyles/ProfileManagementStyles.axaml" />
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="Auto, Auto, Auto, *">
+    <!-- Top Workspace Header -->
+    <Border Grid.Row="0" Classes="ProfileHeader">
+      <Grid ColumnDefinitions="Auto, 16, *, Auto">
+        <Button Grid.Column="0"
+                x:Name="BackButton"
+                Classes="SecondaryAction"
+                ToolTip.Tip="{x:Static res:ProfileManagementStrings.BackTooltip}">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <material:MaterialIcon Kind="ArrowLeft" Width="16" Height="16" />
+            <TextBlock Text="{x:Static sharedRes:GlobalStrings.CloseButton}" />
+          </StackPanel>
+        </Button>
+
+        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+          <TextBlock Text="{x:Static res:ProfileManagementStrings.ScreenTitle}"
+                     FontWeight="Bold"
+                     FontSize="16"
+                     Foreground="{DynamicResource TextPrimaryBrush}" />
+          <TextBlock Text="{x:Static res:ProfileManagementStrings.ScreenSubtitle}"
+                     FontSize="12"
+                     Foreground="{DynamicResource SubtleTextBrush}" />
+        </StackPanel>
+
+        <ProgressBar Grid.Column="3"
+                     x:Name="LoadingProgressBar"
+                     IsIndeterminate="True"
+                     Width="120"
+                     Height="4"
+                     VerticalAlignment="Center"
+                     IsVisible="False" />
+      </Grid>
+    </Border>
+
+    <!-- Workspace Tab Bar -->
+    <Border Grid.Row="1"
+            Background="{DynamicResource ShellHeaderFooterBrush}"
+            BorderBrush="{DynamicResource CardBorderBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="16,0">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Button x:Name="ProfilesTabButton" Classes="WorkspaceTab active">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <material:MaterialIcon Kind="AccountMultiple" Width="16" Height="16" />
+            <TextBlock Text="{x:Static res:ProfileManagementStrings.ProfilesTab}" />
+          </StackPanel>
+        </Button>
+
+        <Button x:Name="AuthorsTabButton" Classes="WorkspaceTab">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <material:MaterialIcon Kind="AccountEdit" Width="16" Height="16" />
+            <TextBlock Text="{x:Static res:ProfileManagementStrings.AuthorsTab}" />
+          </StackPanel>
+        </Button>
+
+        <Button x:Name="CredentialsTabButton" Classes="WorkspaceTab">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <material:MaterialIcon Kind="KeyVariant" Width="16" Height="16" />
+            <TextBlock Text="{x:Static res:ProfileManagementStrings.CredentialsTab}" />
+          </StackPanel>
+        </Button>
+      </StackPanel>
+    </Border>
+
+    <!-- Feedback Message Banners -->
+    <StackPanel Grid.Row="2">
+      <Border x:Name="ErrorMessageBanner"
+              Background="{DynamicResource ErrorBrush}"
+              Padding="14,8"
+              IsVisible="False">
+        <Grid ColumnDefinitions="Auto, 10, *">
+          <material:MaterialIcon Grid.Column="0" Kind="AlertCircle" Width="18" Height="18" Foreground="{DynamicResource OnErrorColor}" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="2" x:Name="ErrorMessageTextBlock" Foreground="{DynamicResource OnErrorColor}" FontSize="12" VerticalAlignment="Center" />
+        </Grid>
+      </Border>
+
+      <Border x:Name="SuccessMessageBanner"
+              Background="{DynamicResource SuccessBrush}"
+              Padding="14,8"
+              IsVisible="False">
+        <Grid ColumnDefinitions="Auto, 10, *">
+          <material:MaterialIcon Grid.Column="0" Kind="CheckCircle" Width="18" Height="18" Foreground="{DynamicResource OnSuccessColor}" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="2" x:Name="SuccessMessageTextBlock" Foreground="{DynamicResource OnSuccessColor}" FontSize="12" VerticalAlignment="Center" />
+        </Grid>
+      </Border>
+    </StackPanel>
+
+    <!-- Main Tab Content Area -->
+    <Grid Grid.Row="3" Margin="16" ColumnDefinitions="*">
+
+      <!-- ======================================================== -->
+      <!-- TAB 1: PROFILES WORKSPACE                                -->
+      <!-- ======================================================== -->
+      <Grid x:Name="ProfilesTabPanel" ColumnDefinitions="360, 20, *" IsVisible="True">
+        <!-- Left: Profiles List -->
+        <Border Grid.Column="0"
+                Background="{DynamicResource SurfaceCardBrush}"
+                BorderBrush="{DynamicResource CardBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="12">
+          <Grid RowDefinitions="Auto, 10, *">
+            <Grid Grid.Row="0" ColumnDefinitions="*, Auto">
+              <TextBlock Grid.Column="0"
+                         Text="{x:Static res:ProfileManagementStrings.ProfilesSectionTitle}"
+                         FontWeight="SemiBold"
+                         FontSize="14"
+                         VerticalAlignment="Center"
+                         Foreground="{DynamicResource TextPrimaryBrush}" />
+              <Button Grid.Column="1"
+                      x:Name="NewProfileButton"
+                      Classes="PrimaryAction">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <material:MaterialIcon Kind="Plus" Width="14" Height="14" />
+                  <TextBlock Text="{x:Static res:ProfileManagementStrings.NewProfileButton}" />
+                </StackPanel>
+              </Button>
+            </Grid>
+
+            <Grid Grid.Row="2">
+              <TextBlock x:Name="NoProfilesTextBlock"
+                         Text="{x:Static res:ProfileManagementStrings.NoProfilesMessage}"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource SubtleTextBrush}"
+                         FontSize="12"
+                         Margin="8,16"
+                         IsVisible="False" />
+
+              <ListBox x:Name="ProfilesListBox"
+                       Background="Transparent"
+                       BorderThickness="0">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="models:GitProfile">
+                    <Border Classes="EntityCard">
+                      <Grid RowDefinitions="Auto, 6, Auto, 4, Auto">
+                        <Grid Grid.Row="0" ColumnDefinitions="*, Auto">
+                          <TextBlock Grid.Column="0"
+                                     Text="{Binding Name}"
+                                     FontWeight="Bold"
+                                     FontSize="13"
+                                     Foreground="{DynamicResource TextPrimaryBrush}" />
+                        </Grid>
+
+                        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="6">
+                          <material:MaterialIcon Kind="AccountOutline" Width="14" Height="14" Foreground="{DynamicResource AccentPrimaryBrush}" />
+                          <TextBlock Text="{Binding Author.Name}" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource TextSecondaryBrush}" />
+                          <TextBlock Text="•" FontSize="12" Foreground="{DynamicResource SubtleTextBrush}" />
+                          <TextBlock Text="{Binding Author.Email}" FontSize="11" Foreground="{DynamicResource SubtleTextBrush}" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="6">
+                          <material:MaterialIcon Kind="Github" Width="14" Height="14" Foreground="{DynamicResource GitGraphBranch3Brush}" />
+                          <TextBlock Text="{Binding Credentials.Username}" FontSize="12" Foreground="{DynamicResource SubtleTextBrush}" />
+                        </StackPanel>
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </Grid>
+          </Grid>
+        </Border>
+
+        <!-- Right: Profile Editor / Form Panel -->
+        <Border Grid.Column="2" Classes="EditorCard">
+          <Grid RowDefinitions="Auto, 16, *">
+            <TextBlock Grid.Row="0"
+                       x:Name="ProfileEditorHeaderTextBlock"
+                       Text="{x:Static res:ProfileManagementStrings.ProfileEditorHeader}"
+                       FontWeight="Bold"
+                       FontSize="15"
+                       Foreground="{DynamicResource TextPrimaryBrush}" />
+
+            <Grid Grid.Row="2" x:Name="ProfileEditorFormPanel" RowDefinitions="Auto, 14, Auto, 14, Auto, 24, Auto" IsVisible="True">
+              <!-- Profile Name Field -->
+              <StackPanel Grid.Row="0" Spacing="4">
+                <TextBlock Classes="FieldLabel" Text="{x:Static res:ProfileManagementStrings.ProfileNameLabel}" />
+                <TextBox x:Name="ProfileNameTextBox"
+                         Watermark="{x:Static res:ProfileManagementStrings.ProfileNamePlaceholder}" />
+              </StackPanel>
+
+              <!-- Commit Author Selection -->
+              <StackPanel Grid.Row="2" Spacing="4">
+                <Grid ColumnDefinitions="*, Auto">
+                  <TextBlock Grid.Column="0" Classes="FieldLabel" Text="{x:Static res:ProfileManagementStrings.AuthorSelectLabel}" />
+                  <Button Grid.Column="1"
+                          x:Name="QuickNewAuthorButton"
+                          Classes="SecondaryAction"
+                          Padding="8,2"
+                          FontSize="11"
+                          Content="{x:Static res:ProfileManagementStrings.QuickNewAuthorButton}" />
+                </Grid>
+                <ComboBox x:Name="AuthorComboBox"
+                          HorizontalAlignment="Stretch"
+                          PlaceholderText="{x:Static res:ProfileManagementStrings.SelectAuthorPlaceholder}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="models:GitAuthor">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <material:MaterialIcon Kind="Account" Width="14" Height="14" Foreground="{DynamicResource AccentPrimaryBrush}" />
+                        <TextBlock Text="{Binding Name}" FontWeight="Medium" />
+                        <TextBlock Text="&lt;" Foreground="{DynamicResource SubtleTextBrush}" />
+                        <TextBlock Text="{Binding Email}" Foreground="{DynamicResource SubtleTextBrush}" />
+                        <TextBlock Text="&gt;" Foreground="{DynamicResource SubtleTextBrush}" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+              </StackPanel>
+
+              <!-- Credentials Selection -->
+              <StackPanel Grid.Row="4" Spacing="4">
+                <Grid ColumnDefinitions="*, Auto">
+                  <TextBlock Grid.Column="0" Classes="FieldLabel" Text="{x:Static res:ProfileManagementStrings.CredentialsSelectLabel}" />
+                  <Button Grid.Column="1"
+                          x:Name="QuickNewCredentialsButton"
+                          Classes="SecondaryAction"
+                          Padding="8,2"
+                          FontSize="11"
+                          Content="{x:Static res:ProfileManagementStrings.QuickNewCredentialsButton}" />
+                </Grid>
+                <ComboBox x:Name="CredentialsComboBox"
+                          HorizontalAlignment="Stretch"
+                          PlaceholderText="{x:Static res:ProfileManagementStrings.SelectCredentialsPlaceholder}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="models:GitProfileCredentials">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <material:MaterialIcon Kind="Github" Width="14" Height="14" Foreground="{DynamicResource GitGraphBranch3Brush}" />
+                        <TextBlock Text="{Binding Username}" FontWeight="Medium" />
+                        <TextBlock Text="(GitHub Token Configured)" FontSize="11" Foreground="{DynamicResource SubtleTextBrush}" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+              </StackPanel>
+
+              <!-- Editor Actions -->
+              <StackPanel Grid.Row="6" Orientation="Horizontal" Spacing="10">
+                <Button x:Name="SaveProfileButton"
+                        Classes="PrimaryAction"
+                        Content="{x:Static res:ProfileManagementStrings.SaveProfileButton}" />
+
+                <Button x:Name="CancelProfileEditButton"
+                        Classes="SecondaryAction"
+                        Content="{x:Static res:ProfileManagementStrings.CancelEditButton}" />
+
+                <Button x:Name="DeleteProfileButton"
+                        Classes="DangerAction"
+                        Content="{x:Static res:ProfileManagementStrings.DeleteProfileButton}"
+                        IsVisible="False" />
+
+                <Button x:Name="SetActiveForRepoButton"
+                        Classes="SecondaryAction"
+                        Content="{x:Static res:ProfileManagementStrings.SetActiveForRepoButton}"
+                        IsVisible="False" />
+              </StackPanel>
+            </Grid>
+          </Grid>
+        </Border>
+      </Grid>
+
+      <!-- ======================================================== -->
+      <!-- TAB 2: AUTHORS WORKSPACE                                 -->
+      <!-- ======================================================== -->
+      <Grid x:Name="AuthorsTabPanel" ColumnDefinitions="360, 20, *" IsVisible="False">
+        <!-- Left: Authors List -->
+        <Border Grid.Column="0"
+                Background="{DynamicResource SurfaceCardBrush}"
+                BorderBrush="{DynamicResource CardBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="12">
+          <Grid RowDefinitions="Auto, 10, *">
+            <Grid Grid.Row="0" ColumnDefinitions="*, Auto">
+              <TextBlock Grid.Column="0"
+                         Text="{x:Static res:ProfileManagementStrings.AuthorsSectionTitle}"
+                         FontWeight="SemiBold"
+                         FontSize="14"
+                         VerticalAlignment="Center"
+                         Foreground="{DynamicResource TextPrimaryBrush}" />
+              <Button Grid.Column="1"
+                      x:Name="NewAuthorButton"
+                      Classes="PrimaryAction">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <material:MaterialIcon Kind="Plus" Width="14" Height="14" />
+                  <TextBlock Text="{x:Static res:ProfileManagementStrings.NewAuthorButton}" />
+                </StackPanel>
+              </Button>
+            </Grid>
+
+            <Grid Grid.Row="2">
+              <TextBlock x:Name="NoAuthorsTextBlock"
+                         Text="{x:Static res:ProfileManagementStrings.NoAuthorsMessage}"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource SubtleTextBrush}"
+                         FontSize="12"
+                         Margin="8,16"
+                         IsVisible="False" />
+
+              <ListBox x:Name="AuthorsListBox"
+                       Background="Transparent"
+                       BorderThickness="0">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="models:GitAuthor">
+                    <Border Classes="EntityCard">
+                      <Grid ColumnDefinitions="Auto, 10, *, Auto">
+                        <material:MaterialIcon Grid.Column="0"
+                                              Kind="Account"
+                                              Width="20"
+                                              Height="20"
+                                              Foreground="{DynamicResource AccentPrimaryBrush}"
+                                              VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="2">
+                          <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource TextPrimaryBrush}" />
+                          <TextBlock Text="{Binding Email}" FontSize="12" Foreground="{DynamicResource SubtleTextBrush}" />
+                        </StackPanel>
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </Grid>
+          </Grid>
+        </Border>
+
+        <!-- Right: Author Editor / Form Panel -->
+        <Border Grid.Column="2" Classes="EditorCard">
+          <Grid RowDefinitions="Auto, 16, *">
+            <TextBlock Grid.Row="0"
+                       x:Name="AuthorEditorHeaderTextBlock"
+                       Text="{x:Static res:ProfileManagementStrings.AuthorEditorHeader}"
+                       FontWeight="Bold"
+                       FontSize="15"
+                       Foreground="{DynamicResource TextPrimaryBrush}" />
+
+            <Grid Grid.Row="2" x:Name="AuthorEditorFormPanel" RowDefinitions="Auto, 14, Auto, 24, Auto" IsVisible="True">
+              <StackPanel Grid.Row="0" Spacing="4">
+                <TextBlock Classes="FieldLabel" Text="{x:Static res:ProfileManagementStrings.AuthorNameLabel}" />
+                <TextBox x:Name="AuthorNameTextBox"
+                         Watermark="{x:Static res:ProfileManagementStrings.AuthorNamePlaceholder}" />
+              </StackPanel>
+
+              <StackPanel Grid.Row="2" Spacing="4">
+                <TextBlock Classes="FieldLabel" Text="{x:Static res:ProfileManagementStrings.AuthorEmailLabel}" />
+                <TextBox x:Name="AuthorEmailTextBox"
+                         Watermark="{x:Static res:ProfileManagementStrings.AuthorEmailPlaceholder}" />
+              </StackPanel>
+
+              <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="10">
+                <Button x:Name="SaveAuthorButton"
+                        Classes="PrimaryAction"
+                        Content="{x:Static res:ProfileManagementStrings.SaveAuthorButton}" />
+
+                <Button x:Name="CancelAuthorEditButton"
+                        Classes="SecondaryAction"
+                        Content="{x:Static res:ProfileManagementStrings.CancelEditButton}" />
+
+                <Button x:Name="DeleteAuthorButton"
+                        Classes="DangerAction"
+                        Content="{x:Static res:ProfileManagementStrings.DeleteButton}"
+                        IsVisible="False" />
+              </StackPanel>
+            </Grid>
+          </Grid>
+        </Border>
+      </Grid>
+
+      <!-- ======================================================== -->
+      <!-- TAB 3: CREDENTIALS WORKSPACE                             -->
+      <!-- ======================================================== -->
+      <Grid x:Name="CredentialsTabPanel" ColumnDefinitions="360, 20, *" IsVisible="False">
+        <!-- Left: Credentials List -->
+        <Border Grid.Column="0"
+                Background="{DynamicResource SurfaceCardBrush}"
+                BorderBrush="{DynamicResource CardBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="12">
+          <Grid RowDefinitions="Auto, 10, *">
+            <Grid Grid.Row="0" ColumnDefinitions="*, Auto">
+              <TextBlock Grid.Column="0"
+                         Text="{x:Static res:ProfileManagementStrings.CredentialsSectionTitle}"
+                         FontWeight="SemiBold"
+                         FontSize="14"
+                         VerticalAlignment="Center"
+                         Foreground="{DynamicResource TextPrimaryBrush}" />
+              <Button Grid.Column="1"
+                      x:Name="NewCredentialsButton"
+                      Classes="PrimaryAction">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <material:MaterialIcon Kind="Plus" Width="14" Height="14" />
+                  <TextBlock Text="{x:Static res:ProfileManagementStrings.NewCredentialsButton}" />
+                </StackPanel>
+              </Button>
+            </Grid>
+
+            <Grid Grid.Row="2">
+              <TextBlock x:Name="NoCredentialsTextBlock"
+                         Text="{x:Static res:ProfileManagementStrings.NoCredentialsMessage}"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource SubtleTextBrush}"
+                         FontSize="12"
+                         Margin="8,16"
+                         IsVisible="False" />
+
+              <ListBox x:Name="CredentialsListBox"
+                       Background="Transparent"
+                       BorderThickness="0">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="models:GitProfileCredentials">
+                    <Border Classes="EntityCard">
+                      <Grid ColumnDefinitions="Auto, 10, *, Auto">
+                        <material:MaterialIcon Grid.Column="0"
+                                              Kind="Github"
+                                              Width="20"
+                                              Height="20"
+                                              Foreground="{DynamicResource GitGraphBranch3Brush}"
+                                              VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="2">
+                          <TextBlock Text="{Binding Username}" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource TextPrimaryBrush}" />
+                          <TextBlock Text="Personal Access Token Configured" FontSize="11" Foreground="{DynamicResource SubtleTextBrush}" />
+                        </StackPanel>
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </Grid>
+          </Grid>
+        </Border>
+
+        <!-- Right: Credentials Editor / Form Panel -->
+        <Border Grid.Column="2" Classes="EditorCard">
+          <Grid RowDefinitions="Auto, 16, *">
+            <TextBlock Grid.Row="0"
+                       x:Name="CredentialsEditorHeaderTextBlock"
+                       Text="{x:Static res:ProfileManagementStrings.CredentialsEditorHeader}"
+                       FontWeight="Bold"
+                       FontSize="15"
+                       Foreground="{DynamicResource TextPrimaryBrush}" />
+
+            <Grid Grid.Row="2" x:Name="CredentialsEditorFormPanel" RowDefinitions="Auto, 14, Auto, 24, Auto" IsVisible="True">
+              <StackPanel Grid.Row="0" Spacing="4">
+                <TextBlock Classes="FieldLabel" Text="{x:Static res:ProfileManagementStrings.CredentialsUsernameLabel}" />
+                <TextBox x:Name="CredentialsUsernameTextBox"
+                         Watermark="{x:Static res:ProfileManagementStrings.CredentialsUsernamePlaceholder}" />
+              </StackPanel>
+
+              <StackPanel Grid.Row="2" Spacing="4">
+                <TextBlock Classes="FieldLabel" Text="{x:Static res:ProfileManagementStrings.CredentialsTokenLabel}" />
+                <TextBox x:Name="CredentialsAccessTokenTextBox"
+                         PasswordChar="●"
+                         Watermark="{x:Static res:ProfileManagementStrings.CredentialsTokenPlaceholder}" />
+              </StackPanel>
+
+              <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="10">
+                <Button x:Name="SaveCredentialsButton"
+                        Classes="PrimaryAction"
+                        Content="{x:Static res:ProfileManagementStrings.SaveCredentialsButton}" />
+
+                <Button x:Name="CancelCredentialsEditButton"
+                        Classes="SecondaryAction"
+                        Content="{x:Static res:ProfileManagementStrings.CancelEditButton}" />
+
+                <Button x:Name="DeleteCredentialsButton"
+                        Classes="DangerAction"
+                        Content="{x:Static res:ProfileManagementStrings.DeleteButton}"
+                        IsVisible="False" />
+              </StackPanel>
+            </Grid>
+          </Grid>
+        </Border>
+      </Grid>
+    </Grid>
+  </Grid>
+</rxui:ReactiveUserControl>

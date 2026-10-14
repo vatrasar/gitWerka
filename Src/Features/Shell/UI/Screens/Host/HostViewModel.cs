@@ -1,27 +1,39 @@
 namespace GitWerka.Features.Shell.UI.Screens.Host;
 
 using System;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Reactive;
+using System.Reactive.Linq;
+using System.Threading.Tasks;
+using GitWerka.Core.Domain.Models;
+using GitWerka.Core.Domain.RepositoryContracts;
 using GitWerka.Core.Mvvm;
 using GitWerka.Features.CommitLog.UI.Screens.CommitLog;
+using GitWerka.Features.ProfileManagement.UI.Screens.ProfileManagement;
+using GitWerka.Features.RepositoryManager.UI.Screens.RepositoryManager;
 using ReactiveUI;
 using ReactiveUI.SourceGenerators;
+using Splat;
 
 /// <summary>
 /// ViewModel for the main application shell hosting the RoutedViewHost and global status frame.
 /// </summary>
 public partial class HostViewModel : ViewModelBase<HostState>, IRoutableViewModel
 {
+    private readonly IProfileRepository? _profileRepository;
+    private IDisposable? _commitLogSubscription;
+
     public string? UrlPathSegment => "host";
 
     public IScreen HostScreen { get; }
 
     public RoutingState Router => HostScreen.Router;
 
-    public HostViewModel(IScreen hostScreen) : base(new HostState())
+    public HostViewModel(IScreen hostScreen, IProfileRepository? profileRepository = null) : base(new HostState())
     {
         HostScreen = hostScreen;
+        _profileRepository = profileRepository ?? Locator.Current.GetService<IProfileRepository>();
 
         Router.CurrentViewModel
             .Subscribe(Observer.Create<IRoutableViewModel?>(vm =>
@@ -29,10 +41,22 @@ public partial class HostViewModel : ViewModelBase<HostState>, IRoutableViewMode
                 if (vm is CommitLogViewModel commitLogVm)
                 {
                     SetActiveRepository(commitLogVm.State.RepositoryName, commitLogVm.State.RepositoryPath);
+                    SubscribeToCommitLog(commitLogVm);
+                    _ = commitLogVm.ReloadProfilesAsync();
+                    UpdateState(s => s with { IsSettingsButtonVisible = true });
                     return;
                 }
 
+                _commitLogSubscription?.Dispose();
+                _commitLogSubscription = null;
                 SetActiveRepository(string.Empty, string.Empty);
+                bool isSettingsVisible = vm is RepositoryManagerViewModel;
+                UpdateState(s => s with
+                {
+                    ActiveProfile = null,
+                    AvailableProfiles = ImmutableList<GitProfile>.Empty,
+                    IsSettingsButtonVisible = isSettingsVisible
+                });
             }));
     }
 
@@ -62,6 +86,56 @@ public partial class HostViewModel : ViewModelBase<HostState>, IRoutableViewMode
         UpdateState(s => s with { StatusMessage = message ?? "Ready" });
     }
 
+    /// <summary>
+    /// Selects an active Git profile for the current repository and synchronizes with the active workspace.
+    /// Usages: HostView profile dropdown list selection.
+    /// </summary>
+    /// <param name="profile">The profile to activate.</param>
+    /// <returns>Task tracking async profile selection.</returns>
+    public async Task SelectProfileAsync(GitProfile? profile)
+    {
+        UpdateState(s => s with { ActiveProfile = profile });
+
+        if (Router.NavigationStack.LastOrDefault() is CommitLogViewModel commitLogVm)
+        {
+            await commitLogVm.SelectProfileAsync(profile);
+            return;
+        }
+
+        if (_profileRepository != null && !string.IsNullOrWhiteSpace(State.CurrentRepositoryPath))
+        {
+            if (profile != null)
+            {
+                await _profileRepository.SetActiveProfileForRepositoryAsync(State.CurrentRepositoryPath, profile.Id);
+            }
+            else
+            {
+                await _profileRepository.ClearActiveProfileForRepositoryAsync(State.CurrentRepositoryPath);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Navigates to the ProfileManagement screen.
+    /// Usages: HostView profile flyout manage button.
+    /// </summary>
+    public void NavigateToProfileManagement()
+    {
+        IProfileRepository? repo = _profileRepository;
+        if (repo == null && Router.NavigationStack.LastOrDefault() is CommitLogViewModel commitLogVm)
+        {
+            commitLogVm.NavigateToProfileManagement();
+            return;
+        }
+
+        if (repo != null)
+        {
+            HostScreen.Router.Navigate.Execute(
+                new ProfileManagementViewModel(HostScreen, repo, State.CurrentRepositoryPath)
+            ).Subscribe();
+        }
+    }
+
     [ReactiveCommand]
     private void NavigateBack()
     {
@@ -78,5 +152,83 @@ public partial class HostViewModel : ViewModelBase<HostState>, IRoutableViewMode
         {
             commitLogVm.ShowSettingsModalCommand.Execute().Subscribe();
         }
+        else if (Router.NavigationStack.LastOrDefault() is RepositoryManagerViewModel repoManagerVm)
+        {
+            repoManagerVm.ShowSettingsModalCommand.Execute().Subscribe();
+        }
+    }
+
+    /// <summary>
+    /// Refreshes available profiles and active profile from repository.
+    /// Usages: HostView profile menu opening, navigation sync.
+    /// </summary>
+    /// <returns>Task tracking async refresh.</returns>
+    public async Task RefreshProfilesAsync()
+    {
+        if (Router.NavigationStack.LastOrDefault() is CommitLogViewModel commitLogVm)
+        {
+            await commitLogVm.ReloadProfilesAsync();
+            return;
+        }
+
+        if (_profileRepository != null)
+        {
+            try
+            {
+                var profiles = await _profileRepository.GetAllProfilesAsync();
+                GitProfile? active = null;
+                if (!string.IsNullOrWhiteSpace(State.CurrentRepositoryPath))
+                {
+                    active = await _profileRepository.GetActiveProfileForRepositoryAsync(State.CurrentRepositoryPath);
+                }
+
+                UpdateState(s => s with
+                {
+                    AvailableProfiles = profiles.ToImmutableList(),
+                    ActiveProfile = active
+                });
+            }
+            catch (Exception ex)
+            {
+                UpdateState(s => s with { StatusMessage = ex.Message });
+            }
+        }
+    }
+
+    [ReactiveCommand]
+    private async Task RefreshProfiles()
+    {
+        await RefreshProfilesAsync();
+    }
+
+    [ReactiveCommand]
+    private async Task SelectProfile(GitProfile? profile)
+    {
+        await SelectProfileAsync(profile);
+    }
+
+    [ReactiveCommand]
+    private void NavigateToProfiles()
+    {
+        NavigateToProfileManagement();
+    }
+
+    private void SubscribeToCommitLog(CommitLogViewModel commitLogVm)
+    {
+        _commitLogSubscription?.Dispose();
+        _commitLogSubscription = Observable.CombineLatest(
+            commitLogVm.WhenAnyValue(x => x.State.ActiveProfile),
+            commitLogVm.WhenAnyValue(x => x.State.AvailableProfiles),
+            commitLogVm.WhenAnyValue(x => x.State.RepositoryName),
+            (active, profiles, repoName) => (active, profiles, repoName))
+            .Subscribe(Observer.Create<(GitProfile? Active, ImmutableList<GitProfile> Profiles, string RepoName)>(tuple =>
+            {
+                UpdateState(s => s with
+                {
+                    ActiveProfile = tuple.Active,
+                    AvailableProfiles = tuple.Profiles,
+                    CurrentRepositoryName = tuple.RepoName
+                });
+            }));
     }
 }

@@ -17,4 +17,44 @@
     <Setter Property="Padding" Value="14,6" />
   </Style>
 
+  <!-- Shell Profile Dropdown Button -->
+  <Style Selector="Button.ShellProfileButton">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="8,4" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.12" />
+        <BrushTransition Property="BorderBrush" Duration="0:0:0.12" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="Button.ShellProfileButton:pointerover">
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardHoverBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource GitGraphBranch1Brush}" />
+  </Style>
+
+  <!-- Shell Menu Action Button -->
+  <Style Selector="Button.MenuAction">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="8,6" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.12" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="Button.MenuAction:pointerover">
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardHoverBrush}" />
+  </Style>
+
 </Styles>

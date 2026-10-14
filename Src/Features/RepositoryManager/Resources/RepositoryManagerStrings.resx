@@ -118,4 +118,61 @@
   <data name="InvalidRepositoryError" xml:space="preserve">
     <value>The selected directory is not a valid Git repository.</value>
   </data>
+  <data name="FavoritesTabTitle" xml:space="preserve">
+    <value>Favorites</value>
+  </data>
+  <data name="RecentTabTitle" xml:space="preserve">
+    <value>Recent</value>
+  </data>
+  <data name="NoFavoriteRepositories" xml:space="preserve">
+    <value>No favorite repositories yet. You can star repositories in the workspace to pin them here.</value>
+  </data>
+  <data name="SettingsButton" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="SettingsDescription" xml:space="preserve">
+    <value>Configure application preferences and AI assistant</value>
+  </data>
+  <data name="SettingsModalTitle" xml:space="preserve">
+    <value>Global Settings</value>
+  </data>
+  <data name="GeneralSettingsSectionTitle" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="DefaultProjectsDirectoryLabel" xml:space="preserve">
+    <value>Default Projects Directory</value>
+  </data>
+  <data name="DefaultProjectsDirectoryDescription" xml:space="preserve">
+    <value>Directory used as the starting location when opening a repository</value>
+  </data>
+  <data name="DefaultProjectsDirectoryPlaceholder" xml:space="preserve">
+    <value>/path/to/projects</value>
+  </data>
+  <data name="AiSettingsSectionTitle" xml:space="preserve">
+    <value>AI Commit Assistant (OpenRouter)</value>
+  </data>
+  <data name="AiApiKeyLabel" xml:space="preserve">
+    <value>OpenRouter API Key</value>
+  </data>
+  <data name="AiApiKeyPlaceholder" xml:space="preserve">
+    <value>sk-or-v1-...</value>
+  </data>
+  <data name="AiModelLabel" xml:space="preserve">
+    <value>AI Model</value>
+  </data>
+  <data name="AiModelPlaceholder" xml:space="preserve">
+    <value>google/gemini-2.5-flash</value>
+  </data>
+  <data name="AiTokenLimitLabel" xml:space="preserve">
+    <value>Token Limit</value>
+  </data>
+  <data name="AiTokenLimitPlaceholder" xml:space="preserve">
+    <value>4000</value>
+  </data>
+  <data name="AiCommitStyleLabel" xml:space="preserve">
+    <value>Commit Message Style</value>
+  </data>
+  <data name="AiCommitStylePlaceholder" xml:space="preserve">
+    <value>Conventional Commits: &lt;type&gt;(&lt;scope&gt;): &lt;subject&gt;</value>
+  </data>
 </root>

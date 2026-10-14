@@ -12,6 +12,20 @@ public class GitWerkaDbContext : DbContext
 {
     public DbSet<RecentRepositoryEntity> RecentRepositories => Set<RecentRepositoryEntity>();
 
+    public DbSet<GitAuthorEntity> Authors => Set<GitAuthorEntity>();
+
+    public DbSet<GitProfileCredentialsEntity> ProfileCredentials => Set<GitProfileCredentialsEntity>();
+
+    public DbSet<GitProfileEntity> Profiles => Set<GitProfileEntity>();
+
+    public DbSet<RepositoryProfileMappingEntity> RepositoryProfiles => Set<RepositoryProfileMappingEntity>();
+
+    public DbSet<AiConfigurationEntity> AiConfigurations => Set<AiConfigurationEntity>();
+
+    public DbSet<RepositoryAiContextEntity> RepositoryAiContexts => Set<RepositoryAiContextEntity>();
+
+    public DbSet<ApplicationSettingsEntity> ApplicationSettings => Set<ApplicationSettingsEntity>();
+
     public GitWerkaDbContext()
     {
     }
@@ -41,6 +55,32 @@ public class GitWerkaDbContext : DbContext
 
         modelBuilder.Entity<RecentRepositoryEntity>()
             .HasIndex(r => r.Path)
+            .IsUnique();
+
+        modelBuilder.Entity<RepositoryProfileMappingEntity>()
+            .HasIndex(m => m.RepositoryPath)
+            .IsUnique();
+
+        modelBuilder.Entity<GitProfileEntity>()
+            .HasOne(p => p.Author)
+            .WithMany()
+            .HasForeignKey(p => p.AuthorId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<GitProfileEntity>()
+            .HasOne(p => p.Credentials)
+            .WithMany()
+            .HasForeignKey(p => p.CredentialsId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<RepositoryProfileMappingEntity>()
+            .HasOne(m => m.Profile)
+            .WithMany()
+            .HasForeignKey(m => m.ProfileId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<RepositoryAiContextEntity>()
+            .HasIndex(c => c.RepositoryPath)
             .IsUnique();
     }
 }

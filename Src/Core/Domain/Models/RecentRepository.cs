@@ -14,4 +14,10 @@ public record RecentRepository
     public DateTime LastOpenedAtUtc { get; init; }
 
     public bool IsPinned { get; init; }
+
+    public bool IsFavorite { get; init; }
+
+    public string? CustomName { get; init; }
+
+    public string DisplayName => !string.IsNullOrWhiteSpace(CustomName) ? CustomName : Name;
 }

@@ -45,5 +45,10 @@ namespace GitWerka.Features.Shell.Resources {
         public static string BackButton => ResourceManager.GetString("BackButton", resourceCulture) ?? "Back";
         public static string ReadyStatus => ResourceManager.GetString("ReadyStatus", resourceCulture) ?? "Ready";
         public static string SettingsButton => ResourceManager.GetString("SettingsButton", resourceCulture) ?? "Settings";
+        public static string ProfilesTooltip => ResourceManager.GetString("ProfilesTooltip", resourceCulture) ?? "Git Profiles";
+        public static string NoActiveProfile => ResourceManager.GetString("NoActiveProfile", resourceCulture) ?? "No profile";
+        public static string ProfilesMenuTitle => ResourceManager.GetString("ProfilesMenuTitle", resourceCulture) ?? "Active Profile";
+        public static string NoProfilesCreatedYet => ResourceManager.GetString("NoProfilesCreatedYet", resourceCulture) ?? "No profiles configured";
+        public static string ManageProfilesButton => ResourceManager.GetString("ManageProfilesButton", resourceCulture) ?? "Manage profiles...";
     }
 }

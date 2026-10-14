@@ -50,6 +50,30 @@ public record CommitLogState
 
     public string CommitMessageInput { get; init; } = string.Empty;
 
+    public int CommitSubjectRemainingChars
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(CommitMessageInput))
+            {
+                return 72;
+            }
+
+            int newlineIndex = CommitMessageInput.IndexOf('\n');
+            string firstLine = newlineIndex >= 0
+                ? CommitMessageInput.Substring(0, newlineIndex).TrimEnd('\r')
+                : CommitMessageInput;
+
+            return 72 - firstLine.Length;
+        }
+    }
+
+    public bool IsGeneratingAiCommit { get; init; }
+
+    public string? AiErrorMessage { get; init; }
+
+    public bool IsAiErrorSettingsActionVisible { get; init; }
+
     public string? ErrorMessage { get; init; }
 
     public bool IsCreateBranchModalVisible { get; init; }
@@ -71,6 +95,18 @@ public record CommitLogState
     public string ConfigUserNameInput { get; init; } = string.Empty;
 
     public string ConfigUserEmailInput { get; init; } = string.Empty;
+
+    public string DefaultProjectsDirectoryInput { get; init; } = string.Empty;
+
+    public string AiApiKeyInput { get; init; } = string.Empty;
+
+    public string AiModelInput { get; init; } = "google/gemini-2.5-flash";
+
+    public string AiCommitStyleInput { get; init; } = "Conventional Commits: <type>(<scope>): <subject>";
+
+    public string AiTokenLimitInput { get; init; } = "4000";
+
+    public string AiProjectDescriptionInput { get; init; } = string.Empty;
 
     public bool IsResetConfirmModalVisible { get; init; }
 
@@ -109,4 +145,20 @@ public record CommitLogState
     public string? CredentialsErrorMessage { get; init; }
 
     public RemoteOperationPending PendingRemoteOperation { get; init; } = RemoteOperationPending.None;
+
+    public ImmutableList<GitProfile> AvailableProfiles { get; init; } = ImmutableList<GitProfile>.Empty;
+
+    public GitProfile? ActiveProfile { get; init; }
+
+    public bool IsFavoritesDockOpen { get; init; }
+
+    public RecentRepository? RecentNonFavoriteRepository { get; init; }
+
+    public ImmutableList<RecentRepository> FavoriteRepositories { get; init; } = ImmutableList<RecentRepository>.Empty;
+
+    public bool IsAddFavoriteModalVisible { get; init; }
+
+    public string TargetFavoritePath { get; init; } = string.Empty;
+
+    public string NewFavoriteNameInput { get; init; } = string.Empty;
 }

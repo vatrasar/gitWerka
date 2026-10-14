@@ -370,4 +370,127 @@
   <data name="OpenInMenuTooltip" xml:space="preserve">
     <value>Open repository in external tool</value>
   </data>
+  <data name="ProfilesTooltip" xml:space="preserve">
+    <value>Select active Git profile or manage profiles</value>
+  </data>
+  <data name="NoActiveProfile" xml:space="preserve">
+    <value>Profiles</value>
+  </data>
+  <data name="ProfilesMenuTitle" xml:space="preserve">
+    <value>PROFILES</value>
+  </data>
+  <data name="NoProfilesCreatedYet" xml:space="preserve">
+    <value>No profiles configured</value>
+  </data>
+  <data name="ManageProfilesButton" xml:space="preserve">
+    <value>Manage profiles...</value>
+  </data>
+  <data name="FavoritesTooltip" xml:space="preserve">
+    <value>Repositories</value>
+  </data>
+  <data name="FavoritesDockTitle" xml:space="preserve">
+    <value>Repositories</value>
+  </data>
+  <data name="RecentNonFavoriteHeader" xml:space="preserve">
+    <value>Recently Opened</value>
+  </data>
+  <data name="FavoritesSectionHeader" xml:space="preserve">
+    <value>Favorites</value>
+  </data>
+  <data name="NoFavoritesYet" xml:space="preserve">
+    <value>No favorite repositories yet</value>
+  </data>
+  <data name="AddToFavoritesTooltip" xml:space="preserve">
+    <value>Add to favorites</value>
+  </data>
+  <data name="RemoveFromFavoritesTooltip" xml:space="preserve">
+    <value>Remove from favorites</value>
+  </data>
+  <data name="AddFavoriteModalTitle" xml:space="preserve">
+    <value>Add Repository to Favorites</value>
+  </data>
+  <data name="FavoriteNameLabel" xml:space="preserve">
+    <value>Repository Name</value>
+  </data>
+  <data name="FavoriteNamePlaceholder" xml:space="preserve">
+    <value>Enter custom name...</value>
+  </data>
+  <data name="ConfirmAddFavoriteButton" xml:space="preserve">
+    <value>Add to Favorites</value>
+  </data>
+  <data name="OpenFolderButton" xml:space="preserve">
+    <value>Open Folder...</value>
+  </data>
+  <data name="OpenFolderTooltip" xml:space="preserve">
+    <value>Open a Git repository from local folder</value>
+  </data>
+  <data name="GenerateAiCommitButton" xml:space="preserve">
+    <value>AI Suggest</value>
+  </data>
+  <data name="GenerateAiCommitToolTip" xml:space="preserve">
+    <value>Generate commit message proposal with AI</value>
+  </data>
+  <data name="GeneratingAiCommitMessage" xml:space="preserve">
+    <value>Generating...</value>
+  </data>
+  <data name="AiSettingsSectionTitle" xml:space="preserve">
+    <value>AI Commit Assistant (OpenRouter)</value>
+  </data>
+  <data name="AiApiKeyLabel" xml:space="preserve">
+    <value>OpenRouter API Key</value>
+  </data>
+  <data name="AiApiKeyPlaceholder" xml:space="preserve">
+    <value>sk-or-v1-...</value>
+  </data>
+  <data name="AiModelLabel" xml:space="preserve">
+    <value>Model ID</value>
+  </data>
+  <data name="AiModelPlaceholder" xml:space="preserve">
+    <value>e.g. google/gemini-2.5-flash</value>
+  </data>
+  <data name="AiCommitStyleLabel" xml:space="preserve">
+    <value>Commit Style / Convention</value>
+  </data>
+  <data name="AiCommitStylePlaceholder" xml:space="preserve">
+    <value>e.g. Conventional Commits: feat, fix, refactor...</value>
+  </data>
+  <data name="AiTokenLimitLabel" xml:space="preserve">
+    <value>Token Limit</value>
+  </data>
+  <data name="AiTokenLimitPlaceholder" xml:space="preserve">
+    <value>4000</value>
+  </data>
+  <data name="AiProjectDescriptionLabel" xml:space="preserve">
+    <value>Project Description (This Repository)</value>
+  </data>
+  <data name="AiProjectDescriptionPlaceholder" xml:space="preserve">
+    <value>Brief overview of project purpose and architecture to give AI context...</value>
+  </data>
+  <data name="AiNoStagedChangesError" xml:space="preserve">
+    <value>No staged changes found. Stage files first to generate a commit message.</value>
+  </data>
+  <data name="AiMissingApiKeyError" xml:space="preserve">
+    <value>API key is not configured. Please set your OpenRouter API key in Settings.</value>
+  </data>
+  <data name="GeneralSettingsSectionTitle" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="DefaultProjectsDirectoryLabel" xml:space="preserve">
+    <value>Default Projects Directory</value>
+  </data>
+  <data name="DefaultProjectsDirectoryPlaceholder" xml:space="preserve">
+    <value>/path/to/projects</value>
+  </data>
+  <data name="BrowseButton" xml:space="preserve">
+    <value>Browse...</value>
+  </data>
+  <data name="CommitSubjectRemainingChars" xml:space="preserve">
+    <value>{0} left</value>
+  </data>
+  <data name="CommitSubjectOverLimitChars" xml:space="preserve">
+    <value>{0} over limit</value>
+  </data>
+  <data name="CommitSubjectLimitToolTip" xml:space="preserve">
+    <value>Recommended commit title limit is 72 characters.</value>
+  </data>
 </root>
