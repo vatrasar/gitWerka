@@ -134,7 +134,7 @@ public class CommitGraphCanvas : Control
         {
             double x = 10.0 + (lane * LaneSpacing);
             IPen pen = new Pen(GetLaneBrush(lane), StrokeWidth);
-            context.DrawLine(pen, new Point(currentX, centerY), new Point(x, Bounds.Height));
+            context.DrawLine(pen, new Point(currentX, centerY), new Point(x, 0));
         }
     }
 

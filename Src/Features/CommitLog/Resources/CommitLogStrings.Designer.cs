@@ -186,5 +186,13 @@ namespace GitWerka.Features.CommitLog.Resources {
         public static string CommitSubjectRemainingChars => ResourceManager.GetString("CommitSubjectRemainingChars", resourceCulture) ?? "{0} left";
         public static string CommitSubjectOverLimitChars => ResourceManager.GetString("CommitSubjectOverLimitChars", resourceCulture) ?? "{0} over limit";
         public static string CommitSubjectLimitToolTip => ResourceManager.GetString("CommitSubjectLimitToolTip", resourceCulture) ?? "Recommended commit title limit is 72 characters.";
+        public static string RemotesTitle => ResourceManager.GetString("RemotesTitle", resourceCulture) ?? "Remotes";
+        public static string CreateRemoteModalTitle => ResourceManager.GetString("CreateRemoteModalTitle", resourceCulture) ?? "Add Remote Repository";
+        public static string RemoteNameLabel => ResourceManager.GetString("RemoteNameLabel", resourceCulture) ?? "Remote Name";
+        public static string RemoteNamePlaceholder => ResourceManager.GetString("RemoteNamePlaceholder", resourceCulture) ?? "Remote name (e.g., origin)...";
+        public static string RemoteUrlLabel => ResourceManager.GetString("RemoteUrlLabel", resourceCulture) ?? "Remote URL";
+        public static string RemoteUrlPlaceholder => ResourceManager.GetString("RemoteUrlPlaceholder", resourceCulture) ?? "Remote URL (e.g., https://github.com/user/repo.git)...";
+        public static string DeleteRemoteButton => ResourceManager.GetString("DeleteRemoteButton", resourceCulture) ?? "Delete Remote";
+        public static string FetchRemoteButton => ResourceManager.GetString("FetchRemoteButton", resourceCulture) ?? "Fetch Remote";
     }
 }

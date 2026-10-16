@@ -212,11 +212,12 @@
                 <material:MaterialIcon Kind="FileDocumentEditOutline" Width="16" Height="16" />
               </Button>
 
-              <Button x:Name="TagsTabButton"
+              <Button x:Name="RemotesTabButton"
                       Classes="SidebarTab"
                       HorizontalAlignment="Stretch"
-                      HorizontalContentAlignment="Center">
-                <material:MaterialIcon Kind="TagOutline" Width="16" Height="16" />
+                      HorizontalContentAlignment="Center"
+                      ToolTip.Tip="{x:Static res:CommitLogStrings.RemotesTitle}">
+                <material:MaterialIcon Kind="CloudOutline" Width="16" Height="16" />
               </Button>
 
               <Button x:Name="StashesTabButton"
@@ -491,34 +492,72 @@
               </Border>
             </Grid>
 
-            <!-- 3. Tags Tab -->
-            <Grid x:Name="TagsTabPanel"
+            <!-- 3. Remotes Tab -->
+            <Grid x:Name="RemotesTabPanel"
                   RowDefinitions="Auto, *, Auto"
                   IsVisible="False">
               <TextBlock Grid.Row="0"
-                         Text="{x:Static res:CommitLogStrings.TagsTitle}"
+                         Text="{x:Static res:CommitLogStrings.RemotesTitle}"
                          Classes="SectionHeader"
                          Margin="12,10,12,6" />
 
               <ListBox Grid.Row="1"
-                       x:Name="TagsListBox"
+                       x:Name="RemotesListBox"
                        Background="Transparent"
                        BorderThickness="0">
+                <ListBox.ContextMenu>
+                  <ContextMenu x:Name="RemotesContextMenu">
+                    <MenuItem x:Name="RemoteFetchMenuItem"
+                              Header="{x:Static res:CommitLogStrings.FetchRemoteButton}">
+                      <MenuItem.Icon>
+                        <material:MaterialIcon Kind="CloudDownload" Width="16" Height="16" />
+                      </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="RemoteDeleteMenuItem"
+                              Header="{x:Static res:CommitLogStrings.DeleteRemoteButton}">
+                      <MenuItem.Icon>
+                        <material:MaterialIcon Kind="DeleteOutline" Width="16" Height="16" />
+                      </MenuItem.Icon>
+                    </MenuItem>
+                  </ContextMenu>
+                </ListBox.ContextMenu>
                 <ListBox.ItemTemplate>
-                  <DataTemplate x:DataType="models:TagInfo">
-                    <Grid ColumnDefinitions="Auto, *">
-                      <material:MaterialIcon Grid.Column="0"
-                                            Kind="TagOutline"
-                                            Width="16"
-                                            Height="16"
-                                            Foreground="{DynamicResource GitGraphBranch3Brush}"
-                                            Margin="0,0,6,0" />
-                      <TextBlock Grid.Column="1"
-                                 Text="{Binding Name}"
-                                 FontSize="12"
-                                 TextTrimming="CharacterEllipsis"
-                                 VerticalAlignment="Center" />
-                    </Grid>
+                  <DataTemplate x:DataType="models:RemoteInfo">
+                    <Border Classes="RemoteItemCard" Padding="8,6" Margin="0,1">
+                      <Grid ColumnDefinitions="Auto, *, Auto">
+                        <material:MaterialIcon Grid.Column="0"
+                                               Kind="CloudOutline"
+                                               Width="16"
+                                               Height="16"
+                                               Foreground="{DynamicResource GitGraphBranch3Brush}"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,8,0" />
+                        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                          <TextBlock Text="{Binding Name}"
+                                     FontSize="12"
+                                     FontWeight="SemiBold"
+                                     TextTrimming="CharacterEllipsis" />
+                          <TextBlock Text="{Binding Url}"
+                                     Classes="SubtleCaption"
+                                     FontSize="10"
+                                     TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                          <Button x:Name="ItemFetchRemoteButton"
+                                  Classes="ToolbarAction"
+                                  Padding="4,2"
+                                  ToolTip.Tip="{x:Static res:CommitLogStrings.FetchRemoteButton}">
+                            <material:MaterialIcon Kind="CloudDownload" Width="13" Height="13" />
+                          </Button>
+                          <Button x:Name="ItemDeleteRemoteButton"
+                                  Classes="DeleteFavoriteButton"
+                                  Padding="4,2"
+                                  ToolTip.Tip="{x:Static res:CommitLogStrings.DeleteRemoteButton}">
+                            <material:MaterialIcon Kind="DeleteOutline" Width="13" Height="13" Foreground="{DynamicResource SubtleTextBrush}" />
+                          </Button>
+                        </StackPanel>
+                      </Grid>
+                    </Border>
                   </DataTemplate>
                 </ListBox.ItemTemplate>
               </ListBox>
@@ -527,13 +566,13 @@
                       BorderBrush="{DynamicResource CardBorderBrush}"
                       BorderThickness="0,1,0,0"
                       Padding="8">
-                <Button x:Name="NewTagActionButton"
+                <Button x:Name="NewRemoteActionButton"
                         Classes="SecondaryAction"
                         HorizontalAlignment="Stretch"
                         HorizontalContentAlignment="Center">
                   <StackPanel Orientation="Horizontal" Spacing="6">
                     <material:MaterialIcon Kind="Plus" Width="14" Height="14" />
-                    <TextBlock Text="{x:Static res:CommitLogStrings.CreateTagModalTitle}" FontSize="12" />
+                    <TextBlock Text="{x:Static res:CommitLogStrings.CreateRemoteModalTitle}" FontSize="12" />
                   </StackPanel>
                 </Button>
               </Border>
@@ -859,6 +898,43 @@
                     Classes="SecondaryAction"
                     Content="{x:Static sharedRes:GlobalStrings.CancelButton}" />
             <Button x:Name="ConfirmCreateBranchButton"
+                    Classes="PrimaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.SaveButton}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- Create Remote Modal -->
+    <Grid x:Name="CreateRemoteModalBackdrop"
+          Classes="ModalBackdrop"
+          IsVisible="False">
+      <Border Classes="ModalCard"
+              Width="440"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <StackPanel Spacing="14">
+          <TextBlock Text="{x:Static res:CommitLogStrings.CreateRemoteModalTitle}"
+                     FontSize="16"
+                     FontWeight="SemiBold" />
+
+          <StackPanel Spacing="4">
+            <TextBlock Text="{x:Static res:CommitLogStrings.RemoteNameLabel}" FontSize="12" />
+            <TextBox x:Name="NewRemoteNameTextBox"
+                     Watermark="{x:Static res:CommitLogStrings.RemoteNamePlaceholder}" />
+          </StackPanel>
+
+          <StackPanel Spacing="4">
+            <TextBlock Text="{x:Static res:CommitLogStrings.RemoteUrlLabel}" FontSize="12" />
+            <TextBox x:Name="NewRemoteUrlTextBox"
+                     Watermark="{x:Static res:CommitLogStrings.RemoteUrlPlaceholder}" />
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button x:Name="CancelCreateRemoteButton"
+                    Classes="SecondaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.CancelButton}" />
+            <Button x:Name="ConfirmCreateRemoteButton"
                     Classes="PrimaryAction"
                     Content="{x:Static sharedRes:GlobalStrings.SaveButton}" />
           </StackPanel>

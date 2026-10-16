@@ -493,4 +493,28 @@
   <data name="CommitSubjectLimitToolTip" xml:space="preserve">
     <value>Recommended commit title limit is 72 characters.</value>
   </data>
+  <data name="RemotesTitle" xml:space="preserve">
+    <value>Remotes</value>
+  </data>
+  <data name="CreateRemoteModalTitle" xml:space="preserve">
+    <value>Add Remote Repository</value>
+  </data>
+  <data name="RemoteNameLabel" xml:space="preserve">
+    <value>Remote Name</value>
+  </data>
+  <data name="RemoteNamePlaceholder" xml:space="preserve">
+    <value>Remote name (e.g., origin)...</value>
+  </data>
+  <data name="RemoteUrlLabel" xml:space="preserve">
+    <value>Remote URL</value>
+  </data>
+  <data name="RemoteUrlPlaceholder" xml:space="preserve">
+    <value>Remote URL (e.g., https://github.com/user/repo.git)...</value>
+  </data>
+  <data name="DeleteRemoteButton" xml:space="preserve">
+    <value>Delete Remote</value>
+  </data>
+  <data name="FetchRemoteButton" xml:space="preserve">
+    <value>Fetch Remote</value>
+  </data>
 </root>

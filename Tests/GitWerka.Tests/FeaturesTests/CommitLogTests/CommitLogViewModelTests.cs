@@ -182,11 +182,23 @@ public class CommitLogViewModelTests
         public Task<IReadOnlyList<RemoteInfo>> GetRemotesAsync(string repositoryPath, CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<RemoteInfo>>(Array.Empty<RemoteInfo>());
 
-        public Task AddRemoteAsync(string repositoryPath, string remoteName, string url, CancellationToken cancellationToken = default) =>
-            Task.CompletedTask;
+        public string? LastAddedRemoteName { get; private set; }
+        public string? LastAddedRemoteUrl { get; private set; }
+        public string? LastRemovedRemoteName { get; private set; }
+        public string? LastFetchedRemoteName { get; private set; }
 
-        public Task RemoveRemoteAsync(string repositoryPath, string remoteName, CancellationToken cancellationToken = default) =>
-            Task.CompletedTask;
+        public Task AddRemoteAsync(string repositoryPath, string remoteName, string url, CancellationToken cancellationToken = default)
+        {
+            LastAddedRemoteName = remoteName;
+            LastAddedRemoteUrl = url;
+            return Task.CompletedTask;
+        }
+
+        public Task RemoveRemoteAsync(string repositoryPath, string remoteName, CancellationToken cancellationToken = default)
+        {
+            LastRemovedRemoteName = remoteName;
+            return Task.CompletedTask;
+        }
 
         public GitCredentials? LastCredentialsUsed { get; private set; }
         public bool ShouldThrowAuthOnRemote { get; set; }
@@ -200,6 +212,7 @@ public class CommitLogViewModelTests
             }
 
             FetchCalled = true;
+            LastFetchedRemoteName = remoteName;
             LastCredentialsUsed = credentials;
             return Task.CompletedTask;
         }
@@ -421,6 +434,76 @@ public class CommitLogViewModelTests
         vm.SetActiveSidebarTab(CommitLogSidebarTab.WorkingTree);
 
         Assert.Equal(CommitLogSidebarTab.WorkingTree, vm.State.ActiveSidebarTab);
+    }
+
+    [Fact]
+    public void SetActiveSidebarTab_RemotesPassed_UpdatesActiveSidebarTab()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        CommitLogViewModel vm = new(screen, "/repo/path", gitService);
+
+        vm.SetActiveSidebarTab(CommitLogSidebarTab.Remotes);
+
+        Assert.Equal(CommitLogSidebarTab.Remotes, vm.State.ActiveSidebarTab);
+    }
+
+    [Fact]
+    public void ShowAndHideCreateRemoteModal_InvokesCommands_TogglesModalVisibility()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        CommitLogViewModel vm = new(screen, "/repo/path", gitService);
+
+        Assert.False(vm.State.IsCreateRemoteModalVisible);
+
+        vm.ShowCreateRemoteModalCommand.Execute().Subscribe();
+        Assert.True(vm.State.IsCreateRemoteModalVisible);
+
+        vm.HideCreateRemoteModalCommand.Execute().Subscribe();
+        Assert.False(vm.State.IsCreateRemoteModalVisible);
+    }
+
+    [Fact]
+    public void ExecuteCreateRemote_ValidInputs_AddsRemoteAndRefreshes()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        CommitLogViewModel vm = new(screen, "/repo/path", gitService);
+
+        vm.ShowCreateRemoteModalCommand.Execute().Subscribe();
+        vm.UpdateNewRemoteNameInput("upstream");
+        vm.UpdateNewRemoteUrlInput("https://github.com/upstream/repo.git");
+        vm.ExecuteCreateRemoteCommand.Execute().Subscribe();
+
+        Assert.Equal("upstream", gitService.LastAddedRemoteName);
+        Assert.Equal("https://github.com/upstream/repo.git", gitService.LastAddedRemoteUrl);
+        Assert.False(vm.State.IsCreateRemoteModalVisible);
+    }
+
+    [Fact]
+    public void DeleteRemote_ValidName_RemovesRemoteAndRefreshes()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        CommitLogViewModel vm = new(screen, "/repo/path", gitService);
+
+        vm.DeleteRemoteCommand.Execute("origin").Subscribe();
+
+        Assert.Equal("origin", gitService.LastRemovedRemoteName);
+    }
+
+    [Fact]
+    public void FetchRemote_ValidName_FetchesSpecifiedRemote()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        CommitLogViewModel vm = new(screen, "/repo/path", gitService);
+
+        vm.FetchRemoteCommand.Execute("origin").Subscribe();
+
+        Assert.True(gitService.FetchCalled);
+        Assert.Equal("origin", gitService.LastFetchedRemoteName);
     }
 
     [Fact]

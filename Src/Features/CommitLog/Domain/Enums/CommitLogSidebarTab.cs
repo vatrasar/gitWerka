@@ -7,6 +7,6 @@ public enum CommitLogSidebarTab
 {
     Branches,
     WorkingTree,
-    Tags,
+    Remotes,
     Stashes
 }

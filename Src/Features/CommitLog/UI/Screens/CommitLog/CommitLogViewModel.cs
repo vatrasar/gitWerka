@@ -194,6 +194,36 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
     }
 
     /// <summary>
+    /// Updates the remote name input for adding a new remote.
+    /// Usages: CommitLogView create remote modal.
+    /// </summary>
+    /// <param name="text">New remote name text.</param>
+    public void UpdateNewRemoteNameInput(string text)
+    {
+        UpdateState(s => s with { NewRemoteNameInput = text ?? string.Empty });
+    }
+
+    /// <summary>
+    /// Updates the remote URL input for adding a new remote.
+    /// Usages: CommitLogView create remote modal.
+    /// </summary>
+    /// <param name="text">New remote URL text.</param>
+    public void UpdateNewRemoteUrlInput(string text)
+    {
+        UpdateState(s => s with { NewRemoteUrlInput = text ?? string.Empty });
+    }
+
+    /// <summary>
+    /// Selects an active remote in the remotes list.
+    /// Usages: CommitLogView remotes list.
+    /// </summary>
+    /// <param name="remote">Remote information or null.</param>
+    public void SelectRemote(RemoteInfo? remote)
+    {
+        UpdateState(s => s with { SelectedRemote = remote });
+    }
+
+    /// <summary>
     /// Updates the description input for creating a stash.
     /// Usages: CommitLogView create stash modal.
     /// </summary>
@@ -885,6 +915,86 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
         catch (Exception ex)
         {
             UpdateState(s => s with { IsLoading = false, ErrorMessage = ex.Message });
+        }
+    }
+
+    [ReactiveCommand]
+    private void ShowCreateRemoteModal()
+    {
+        UpdateState(s => s with
+        {
+            IsCreateRemoteModalVisible = true,
+            NewRemoteNameInput = string.Empty,
+            NewRemoteUrlInput = string.Empty
+        });
+    }
+
+    [ReactiveCommand]
+    private void HideCreateRemoteModal()
+    {
+        UpdateState(s => s with { IsCreateRemoteModalVisible = false });
+    }
+
+    [ReactiveCommand]
+    private async Task ExecuteCreateRemote()
+    {
+        if (string.IsNullOrWhiteSpace(State.NewRemoteNameInput) || string.IsNullOrWhiteSpace(State.NewRemoteUrlInput))
+        {
+            return;
+        }
+
+        UpdateState(s => s with { IsLoading = true, IsCreateRemoteModalVisible = false });
+        try
+        {
+            await _gitService.AddRemoteAsync(
+                State.RepositoryPath,
+                State.NewRemoteNameInput.Trim(),
+                State.NewRemoteUrlInput.Trim());
+            await LoadRepositoryData();
+        }
+        catch (Exception ex)
+        {
+            UpdateState(s => s with { IsLoading = false, ErrorMessage = ex.Message });
+        }
+    }
+
+    [ReactiveCommand]
+    private async Task DeleteRemote(string remoteName)
+    {
+        if (string.IsNullOrWhiteSpace(remoteName))
+        {
+            return;
+        }
+
+        UpdateState(s => s with { IsLoading = true });
+        try
+        {
+            await _gitService.RemoveRemoteAsync(State.RepositoryPath, remoteName);
+            await LoadRepositoryData();
+        }
+        catch (Exception ex)
+        {
+            UpdateState(s => s with { IsLoading = false, ErrorMessage = ex.Message });
+        }
+    }
+
+    [ReactiveCommand]
+    private async Task FetchRemote(string remoteName)
+    {
+        if (string.IsNullOrWhiteSpace(remoteName))
+        {
+            return;
+        }
+
+        UpdateState(s => s with { IsLoading = true, ErrorMessage = null });
+        try
+        {
+            await _gitService.FetchAsync(State.RepositoryPath, remoteName);
+            await LoadRepositoryData();
+        }
+        catch (Exception ex)
+        {
+            HandleRemoteOperationException(ex, RemoteOperationPending.Fetch);
         }
     }
 

@@ -86,6 +86,14 @@ public record CommitLogState
 
     public string NewTagMessageInput { get; init; } = string.Empty;
 
+    public bool IsCreateRemoteModalVisible { get; init; }
+
+    public string NewRemoteNameInput { get; init; } = string.Empty;
+
+    public string NewRemoteUrlInput { get; init; } = string.Empty;
+
+    public RemoteInfo? SelectedRemote { get; init; }
+
     public bool IsStashModalVisible { get; init; }
 
     public string NewStashMessageInput { get; init; } = string.Empty;

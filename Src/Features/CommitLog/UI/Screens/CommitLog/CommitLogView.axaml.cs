@@ -1,6 +1,6 @@
 /// <summary>
 /// Screen: CommitLogView
-/// Purpose: Main repository workspace screen showing visual commit history graph, branches, tags, stashes, commit details, diff inspection, branch merging, interactive rebasing, system shortcuts, and authentication dialogs.
+/// Purpose: Main repository workspace screen showing visual commit history graph, branches, remotes, stashes, commit details, diff inspection, branch merging, interactive rebasing, system shortcuts, and authentication dialogs.
 /// Available Functionalities:
 /// - Visual commit graph rendering with multi-lane topology.
 /// - Commit searching and filtering by message, author, or hash.
@@ -8,7 +8,7 @@
 /// - Branch merging modal with fast-forward strategy selection.
 /// - Interactive rebase visual step editor (pick, reword, edit, squash, fixup, drop, step reordering).
 /// - Ongoing repository operation (merge / rebase) conflict detection with Abort and Continue actions.
-/// - Tag listing and new tag creation modal.
+/// - Remote repositories listing, add remote modal, per-remote fetch and delete actions.
 /// - Stash listing and new stash creation modal.
 /// - Remote operations (Fetch, Pull, Push) with automatic credentials authentication dialog on challenge.
 /// - Profiles management: switch active Git profile from toolbar dropdown menu, or navigate to ProfileManagementView.
@@ -31,9 +31,11 @@
 /// - SeparateOpenActionsPanel, OpenFileManagerButton, OpenTerminalButton, OpenEditorButton.
 /// - OpenInMenuButton, OpenInFileManagerMenuItem, OpenInTerminalMenuItem, OpenInEditorMenuItem.
 /// - OperationStatusBanner, OperationTitleTextBlock, OperationSubtitleTextBlock, AbortOperationButton, ContinueOperationButton.
-/// - SearchCommitsTextBox, BranchesTabButton, WorkingTreeTabButton, TagsTabButton, StashesTabButton.
+/// - SearchCommitsTextBox, BranchesTabButton, WorkingTreeTabButton, RemotesTabButton, StashesTabButton.
 /// - BranchesListBox, BranchesContextMenu, BranchMergeMenuItem, NewBranchActionButton.
-/// - StagedChangesListBox, UnstagedChangesListBox, TagsListBox, StashesListBox, NewTagActionButton, NewStashActionButton.
+/// - RemotesListBox, RemotesContextMenu, RemoteFetchMenuItem, RemoteDeleteMenuItem, ItemFetchRemoteButton, ItemDeleteRemoteButton, NewRemoteActionButton.
+/// - CreateRemoteModalBackdrop, NewRemoteNameTextBox, NewRemoteUrlTextBox, CancelCreateRemoteButton, ConfirmCreateRemoteButton.
+/// - StagedChangesListBox, UnstagedChangesListBox, StashesListBox, NewStashActionButton.
 /// - CommitMessageTextBox, AmendCommitCheckBox, CommitMessageRemainingCountTextBlock, CommitButton, GenerateAiCommitButton, GenerateAiCommitNormalIcon, GenerateAiCommitLoadingIcon, GenerateAiCommitButtonText, AiGeneratingProgressBar, AiErrorBanner, AiErrorTextBlock, AiErrorSettingsButton, AiErrorDismissButton, StageAllButton, UnstageAllButton.
 /// - CommitsListBox, CommitsContextMenu, ContextCherryPickMenuItem, ContextRevertMenuItem, ContextResetMenuItem, ContextResetSoftMenuItem, ContextResetMixedMenuItem, ContextResetHardMenuItem, ContextCreateBranchMenuItem, ContextCreateTagMenuItem, ContextInteractiveRebaseMenuItem.
 /// - ChangedFilesListBox, DiffLinesItemsControl.
@@ -93,7 +95,7 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
         this.OneWayBind(ViewModel, x => x.State.Branches, x => x.BranchesListBox.ItemsSource);
         this.OneWayBind(ViewModel, x => x.State.StagedChanges, x => x.StagedChangesListBox.ItemsSource);
         this.OneWayBind(ViewModel, x => x.State.UnstagedChanges, x => x.UnstagedChangesListBox.ItemsSource);
-        this.OneWayBind(ViewModel, x => x.State.Tags, x => x.TagsListBox.ItemsSource);
+        this.OneWayBind(ViewModel, x => x.State.Remotes, x => x.RemotesListBox.ItemsSource);
         this.OneWayBind(ViewModel, x => x.State.Stashes, x => x.StashesListBox.ItemsSource);
         this.OneWayBind(ViewModel, x => x.State.FilteredCommits, x => x.CommitsListBox.ItemsSource);
         this.OneWayBind(ViewModel, x => x.State.SelectedCommitDetail!.ChangedFiles, x => x.ChangedFilesListBox.ItemsSource);
@@ -103,6 +105,7 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
         this.OneWayBind(ViewModel, x => x.State.IsMergeModalVisible, x => x.MergeModalBackdrop.IsVisible);
         this.OneWayBind(ViewModel, x => x.State.IsInteractiveRebaseModalVisible, x => x.InteractiveRebaseModalBackdrop.IsVisible);
         this.OneWayBind(ViewModel, x => x.State.RebaseSteps, x => x.RebaseStepsListBox.ItemsSource);
+        this.OneWayBind(ViewModel, x => x.State.IsCreateRemoteModalVisible, x => x.CreateRemoteModalBackdrop.IsVisible);
         this.OneWayBind(ViewModel, x => x.State.IsCreateTagModalVisible, x => x.CreateTagModalBackdrop.IsVisible);
         this.OneWayBind(ViewModel, x => x.State.IsStashModalVisible, x => x.CreateStashModalBackdrop.IsVisible);
         this.OneWayBind(ViewModel, x => x.State.IsSettingsModalVisible, x => x.SettingsModalBackdrop.IsVisible);
@@ -330,7 +333,11 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
         this.BindCommand(ViewModel, x => x.AbortOperationCommand, x => x.AbortOperationButton);
         this.BindCommand(ViewModel, x => x.ContinueOperationCommand, x => x.ContinueOperationButton);
 
-        this.BindCommand(ViewModel, x => x.ShowCreateTagModalCommand, x => x.NewTagActionButton);
+        this.BindCommand(ViewModel, x => x.ShowCreateRemoteModalCommand, x => x.NewRemoteActionButton);
+        this.BindCommand(ViewModel, x => x.HideCreateRemoteModalCommand, x => x.CancelCreateRemoteButton);
+        this.BindCommand(ViewModel, x => x.ExecuteCreateRemoteCommand, x => x.ConfirmCreateRemoteButton);
+        SetupRemotesList(disposables);
+
         this.BindCommand(ViewModel, x => x.HideCreateTagModalCommand, x => x.CancelCreateTagButton);
         this.BindCommand(ViewModel, x => x.ExecuteCreateTagCommand, x => x.ConfirmCreateTagButton);
 
@@ -420,6 +427,7 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
         return ViewModel.State.IsCreateBranchModalVisible ||
                ViewModel.State.IsMergeModalVisible ||
                ViewModel.State.IsInteractiveRebaseModalVisible ||
+               ViewModel.State.IsCreateRemoteModalVisible ||
                ViewModel.State.IsCreateTagModalVisible ||
                ViewModel.State.IsStashModalVisible ||
                ViewModel.State.IsSettingsModalVisible ||
@@ -494,7 +502,7 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
     {
         BranchesTabButton.Click += (s, e) => ViewModel?.SetActiveSidebarTab(CommitLogSidebarTab.Branches);
         WorkingTreeTabButton.Click += (s, e) => ViewModel?.SetActiveSidebarTab(CommitLogSidebarTab.WorkingTree);
-        TagsTabButton.Click += (s, e) => ViewModel?.SetActiveSidebarTab(CommitLogSidebarTab.Tags);
+        RemotesTabButton.Click += (s, e) => ViewModel?.SetActiveSidebarTab(CommitLogSidebarTab.Remotes);
         StashesTabButton.Click += (s, e) => ViewModel?.SetActiveSidebarTab(CommitLogSidebarTab.Stashes);
 
         this.WhenAnyValue(x => x.ViewModel!.State.ActiveSidebarTab)
@@ -502,7 +510,7 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
             {
                 BranchesTabPanel.IsVisible = tab == CommitLogSidebarTab.Branches;
                 WorkingTreeTabPanel.IsVisible = tab == CommitLogSidebarTab.WorkingTree;
-                TagsTabPanel.IsVisible = tab == CommitLogSidebarTab.Tags;
+                RemotesTabPanel.IsVisible = tab == CommitLogSidebarTab.Remotes;
                 StashesTabPanel.IsVisible = tab == CommitLogSidebarTab.Stashes;
             }))
             .DisposeWith(disposables);
@@ -529,6 +537,14 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
 
         this.WhenAnyValue(x => x.NewTagMessageTextBox.Text)
             .Subscribe(Observer.Create<string?>(msg => ViewModel?.UpdateNewTagMessageInput(msg ?? string.Empty)))
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(x => x.NewRemoteNameTextBox.Text)
+            .Subscribe(Observer.Create<string?>(name => ViewModel?.UpdateNewRemoteNameInput(name ?? string.Empty)))
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(x => x.NewRemoteUrlTextBox.Text)
+            .Subscribe(Observer.Create<string?>(url => ViewModel?.UpdateNewRemoteUrlInput(url ?? string.Empty)))
             .DisposeWith(disposables);
 
         this.WhenAnyValue(x => x.NewStashMessageTextBox.Text)
@@ -730,6 +746,60 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
                 }
             }
         });
+    }
+
+    private void SetupRemotesList(CompositeDisposable disposables)
+    {
+        RemotesListBox.SelectionChanged += (sender, e) =>
+        {
+            if (RemotesListBox.SelectedItem is RemoteInfo remote && ViewModel != null)
+            {
+                ViewModel.SelectRemote(remote);
+            }
+        };
+
+        RemoteFetchMenuItem.Click += (sender, e) =>
+        {
+            if (RemotesListBox.SelectedItem is RemoteInfo remote && ViewModel != null)
+            {
+                ViewModel.FetchRemoteCommand.Execute(remote.Name).Subscribe();
+            }
+        };
+
+        RemoteDeleteMenuItem.Click += (sender, e) =>
+        {
+            if (RemotesListBox.SelectedItem is RemoteInfo remote && ViewModel != null)
+            {
+                ViewModel.DeleteRemoteCommand.Execute(remote.Name).Subscribe();
+            }
+        };
+
+        RemotesListBox.AddHandler(Button.ClickEvent, (sender, e) => HandleRemoteItemButtonClick(e));
+    }
+
+    private void HandleRemoteItemButtonClick(RoutedEventArgs e)
+    {
+        if (e.Source is not Visual source || ViewModel == null)
+        {
+            return;
+        }
+
+        Button? button = source as Button ?? source.FindAncestorOfType<Button>(true);
+        if (button?.DataContext is not RemoteInfo remote)
+        {
+            return;
+        }
+
+        if (button.Name == "ItemFetchRemoteButton")
+        {
+            ViewModel.FetchRemoteCommand.Execute(remote.Name).Subscribe();
+            e.Handled = true;
+        }
+        else if (button.Name == "ItemDeleteRemoteButton")
+        {
+            ViewModel.DeleteRemoteCommand.Execute(remote.Name).Subscribe();
+            e.Handled = true;
+        }
     }
 
     private void HandleOpenRecentNonFavoriteRepoClick()
