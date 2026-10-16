@@ -1510,6 +1510,41 @@ public class CommitLogViewModelTests
     }
 
     [Fact]
+    public async Task ExecuteGenerateAiCommitMessageCommand_WhenProposalSubjectExceedsLimit_TruncatesSubjectToHardLimit()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        string longSubject = new('A', 85);
+        MockAiCommitMessageService aiService = new() { ProposalToReturn = longSubject };
+
+        CommitLogViewModel vm = new(screen, "/repo/test", gitService, aiCommitMessageService: aiService);
+
+        await vm.ExecuteGenerateAiCommitMessageCommand.Execute().FirstAsync();
+
+        Assert.Equal(72, vm.State.CommitMessageInput.Length);
+        Assert.Equal(new string('A', 72), vm.State.CommitMessageInput);
+        Assert.Equal(0, vm.State.CommitSubjectRemainingChars);
+    }
+
+    [Fact]
+    public async Task ExecuteGenerateAiCommitMessageCommand_WhenProposalHasBody_ExtractsOnlySubjectUnderLimit()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        string longSubject = new('X', 80);
+        string body = "\n\nThis is the detailed commit description.";
+        MockAiCommitMessageService aiService = new() { ProposalToReturn = longSubject + body };
+
+        CommitLogViewModel vm = new(screen, "/repo/test", gitService, aiCommitMessageService: aiService);
+
+        await vm.ExecuteGenerateAiCommitMessageCommand.Execute().FirstAsync();
+
+        string expected = new string('X', 72);
+        Assert.Equal(expected, vm.State.CommitMessageInput);
+        Assert.Equal(0, vm.State.CommitSubjectRemainingChars);
+    }
+
+    [Fact]
     public async Task ExecuteGenerateAiCommitMessageCommand_WhenFailsWithApiKeyError_SetsAiErrorMessageAndSettingsAction()
     {
         MockScreen screen = new();
