@@ -35,4 +35,8 @@ public record CommitSummary
     public ImmutableList<int> MergingLanes { get; init; } = ImmutableList<int>.Empty;
 
     public ImmutableList<int> ForkingOffLanes { get; init; } = ImmutableList<int>.Empty;
+
+    public bool IsWip { get; init; }
+
+    public int UncommittedFilesCount { get; init; }
 }

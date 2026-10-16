@@ -1,0 +1,270 @@
+<rxui:ReactiveUserControl x:TypeArguments="local:ConflictResolverViewModel"
+                          x:DataType="local:ConflictResolverViewModel"
+                          xmlns="https://github.com/avaloniaui"
+                          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                          xmlns:rxui="http://reactiveui.net"
+                          xmlns:local="using:GitWerka.Features.MergeRebase.UI.Screens.ConflictResolver"
+                          xmlns:res="using:GitWerka.Features.MergeRebase.Resources"
+                          xmlns:models="using:GitWerka.Core.Domain.Models"
+                          xmlns:material="using:Material.Icons.Avalonia"
+                          x:Class="GitWerka.Features.MergeRebase.UI.Screens.ConflictResolver.ConflictResolverView">
+
+  <UserControl.Styles>
+    <StyleInclude Source="avares://GitWerka/Src/Features/MergeRebase/UI/Screens/ConflictResolver/ScreenStyles/ConflictResolverStyles.axaml" />
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="Auto, *, 4, *">
+    <!-- Top Action Bar -->
+    <Border Grid.Row="0"
+            Background="{DynamicResource ShellHeaderFooterBrush}"
+            BorderBrush="{DynamicResource CardBorderBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="12,8">
+      <Grid ColumnDefinitions="Auto, *, Auto">
+        <!-- Left: Back Button, Warning Icon, File Path & Conflict Count -->
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <Button x:Name="BackButton"
+                  Classes="IconButton"
+                  ToolTip.Tip="{x:Static res:MergeRebaseStrings.CancelButton}">
+            <material:MaterialIcon Kind="ArrowLeft" Width="18" Height="18" />
+          </Button>
+
+          <material:MaterialIcon Kind="AlertCircleOutline"
+                                Width="18"
+                                Height="18"
+                                Foreground="{DynamicResource WarningBrush}"
+                                VerticalAlignment="Center" />
+
+          <TextBlock x:Name="FilePathTextBlock"
+                     FontWeight="SemiBold"
+                     FontSize="14"
+                     VerticalAlignment="Center" />
+
+          <TextBlock x:Name="ConflictCountTextBlock"
+                     Foreground="{DynamicResource WarningBrush}"
+                     FontSize="12"
+                     VerticalAlignment="Center" />
+        </StackPanel>
+
+        <!-- Right: Actions & Save -->
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+          <TextBlock Text="{x:Static res:MergeRebaseStrings.EncodingUtf8}"
+                     Classes="SubtleCaption"
+                     VerticalAlignment="Center" />
+
+          <Button x:Name="TakeAllOursButton"
+                  Classes="SecondaryAction"
+                  Padding="8,4">
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <Border Classes="ConflictBadgeA">
+                <TextBlock Text="A" FontSize="10" FontWeight="Bold" Foreground="White" />
+              </Border>
+              <TextBlock Text="{x:Static res:MergeRebaseStrings.TakeAllOursButton}" FontSize="11" />
+            </StackPanel>
+          </Button>
+
+          <Button x:Name="TakeAllTheirsButton"
+                  Classes="SecondaryAction"
+                  Padding="8,4">
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <Border Classes="ConflictBadgeB">
+                <TextBlock Text="B" FontSize="10" FontWeight="Bold" Foreground="White" />
+              </Border>
+              <TextBlock Text="{x:Static res:MergeRebaseStrings.TakeAllTheirsButton}" FontSize="11" />
+            </StackPanel>
+          </Button>
+
+          <Button x:Name="SaveButton"
+                  Classes="PrimaryAction"
+                  Padding="12,5">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <material:MaterialIcon Kind="ContentSave" Width="14" Height="14" />
+              <TextBlock Text="{x:Static res:MergeRebaseStrings.SaveButton}" FontWeight="SemiBold" FontSize="12" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Top Half: Panel A (Left - Ours) and Panel B (Right - Theirs) -->
+    <Grid Grid.Row="1" ColumnDefinitions="*, 1, *">
+      <!-- Panel A: Local / Ours -->
+      <Grid Grid.Column="0" RowDefinitions="Auto, *">
+        <Border Grid.Row="0" Classes="ConflictPanelHeader">
+          <Grid ColumnDefinitions="Auto, Auto, *">
+            <CheckBox x:Name="OursAllCheckBox"
+                      Grid.Column="0"
+                      Margin="0,0,6,0"
+                      VerticalAlignment="Center" />
+            <Border Grid.Column="1" Classes="ConflictBadgeA" Margin="0,0,8,0">
+              <TextBlock Text="A" FontSize="11" FontWeight="Bold" Foreground="White" />
+            </Border>
+            <TextBlock Grid.Column="2"
+                       x:Name="OursTitleTextBlock"
+                       FontWeight="Medium"
+                       FontSize="12"
+                       Foreground="{DynamicResource ConflictOursForegroundColor}"
+                       VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis" />
+          </Grid>
+        </Border>
+
+        <ScrollViewer Grid.Row="1"
+                      HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto"
+                      Background="{DynamicResource AppBackgroundBrush}">
+          <ItemsControl x:Name="OursLinesItemsControl">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="models:ConflictLineDisplay">
+                <Border Classes.ConflictRowOurs="{Binding IsConflict}"
+                        Classes.NormalRow="{Binding !IsConflict}"
+                        Padding="4,1">
+                  <Grid ColumnDefinitions="Auto, Auto, *">
+                    <TextBlock Grid.Column="0"
+                               Classes="ConflictLineNumber"
+                               Text="{Binding LineNumber}" />
+                    <CheckBox Grid.Column="1"
+                              IsChecked="{Binding IsSelected}"
+                              IsVisible="{Binding IsHunkFirstLine}"
+                              Command="{Binding ToggleCommand}"
+                              Margin="2,0,4,0"
+                              VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2"
+                               Classes="ConflictCodeText"
+                               Text="{Binding Text}" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </Grid>
+
+      <!-- Vertical Splitter between Panel A and Panel B -->
+      <Rectangle Grid.Column="1" Fill="{DynamicResource CardBorderBrush}" />
+
+      <!-- Panel B: Remote / Theirs -->
+      <Grid Grid.Column="2" RowDefinitions="Auto, *">
+        <Border Grid.Row="0" Classes="ConflictPanelHeader">
+          <Grid ColumnDefinitions="Auto, Auto, *">
+            <CheckBox x:Name="TheirsAllCheckBox"
+                      Grid.Column="0"
+                      Margin="0,0,6,0"
+                      VerticalAlignment="Center" />
+            <Border Grid.Column="1" Classes="ConflictBadgeB" Margin="0,0,8,0">
+              <TextBlock Text="B" FontSize="11" FontWeight="Bold" Foreground="White" />
+            </Border>
+            <TextBlock Grid.Column="2"
+                       x:Name="TheirsTitleTextBlock"
+                       FontWeight="Medium"
+                       FontSize="12"
+                       Foreground="{DynamicResource ConflictTheirsForegroundColor}"
+                       VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis" />
+          </Grid>
+        </Border>
+
+        <ScrollViewer Grid.Row="1"
+                      HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto"
+                      Background="{DynamicResource AppBackgroundBrush}">
+          <ItemsControl x:Name="TheirsLinesItemsControl">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="models:ConflictLineDisplay">
+                <Border Classes.ConflictRowTheirs="{Binding IsConflict}"
+                        Classes.NormalRow="{Binding !IsConflict}"
+                        Padding="4,1">
+                  <Grid ColumnDefinitions="Auto, Auto, *">
+                    <TextBlock Grid.Column="0"
+                               Classes="ConflictLineNumber"
+                               Text="{Binding LineNumber}" />
+                    <CheckBox Grid.Column="1"
+                              IsChecked="{Binding IsSelected}"
+                              IsVisible="{Binding IsHunkFirstLine}"
+                              Command="{Binding ToggleCommand}"
+                              Margin="2,0,4,0"
+                              VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2"
+                               Classes="ConflictCodeText"
+                               Text="{Binding Text}" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </Grid>
+    </Grid>
+
+    <!-- Horizontal Splitter between Top Panels and Bottom Output Panel -->
+    <GridSplitter Grid.Row="2"
+                  Background="{DynamicResource CardBorderBrush}"
+                  ResizeDirection="Rows" />
+
+    <!-- Bottom Half: Output (Merged Result) Panel -->
+    <Grid Grid.Row="3" RowDefinitions="Auto, *">
+      <Border Grid.Row="0" Classes="ConflictPanelHeader">
+        <Grid ColumnDefinitions="Auto, *, Auto">
+          <!-- Output Title -->
+          <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <Border Classes="ConflictBadgeOutput">
+              <TextBlock Text="OUT" FontSize="10" FontWeight="Bold" Foreground="White" />
+            </Border>
+            <TextBlock Text="{x:Static res:MergeRebaseStrings.OutputTitle}"
+                       FontWeight="SemiBold"
+                       FontSize="13"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       VerticalAlignment="Center" />
+          </StackPanel>
+
+          <!-- Conflict Navigation -->
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+            <TextBlock x:Name="ConflictStatusTextBlock"
+                       Classes="SubtleCaption"
+                       VerticalAlignment="Center"
+                       Margin="0,0,4,0" />
+
+            <Button x:Name="PreviousConflictButton"
+                    Classes="SecondaryAction"
+                    Padding="4,2"
+                    ToolTip.Tip="{x:Static res:MergeRebaseStrings.PreviousConflictTooltip}">
+              <material:MaterialIcon Kind="ChevronUp" Width="14" Height="14" />
+            </Button>
+
+            <Button x:Name="NextConflictButton"
+                    Classes="SecondaryAction"
+                    Padding="4,2"
+                    ToolTip.Tip="{x:Static res:MergeRebaseStrings.NextConflictTooltip}">
+              <material:MaterialIcon Kind="ChevronDown" Width="14" Height="14" />
+            </Button>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <!-- Output Lines Display -->
+      <ScrollViewer Grid.Row="1"
+                    HorizontalScrollBarVisibility="Auto"
+                    VerticalScrollBarVisibility="Auto"
+                    Background="{DynamicResource AppBackgroundBrush}">
+        <ItemsControl x:Name="OutputLinesItemsControl">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="models:ConflictOutputLineDisplay">
+              <Border Classes.ConflictRowOutput="{Binding IsConflict}"
+                      Classes.NormalRow="{Binding !IsConflict}"
+                      Padding="4,1">
+                <Grid ColumnDefinitions="Auto, *">
+                  <TextBlock Grid.Column="0"
+                             Classes="ConflictLineNumber"
+                             Text="{Binding LineNumber}" />
+                  <TextBlock Grid.Column="1"
+                             Classes="ConflictCodeText"
+                             Text="{Binding Text}" />
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Grid>
+  </Grid>
+</rxui:ReactiveUserControl>

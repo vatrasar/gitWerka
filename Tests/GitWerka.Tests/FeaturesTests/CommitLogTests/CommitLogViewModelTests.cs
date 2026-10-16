@@ -179,8 +179,10 @@ public class CommitLogViewModelTests
         public Task DropStashAsync(string repositoryPath, int stashIndex, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
 
+        public List<RemoteInfo> Remotes { get; set; } = new();
+
         public Task<IReadOnlyList<RemoteInfo>> GetRemotesAsync(string repositoryPath, CancellationToken cancellationToken = default) =>
-            Task.FromResult<IReadOnlyList<RemoteInfo>>(Array.Empty<RemoteInfo>());
+            Task.FromResult<IReadOnlyList<RemoteInfo>>(Remotes);
 
         public string? LastAddedRemoteName { get; private set; }
         public string? LastAddedRemoteUrl { get; private set; }
@@ -191,12 +193,14 @@ public class CommitLogViewModelTests
         {
             LastAddedRemoteName = remoteName;
             LastAddedRemoteUrl = url;
+            Remotes.Add(new RemoteInfo { Name = remoteName, Url = url, PushUrl = url });
             return Task.CompletedTask;
         }
 
         public Task RemoveRemoteAsync(string repositoryPath, string remoteName, CancellationToken cancellationToken = default)
         {
             LastRemovedRemoteName = remoteName;
+            Remotes.RemoveAll(r => r.Name == remoteName);
             return Task.CompletedTask;
         }
 
@@ -324,6 +328,26 @@ public class CommitLogViewModelTests
         {
             ContinueRebaseCalled = true;
             return Task.FromResult(true);
+        }
+
+        public bool MarkAllConflictsResolvedCalled { get; private set; }
+        public string? LastSavedConflictFilePath { get; private set; }
+        public string? LastSavedConflictContent { get; private set; }
+
+        public Task<ConflictFileModel> GetConflictFileAsync(string repositoryPath, string filePath, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new ConflictFileModel { FilePath = filePath, FileName = "file.txt", TotalConflicts = 1 });
+
+        public Task SaveConflictResolutionAsync(string repositoryPath, string filePath, string resolvedContent, CancellationToken cancellationToken = default)
+        {
+            LastSavedConflictFilePath = filePath;
+            LastSavedConflictContent = resolvedContent;
+            return Task.CompletedTask;
+        }
+
+        public Task MarkAllConflictsResolvedAsync(string repositoryPath, CancellationToken cancellationToken = default)
+        {
+            MarkAllConflictsResolvedCalled = true;
+            return Task.CompletedTask;
         }
     }
 
@@ -1625,4 +1649,118 @@ public class CommitLogViewModelTests
         CommitLogState state = new() { CommitMessageInput = input };
         Assert.Equal(expectedRemaining, state.CommitSubjectRemainingChars);
     }
+
+    [Fact]
+    public async Task SelectCommitAsync_WithWipCommit_SetsWipDetailAndSwitchesToWorkingTreeTab()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        gitService.WorkingChanges.Add(new WorkingTreeChange { Path = "modified.cs", Status = FileChangeStatus.Modified });
+
+        CommitSummary wipCommit = new()
+        {
+            Sha = "WIP",
+            ShortSha = string.Empty,
+            Message = "// WIP",
+            IsWip = true,
+            UncommittedFilesCount = 1
+        };
+        gitService.Commits.Add(wipCommit);
+
+        CommitLogViewModel vm = new(screen, "/repo/path", gitService);
+        await vm.SelectCommitAsync(wipCommit);
+
+        Assert.NotNull(vm.State.SelectedCommit);
+        Assert.True(vm.State.SelectedCommit.IsWip);
+        Assert.NotNull(vm.State.SelectedCommitDetail);
+        Assert.Equal("WIP", vm.State.SelectedCommitDetail.Sha);
+        Assert.Single(vm.State.SelectedCommitDetail.ChangedFiles);
+        Assert.Equal("modified.cs", vm.State.SelectedCommitDetail.ChangedFiles[0].Path);
+        Assert.Equal(CommitLogSidebarTab.WorkingTree, vm.State.ActiveSidebarTab);
+    }
+
+    [Fact]
+    public async Task AutoFetch_WhenRemotesExist_InvokesFetchSilently()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        CommitLogViewModel vm = new(screen, "/repo/path", gitService);
+
+        vm.ShowCreateRemoteModalCommand.Execute().Subscribe();
+        vm.UpdateNewRemoteNameInput("origin");
+        vm.UpdateNewRemoteUrlInput("https://example.com/repo.git");
+        vm.ExecuteCreateRemoteCommand.Execute().Subscribe();
+
+        await vm.AutoFetchCommand.Execute().FirstAsync();
+
+        Assert.True(gitService.FetchCalled);
+        Assert.Null(vm.State.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task AutoFetch_WhenFetchThrows_SuppressesError()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new() { AlwaysThrowAuthOnRemote = true };
+        CommitLogViewModel vm = new(screen, "/repo/path", gitService);
+
+        vm.ShowCreateRemoteModalCommand.Execute().Subscribe();
+        vm.UpdateNewRemoteNameInput("origin");
+        vm.UpdateNewRemoteUrlInput("https://example.com/repo.git");
+        vm.ExecuteCreateRemoteCommand.Execute().Subscribe();
+
+        await vm.AutoFetchCommand.Execute().FirstAsync();
+
+        Assert.Null(vm.State.ErrorMessage);
+    }
+
+    [Fact]
+    public void LoadRepositoryData_WhenConflictedFilesPresent_SwitchesToConflictMode()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        gitService.WorkingChanges.Add(new WorkingTreeChange { Path = "conflicted.txt", Status = FileChangeStatus.Conflicted, IsStaged = false });
+        gitService.WorkingChanges.Add(new WorkingTreeChange { Path = "resolved.txt", Status = FileChangeStatus.Modified, IsStaged = true });
+        gitService.WorkingChanges.Add(new WorkingTreeChange { Path = "normal_unstaged.txt", Status = FileChangeStatus.Modified, IsStaged = false });
+
+        CommitLogViewModel vm = new(screen, "/repo/path", gitService);
+
+        Assert.True(vm.State.IsInConflictMode);
+        Assert.Single(vm.State.ConflictedFiles);
+        Assert.Equal("conflicted.txt", vm.State.ConflictedFiles[0].Path);
+        Assert.Single(vm.State.ResolvedFiles);
+        Assert.Equal("resolved.txt", vm.State.ResolvedFiles[0].Path);
+        Assert.Single(vm.State.UnstagedChanges);
+        Assert.Equal("normal_unstaged.txt", vm.State.UnstagedChanges[0].Path);
+    }
+
+    [Fact]
+    public async Task MarkAllResolved_WhenInvoked_CallsGitServiceAndRefreshesChanges()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        gitService.WorkingChanges.Add(new WorkingTreeChange { Path = "conflicted.txt", Status = FileChangeStatus.Conflicted, IsStaged = false });
+
+        CommitLogViewModel vm = new(screen, "/repo/path", gitService);
+        Assert.True(vm.State.IsInConflictMode);
+
+        await vm.MarkAllResolvedCommand.Execute().FirstAsync();
+
+        Assert.True(gitService.MarkAllConflictsResolvedCalled);
+    }
+
+    [Fact]
+    public void OpenConflictResolver_WhenFileProvided_NavigatesToConflictResolverScreen()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        CommitLogViewModel vm = new(screen, "/repo/path", gitService);
+        WorkingTreeChange change = new() { Path = "file_with_conflict.txt", Status = FileChangeStatus.Conflicted };
+
+        vm.OpenConflictResolver(change);
+
+        Assert.Single(screen.Router.NavigationStack);
+        Assert.IsType<GitWerka.Features.MergeRebase.UI.Screens.ConflictResolver.ConflictResolverViewModel>(screen.Router.NavigationStack[0]);
+    }
 }
+

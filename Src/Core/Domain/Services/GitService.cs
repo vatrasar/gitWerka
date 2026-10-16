@@ -123,13 +123,29 @@ public class GitService : IGitService
             var branchMap = BuildReferenceMap(repository.Branches);
             var tagMap = BuildReferenceMap(repository.Tags);
 
+            var reachableCommits = BuildReachableCommitList(repository);
             CommitFilter filter = new()
             {
-                SortBy = CommitSortStrategies.Topological | CommitSortStrategies.Time
+                SortBy = CommitSortStrategies.Topological | CommitSortStrategies.Time,
+                IncludeReachableFrom = reachableCommits.Count > 0 ? reachableCommits : null
             };
 
             List<CommitSummary> summaries = new();
             Dictionary<int, string> reservedLanes = new();
+
+            RepositoryStatus status = repository.RetrieveStatus();
+            int uncommittedCount = status.Count();
+
+            if (uncommittedCount > 0)
+            {
+                string headSha = repository.Head.Tip?.Sha ?? string.Empty;
+                if (!string.IsNullOrEmpty(headSha))
+                {
+                    reservedLanes[0] = headSha;
+                }
+
+                summaries.Add(CreateWipCommitSummary(repository, uncommittedCount));
+            }
 
             foreach (Commit commit in repository.Commits.QueryBy(filter).Take(maxCount))
             {
@@ -200,6 +216,12 @@ public class GitService : IGitService
         return Task.Run(() =>
         {
             using Repository repository = new(repositoryPath);
+
+            if (string.Equals(commitSha, "WIP", StringComparison.OrdinalIgnoreCase))
+            {
+                return GetWorkingTreeFileDiffLines(repository, repositoryPath, filePath);
+            }
+
             Commit? commit = repository.Lookup<Commit>(commitSha);
             if (commit == null)
             {
@@ -240,6 +262,21 @@ public class GitService : IGitService
             foreach (StatusEntry entry in status)
             {
                 AppendWorkingTreeEntries(entry, changes);
+            }
+
+            foreach (Conflict conflict in repository.Index.Conflicts)
+            {
+                string? conflictPath = conflict.Ours?.Path ?? conflict.Theirs?.Path ?? conflict.Ancestor?.Path;
+                if (!string.IsNullOrEmpty(conflictPath) && !changes.Any(c => c.Path == conflictPath && c.Status == FileChangeStatus.Conflicted))
+                {
+                    changes.RemoveAll(c => c.Path == conflictPath);
+                    changes.Add(new WorkingTreeChange
+                    {
+                        Path = conflictPath,
+                        Status = FileChangeStatus.Conflicted,
+                        IsStaged = false
+                    });
+                }
             }
 
             return (IReadOnlyList<WorkingTreeChange>)changes;
@@ -1649,24 +1686,493 @@ public class GitService : IGitService
 
     private static void AppendWorkingTreeEntries(StatusEntry entry, List<WorkingTreeChange> changes)
     {
-        if (entry.State.HasFlag(FileStatus.ModifiedInIndex) || entry.State.HasFlag(FileStatus.NewInIndex) || entry.State.HasFlag(FileStatus.DeletedFromIndex))
+        if (entry.State.HasFlag(FileStatus.Conflicted))
         {
             changes.Add(new WorkingTreeChange
             {
                 Path = entry.FilePath,
-                Status = entry.State.HasFlag(FileStatus.NewInIndex) ? FileChangeStatus.Added : FileChangeStatus.Modified,
+                Status = FileChangeStatus.Conflicted,
+                IsStaged = false
+            });
+            return;
+        }
+
+        if (entry.State.HasFlag(FileStatus.ModifiedInIndex) || entry.State.HasFlag(FileStatus.NewInIndex) || entry.State.HasFlag(FileStatus.DeletedFromIndex) || entry.State.HasFlag(FileStatus.RenamedInIndex))
+        {
+            changes.Add(new WorkingTreeChange
+            {
+                Path = entry.FilePath,
+                Status = ResolveIndexStatus(entry.State),
                 IsStaged = true
             });
         }
 
-        if (entry.State.HasFlag(FileStatus.ModifiedInWorkdir) || entry.State.HasFlag(FileStatus.NewInWorkdir) || entry.State.HasFlag(FileStatus.DeletedFromWorkdir))
+        if (entry.State.HasFlag(FileStatus.ModifiedInWorkdir) || entry.State.HasFlag(FileStatus.NewInWorkdir) || entry.State.HasFlag(FileStatus.DeletedFromWorkdir) || entry.State.HasFlag(FileStatus.RenamedInWorkdir))
         {
             changes.Add(new WorkingTreeChange
             {
                 Path = entry.FilePath,
-                Status = entry.State.HasFlag(FileStatus.NewInWorkdir) ? FileChangeStatus.Untracked : FileChangeStatus.Modified,
+                Status = ResolveWorkdirStatus(entry.State),
                 IsStaged = false
             });
         }
+    }
+
+    private static FileChangeStatus ResolveIndexStatus(FileStatus state)
+    {
+        if (state.HasFlag(FileStatus.NewInIndex))
+        {
+            return FileChangeStatus.Added;
+        }
+
+        if (state.HasFlag(FileStatus.DeletedFromIndex))
+        {
+            return FileChangeStatus.Deleted;
+        }
+
+        if (state.HasFlag(FileStatus.RenamedInIndex))
+        {
+            return FileChangeStatus.Renamed;
+        }
+
+        return FileChangeStatus.Modified;
+    }
+
+    private static FileChangeStatus ResolveWorkdirStatus(FileStatus state)
+    {
+        if (state.HasFlag(FileStatus.NewInWorkdir))
+        {
+            return FileChangeStatus.Untracked;
+        }
+
+        if (state.HasFlag(FileStatus.DeletedFromWorkdir))
+        {
+            return FileChangeStatus.Deleted;
+        }
+
+        if (state.HasFlag(FileStatus.RenamedInWorkdir))
+        {
+            return FileChangeStatus.Renamed;
+        }
+
+        return FileChangeStatus.Modified;
+    }
+
+    private static List<Commit> BuildReachableCommitList(Repository repository)
+    {
+        HashSet<Commit> commits = new();
+
+        if (repository.Head.Tip != null)
+        {
+            commits.Add(repository.Head.Tip);
+        }
+
+        foreach (Branch branch in repository.Branches)
+        {
+            if (branch.Tip != null)
+            {
+                commits.Add(branch.Tip);
+            }
+        }
+
+        foreach (Tag tag in repository.Tags)
+        {
+            Commit? targetCommit = ResolveTagCommit(tag);
+            if (targetCommit != null)
+            {
+                commits.Add(targetCommit);
+            }
+        }
+
+        return commits.ToList();
+    }
+
+    private static Commit? ResolveTagCommit(Tag tag)
+    {
+        if (tag.Target is Commit directCommit)
+        {
+            return directCommit;
+        }
+
+        return tag.Annotation?.Target as Commit;
+    }
+
+    private static CommitSummary CreateWipCommitSummary(Repository repository, int uncommittedCount)
+    {
+        string headSha = repository.Head.Tip?.Sha ?? string.Empty;
+        var parentShas = string.IsNullOrEmpty(headSha)
+            ? ImmutableList<string>.Empty
+            : ImmutableList.Create(headSha);
+
+        return new CommitSummary
+        {
+            Sha = "WIP",
+            ShortSha = string.Empty,
+            MessageShort = "// WIP",
+            Message = "// WIP",
+            AuthorName = string.Empty,
+            AuthorEmail = string.Empty,
+            AuthorDate = DateTimeOffset.Now,
+            ParentShas = parentShas,
+            BranchNames = ImmutableList<string>.Empty,
+            TagNames = ImmutableList<string>.Empty,
+            Lane = 0,
+            PassingLanes = ImmutableList<int>.Empty,
+            MergingLanes = ImmutableList<int>.Empty,
+            ForkingOffLanes = ImmutableList<int>.Empty,
+            IsWip = true,
+            UncommittedFilesCount = uncommittedCount
+        };
+    }
+
+    private static IReadOnlyList<DiffLine> GetWorkingTreeFileDiffLines(Repository repository, string repositoryPath, string filePath)
+    {
+        Tree? headTree = repository.Head.Tip?.Tree;
+        CompareOptions options = new() { ContextLines = 3 };
+        Patch patch = repository.Diff.Compare<Patch>(headTree, DiffTargets.WorkingDirectory | DiffTargets.Index, new[] { filePath }, null, options);
+        PatchEntryChanges? entry = patch[filePath];
+
+        if (entry != null)
+        {
+            return ParsePatchLines(entry.Patch);
+        }
+
+        string fullPath = Path.Combine(repository.Info.WorkingDirectory ?? repositoryPath, filePath);
+        if (File.Exists(fullPath))
+        {
+            return ReadUntrackedFileAsAdditions(fullPath);
+        }
+
+        return Array.Empty<DiffLine>();
+    }
+
+    private static IReadOnlyList<DiffLine> ReadUntrackedFileAsAdditions(string fullPath)
+    {
+        string[] lines = File.ReadAllLines(fullPath);
+        List<DiffLine> result = new();
+        for (int i = 0; i < lines.Length; i++)
+        {
+            result.Add(new DiffLine
+            {
+                Type = DiffLineType.Addition,
+                Content = "+" + lines[i],
+                NewLineNumber = i + 1
+            });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Retrieves the conflicted file data, Git metadata (local/remote SHAs and branches), and parsed conflict hunks.
+    /// Usages: ConflictResolverViewModel.
+    /// </summary>
+    /// <param name="repositoryPath">Directory path of the repository.</param>
+    /// <param name="filePath">Repository-relative file path.</param>
+    /// <param name="cancellationToken">Cancellation token for async operation.</param>
+    /// <returns>ConflictFileModel containing metadata and parsed chunks.</returns>
+    public Task<ConflictFileModel> GetConflictFileAsync(string repositoryPath, string filePath, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return Task.Run(() =>
+        {
+            using Repository repository = new(repositoryPath);
+            string fullPath = Path.Combine(repository.Info.WorkingDirectory ?? repositoryPath, filePath);
+            string fileName = Path.GetFileName(filePath);
+
+            string oursSha = repository.Head.Tip != null
+                ? repository.Head.Tip.Sha.Substring(0, Math.Min(7, repository.Head.Tip.Sha.Length))
+                : "HEAD";
+            string oursBranch = repository.Head.FriendlyName ?? "HEAD";
+
+            string theirsSha = ResolveTheirsSha(repository);
+            string theirsBranch = ResolveTheirsBranch(repository);
+
+            string[] fileLines = File.Exists(fullPath)
+                ? File.ReadAllLines(fullPath)
+                : Array.Empty<string>();
+
+            var chunks = ParseConflictChunks(fileLines, repository, filePath, out int totalConflicts);
+
+            return new ConflictFileModel
+            {
+                FilePath = filePath,
+                FileName = fileName,
+                TotalConflicts = totalConflicts,
+                OursCommitSha = oursSha,
+                OursBranch = oursBranch,
+                TheirsCommitSha = theirsSha,
+                TheirsBranch = theirsBranch,
+                Chunks = chunks
+            };
+        }, cancellationToken);
+    }
+
+    /// <summary>
+    /// Writes resolved file content to disk and stages the file in the Git index, clearing its conflict state.
+    /// Usages: ConflictResolverViewModel.
+    /// </summary>
+    /// <param name="repositoryPath">Directory path of the repository.</param>
+    /// <param name="filePath">Repository-relative file path.</param>
+    /// <param name="resolvedContent">The full resolved text content to save.</param>
+    /// <param name="cancellationToken">Cancellation token for async operation.</param>
+    public Task SaveConflictResolutionAsync(string repositoryPath, string filePath, string resolvedContent, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return Task.Run(() =>
+        {
+            string fullPath = Path.Combine(repositoryPath, filePath);
+            File.WriteAllText(fullPath, resolvedContent);
+
+            using Repository repository = new(repositoryPath);
+            Commands.Stage(repository, filePath);
+        }, cancellationToken);
+    }
+
+    /// <summary>
+    /// Marks all currently conflicted files as resolved by staging them in the Git index.
+    /// Usages: CommitLogViewModel.
+    /// </summary>
+    /// <param name="repositoryPath">Directory path of the repository.</param>
+    /// <param name="cancellationToken">Cancellation token for async operation.</param>
+    public Task MarkAllConflictsResolvedAsync(string repositoryPath, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return Task.Run(() =>
+        {
+            using Repository repository = new(repositoryPath);
+            var conflictPaths = repository.Index.Conflicts
+                .Select(c => c.Ours?.Path ?? c.Theirs?.Path ?? c.Ancestor?.Path)
+                .Where(p => !string.IsNullOrEmpty(p))
+                .Distinct()
+                .ToList();
+
+            foreach (string? path in conflictPaths)
+            {
+                if (!string.IsNullOrEmpty(path))
+                {
+                    Commands.Stage(repository, path);
+                }
+            }
+        }, cancellationToken);
+    }
+
+    private static string ResolveTheirsSha(Repository repository)
+    {
+        string mergeHeadPath = Path.Combine(repository.Info.Path, "MERGE_HEAD");
+        if (File.Exists(mergeHeadPath))
+        {
+            string sha = File.ReadAllText(mergeHeadPath).Trim();
+            return sha.Substring(0, Math.Min(7, sha.Length));
+        }
+
+        return "incoming";
+    }
+
+    private static string ResolveTheirsBranch(Repository repository)
+    {
+        string mergeMsgPath = Path.Combine(repository.Info.Path, "MERGE_MSG");
+        if (File.Exists(mergeMsgPath))
+        {
+            string content = File.ReadAllText(mergeMsgPath);
+            Match match = Regex.Match(content, @"(?:branch|remote-tracking branch)\s+'([^']+)'");
+            if (match.Success)
+            {
+                return match.Groups[1].Value;
+            }
+        }
+
+        return "remote";
+    }
+
+    private static ImmutableList<ConflictFileChunk> ParseConflictChunks(string[] lines, Repository repository, string filePath, out int totalConflicts)
+    {
+        List<ConflictFileChunk> chunks = new();
+        List<string> commonLines = new();
+        List<string> oursLines = new();
+        List<string> theirsLines = new();
+        List<string> baseLines = new();
+        int conflictCount = 0;
+        int state = 0;
+
+        foreach (string line in lines)
+        {
+            state = ProcessConflictChunkLine(line, state, commonLines, oursLines, theirsLines, baseLines, chunks, ref conflictCount);
+        }
+
+        if (commonLines.Count > 0)
+        {
+            chunks.Add(new ConflictFileChunk
+            {
+                IsConflict = false,
+                CommonLines = commonLines.ToImmutableList()
+            });
+        }
+
+        totalConflicts = conflictCount;
+        if (totalConflicts == 0)
+        {
+            return FallbackChunksFromBlobs(repository, filePath, lines, out totalConflicts);
+        }
+
+        return chunks.ToImmutableList();
+    }
+
+    private static int ProcessConflictChunkLine(
+        string line,
+        int state,
+        List<string> common,
+        List<string> ours,
+        List<string> theirs,
+        List<string> baseLines,
+        List<ConflictFileChunk> chunks,
+        ref int conflictCount)
+    {
+        if (state == 0)
+        {
+            return HandleNormalLine(line, common, chunks);
+        }
+
+        if (state == 1)
+        {
+            return HandleOursLine(line, ours);
+        }
+
+        if (state == 2)
+        {
+            return HandleBaseLine(line, baseLines);
+        }
+
+        return HandleTheirsLine(line, ours, theirs, baseLines, chunks, ref conflictCount);
+    }
+
+    private static int HandleNormalLine(string line, List<string> common, List<ConflictFileChunk> chunks)
+    {
+        if (line.StartsWith("<<<<<<<"))
+        {
+            if (common.Count > 0)
+            {
+                chunks.Add(new ConflictFileChunk
+                {
+                    IsConflict = false,
+                    CommonLines = common.ToImmutableList()
+                });
+                common.Clear();
+            }
+
+            return 1;
+        }
+
+        common.Add(line);
+        return 0;
+    }
+
+    private static int HandleOursLine(string line, List<string> ours)
+    {
+        if (line.StartsWith("|||||||"))
+        {
+            return 2;
+        }
+
+        if (line.StartsWith("======="))
+        {
+            return 3;
+        }
+
+        ours.Add(line);
+        return 1;
+    }
+
+    private static int HandleBaseLine(string line, List<string> baseLines)
+    {
+        if (line.StartsWith("======="))
+        {
+            return 3;
+        }
+
+        baseLines.Add(line);
+        return 2;
+    }
+
+    private static int HandleTheirsLine(
+        string line,
+        List<string> ours,
+        List<string> theirs,
+        List<string> baseLines,
+        List<ConflictFileChunk> chunks,
+        ref int conflictCount)
+    {
+        if (line.StartsWith(">>>>>>>"))
+        {
+            conflictCount++;
+            chunks.Add(new ConflictFileChunk
+            {
+                IsConflict = true,
+                HunkIndex = conflictCount,
+                OursLines = ours.ToImmutableList(),
+                TheirsLines = theirs.ToImmutableList(),
+                BaseLines = baseLines.ToImmutableList(),
+                IsOursSelected = false,
+                IsTheirsSelected = false
+            });
+
+            ours.Clear();
+            theirs.Clear();
+            baseLines.Clear();
+            return 0;
+        }
+
+        theirs.Add(line);
+        return 3;
+    }
+
+    private static ImmutableList<ConflictFileChunk> FallbackChunksFromBlobs(
+        Repository repository,
+        string filePath,
+        string[] fileLines,
+        out int totalConflicts)
+    {
+        Conflict? conflict = repository.Index.Conflicts[filePath];
+        if (conflict == null)
+        {
+            totalConflicts = 0;
+            return ImmutableList.Create(new ConflictFileChunk
+            {
+                IsConflict = false,
+                CommonLines = fileLines.ToImmutableList()
+            });
+        }
+
+        string oursText = ResolveBlobText(repository, conflict.Ours?.Id);
+        string theirsText = ResolveBlobText(repository, conflict.Theirs?.Id);
+
+        totalConflicts = 1;
+        return ImmutableList.Create(new ConflictFileChunk
+        {
+            IsConflict = true,
+            HunkIndex = 1,
+            OursLines = oursText.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None).ToImmutableList(),
+            TheirsLines = theirsText.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None).ToImmutableList(),
+            IsOursSelected = false,
+            IsTheirsSelected = false
+        });
+    }
+
+    private static string ResolveBlobText(Repository repository, ObjectId? blobId)
+    {
+        if (blobId == null)
+        {
+            return string.Empty;
+        }
+
+        Blob? blob = repository.Lookup<Blob>(blobId);
+        if (blob == null)
+        {
+            return string.Empty;
+        }
+
+        return blob.GetContentText();
     }
 }

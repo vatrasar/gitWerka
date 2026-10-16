@@ -43,10 +43,19 @@ public class CommitGraphCanvas : Control
     public static readonly StyledProperty<IReadOnlyList<int>?> ForkingOffLanesProperty =
         AvaloniaProperty.Register<CommitGraphCanvas, IReadOnlyList<int>?>(nameof(ForkingOffLanes));
 
+    public static readonly StyledProperty<bool> IsWipProperty =
+        AvaloniaProperty.Register<CommitGraphCanvas, bool>(nameof(IsWip), false);
+
     public int Lane
     {
         get => GetValue(LaneProperty);
         set => SetValue(LaneProperty, value);
+    }
+
+    public bool IsWip
+    {
+        get => GetValue(IsWipProperty);
+        set => SetValue(IsWipProperty, value);
     }
 
     public IReadOnlyList<int>? PassingLanes
@@ -69,7 +78,7 @@ public class CommitGraphCanvas : Control
 
     static CommitGraphCanvas()
     {
-        AffectsRender<CommitGraphCanvas>(LaneProperty, PassingLanesProperty, MergingLanesProperty, ForkingOffLanesProperty);
+        AffectsRender<CommitGraphCanvas>(LaneProperty, PassingLanesProperty, MergingLanesProperty, ForkingOffLanesProperty, IsWipProperty);
     }
 
     public override void Render(DrawingContext context)
@@ -82,10 +91,36 @@ public class CommitGraphCanvas : Control
         IPen currentPen = new Pen(currentBrush, StrokeWidth);
 
         DrawPassingLanes(context);
+
+        if (IsWip)
+        {
+            context.DrawLine(currentPen, new Point(currentX, centerY), new Point(currentX, Bounds.Height));
+            DrawWipNode(context, currentX, centerY, currentBrush);
+            return;
+        }
+
         DrawParentLine(context, currentX, centerY, currentPen);
         DrawMergingLanes(context, currentX, centerY);
         DrawForkingLanes(context, currentX, centerY);
         DrawCommitNode(context, currentX, centerY, currentBrush);
+    }
+
+    private void DrawWipNode(DrawingContext context, double currentX, double centerY, IBrush brush)
+    {
+        Point center = new(currentX, centerY);
+        double radius = NodeRadius + 1.5;
+
+        IDashStyle dashStyle = new DashStyle(new double[] { 2.5, 2.5 }, 0);
+        IPen dashedPen = new Pen(brush, 1.8, dashStyle);
+
+        Color fillColor = Color.FromArgb(40, 56, 139, 253);
+        if (brush is ISolidColorBrush solid)
+        {
+            fillColor = Color.FromArgb(45, solid.Color.R, solid.Color.G, solid.Color.B);
+        }
+
+        IBrush fillBrush = new SolidColorBrush(fillColor);
+        context.DrawEllipse(fillBrush, dashedPen, center, radius, radius);
     }
 
     private void DrawPassingLanes(DrawingContext context)

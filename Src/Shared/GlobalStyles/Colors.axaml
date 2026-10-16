@@ -132,4 +132,28 @@
   <Color x:Key="DiffHunkHeaderForegroundColor">#7D8590</Color>
   <SolidColorBrush x:Key="DiffHunkHeaderForegroundBrush" Color="{StaticResource DiffHunkHeaderForegroundColor}" />
 
+  <!-- ============================================================ -->
+  <!-- Merge Conflict Resolution Palette                            -->
+  <!-- ============================================================ -->
+  <Color x:Key="ConflictOursBackgroundColor">#142B3B</Color>
+  <SolidColorBrush x:Key="ConflictOursBackgroundBrush" Color="{StaticResource ConflictOursBackgroundColor}" />
+  <Color x:Key="ConflictOursForegroundColor">#38BDF8</Color>
+  <SolidColorBrush x:Key="ConflictOursForegroundBrush" Color="{StaticResource ConflictOursForegroundColor}" />
+  <Color x:Key="ConflictOursBadgeColor">#0284C7</Color>
+  <SolidColorBrush x:Key="ConflictOursBadgeBrush" Color="{StaticResource ConflictOursBadgeColor}" />
+
+  <Color x:Key="ConflictTheirsBackgroundColor">#332910</Color>
+  <SolidColorBrush x:Key="ConflictTheirsBackgroundBrush" Color="{StaticResource ConflictTheirsBackgroundColor}" />
+  <Color x:Key="ConflictTheirsForegroundColor">#FACC15</Color>
+  <SolidColorBrush x:Key="ConflictTheirsForegroundBrush" Color="{StaticResource ConflictTheirsForegroundColor}" />
+  <Color x:Key="ConflictTheirsBadgeColor">#D97706</Color>
+  <SolidColorBrush x:Key="ConflictTheirsBadgeBrush" Color="{StaticResource ConflictTheirsBadgeColor}" />
+
+  <Color x:Key="ConflictOutputBackgroundColor">#29183B</Color>
+  <SolidColorBrush x:Key="ConflictOutputBackgroundBrush" Color="{StaticResource ConflictOutputBackgroundColor}" />
+  <Color x:Key="ConflictOutputForegroundColor">#C084FC</Color>
+  <SolidColorBrush x:Key="ConflictOutputForegroundBrush" Color="{StaticResource ConflictOutputForegroundColor}" />
+  <Color x:Key="ConflictOutputBadgeColor">#7C3AED</Color>
+  <SolidColorBrush x:Key="ConflictOutputBadgeBrush" Color="{StaticResource ConflictOutputBadgeColor}" />
+
 </ResourceDictionary>

@@ -517,4 +517,19 @@
   <data name="FetchRemoteButton" xml:space="preserve">
     <value>Fetch Remote</value>
   </data>
+  <data name="ConflictedFilesHeader" xml:space="preserve">
+    <value>Conflicted Files ({0})</value>
+  </data>
+  <data name="ResolvedFilesHeader" xml:space="preserve">
+    <value>Resolved Files ({0})</value>
+  </data>
+  <data name="MarkAllResolvedButton" xml:space="preserve">
+    <value>Mark All Resolved</value>
+  </data>
+  <data name="MergeConflictsDetected" xml:space="preserve">
+    <value>Merge conflicts detected</value>
+  </data>
+  <data name="MergingBranchFormat" xml:space="preserve">
+    <value>Merging {0} into {1}</value>
+  </data>
 </root>

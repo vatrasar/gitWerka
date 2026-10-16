@@ -194,8 +194,29 @@ public class GitServiceTests : IDisposable
         await _gitService.CherryPickCommitAsync(repoPath, cherrySha);
 
         var log = await _gitService.GetCommitLogAsync(repoPath);
-        Assert.Equal(2, log.Count);
+        Assert.Equal(3, log.Count);
         Assert.Contains("Special Feature", log[0].Message);
+    }
+
+    [Fact]
+    public async Task GetCommitLogAsync_WithUncommittedChanges_IncludesWipNodeAtTop()
+    {
+        string repoPath = await _gitService.InitializeRepositoryAsync(_testDirectory);
+        await File.WriteAllTextAsync(Path.Combine(repoPath, "base.txt"), "Base");
+        await _gitService.StageFileAsync(repoPath, "base.txt");
+        await _gitService.CreateCommitAsync(repoPath, "Base commit", "Tester", "tester@example.com");
+
+        await File.WriteAllTextAsync(Path.Combine(repoPath, "newfile.txt"), "Uncommitted content");
+
+        var log = await _gitService.GetCommitLogAsync(repoPath);
+        Assert.Equal(2, log.Count);
+        Assert.True(log[0].IsWip);
+        Assert.Equal("// WIP", log[0].Message);
+        Assert.Equal(1, log[0].UncommittedFilesCount);
+        Assert.Equal("Base commit", log[1].Message);
+
+        var diffLines = await _gitService.GetFileDiffLinesAsync(repoPath, "WIP", "newfile.txt");
+        Assert.NotEmpty(diffLines);
     }
 
     [Fact]
@@ -225,6 +246,35 @@ public class GitServiceTests : IDisposable
         var log = await _gitService.GetCommitLogAsync(repoPath);
         Assert.Equal(2, log.Count);
         Assert.Equal(featureSha, log[0].Sha);
+    }
+
+    [Fact]
+    public async Task GetCommitLogAsync_WithCommitsOnDifferentBranches_ReturnsAllCommits()
+    {
+        string repoPath = await _gitService.InitializeRepositoryAsync(_testDirectory);
+        await File.WriteAllTextAsync(Path.Combine(repoPath, "base.txt"), "Base");
+        await _gitService.StageFileAsync(repoPath, "base.txt");
+        await _gitService.CreateCommitAsync(repoPath, "Base commit", "Tester", "tester@example.com");
+
+        var repoInfo = await _gitService.GetRepositoryInfoAsync(repoPath);
+        string baseBranch = repoInfo.CurrentBranch;
+
+        await _gitService.CreateBranchAsync(repoPath, "feature");
+        await _gitService.CheckoutBranchAsync(repoPath, "feature");
+        await File.WriteAllTextAsync(Path.Combine(repoPath, "feature.txt"), "Feature");
+        await _gitService.StageFileAsync(repoPath, "feature.txt");
+        await _gitService.CreateCommitAsync(repoPath, "Feature commit", "Tester", "tester@example.com");
+
+        await _gitService.CheckoutBranchAsync(repoPath, baseBranch);
+        await File.WriteAllTextAsync(Path.Combine(repoPath, "main.txt"), "Main");
+        await _gitService.StageFileAsync(repoPath, "main.txt");
+        await _gitService.CreateCommitAsync(repoPath, "Main branch commit", "Tester", "tester@example.com");
+
+        var log = await _gitService.GetCommitLogAsync(repoPath);
+        Assert.Contains(log, c => c.Message == "Feature commit");
+        Assert.Contains(log, c => c.Message == "Main branch commit");
+        Assert.Contains(log, c => c.Message == "Base commit");
+        Assert.Equal(3, log.Count);
     }
 
     [Fact]

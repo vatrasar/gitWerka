@@ -431,4 +431,32 @@ public interface IGitService
     /// <param name="cancellationToken">Cancellation token for async operation.</param>
     /// <returns>True if all remaining steps completed, or false if another conflict was encountered.</returns>
     Task<bool> ContinueRebaseAsync(string repositoryPath, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves the conflicted file data, Git metadata (local/remote SHAs and branches), and parsed conflict hunks.
+    /// Usages: ConflictResolverViewModel.
+    /// </summary>
+    /// <param name="repositoryPath">Directory path of the repository.</param>
+    /// <param name="filePath">Repository-relative file path.</param>
+    /// <param name="cancellationToken">Cancellation token for async operation.</param>
+    /// <returns>ConflictFileModel containing metadata and parsed chunks.</returns>
+    Task<ConflictFileModel> GetConflictFileAsync(string repositoryPath, string filePath, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Writes resolved file content to disk and stages the file in the Git index, clearing its conflict state.
+    /// Usages: ConflictResolverViewModel.
+    /// </summary>
+    /// <param name="repositoryPath">Directory path of the repository.</param>
+    /// <param name="filePath">Repository-relative file path.</param>
+    /// <param name="resolvedContent">The full resolved text content to save.</param>
+    /// <param name="cancellationToken">Cancellation token for async operation.</param>
+    Task SaveConflictResolutionAsync(string repositoryPath, string filePath, string resolvedContent, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Marks all currently conflicted files as resolved by staging them in the Git index.
+    /// Usages: CommitLogViewModel.
+    /// </summary>
+    /// <param name="repositoryPath">Directory path of the repository.</param>
+    /// <param name="cancellationToken">Cancellation token for async operation.</param>
+    Task MarkAllConflictsResolvedAsync(string repositoryPath, CancellationToken cancellationToken = default);
 }
