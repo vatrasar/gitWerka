@@ -41,9 +41,23 @@ public record CommitLogState
 
     public ImmutableList<WorkingTreeChange> WorkingTreeChanges { get; init; } = ImmutableList<WorkingTreeChange>.Empty;
 
-    public ImmutableList<WorkingTreeChange> StagedChanges => WorkingTreeChanges.FindAll(c => c.IsStaged);
+    public ImmutableList<WorkingTreeChange> StagedChanges => WorkingTreeChanges.FindAll(c => c.IsStaged && c.Status != FileChangeStatus.Conflicted);
 
-    public ImmutableList<WorkingTreeChange> UnstagedChanges => WorkingTreeChanges.FindAll(c => !c.IsStaged);
+    public ImmutableList<WorkingTreeChange> UnstagedChanges => WorkingTreeChanges.FindAll(c => !c.IsStaged && c.Status != FileChangeStatus.Conflicted);
+
+    public ImmutableList<WorkingTreeChange> ConflictedFiles => WorkingTreeChanges.FindAll(c => c.Status == FileChangeStatus.Conflicted);
+
+    public ImmutableList<WorkingTreeChange> ResolvedFiles => WorkingTreeChanges.FindAll(c => c.IsStaged);
+
+    public bool IsInConflictMode => ConflictedFiles.Count > 0 || (OperationStatus.CurrentOperation == RepositoryOperationType.Merge) || OperationStatus.HasConflicts;
+
+    public string MergeSourceBranch { get; init; } = string.Empty;
+
+    public string MergeTargetBranch { get; init; } = string.Empty;
+
+    public WorkingTreeChange? SelectedConflictedFile { get; init; }
+
+    public WorkingTreeChange? SelectedResolvedFile { get; init; }
 
     public FileDiffSummary? SelectedFileDiff { get; init; }
 
@@ -98,6 +112,8 @@ public record CommitLogState
     public bool IsStashModalVisible { get; init; }
 
     public string NewStashMessageInput { get; init; } = string.Empty;
+
+    public StashInfo? SelectedStash { get; init; }
 
     public bool IsSettingsModalVisible { get; init; }
 

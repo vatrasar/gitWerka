@@ -14,6 +14,7 @@ using GitWerka.Core.Domain.RepositoryContracts;
 using GitWerka.Core.Domain.Services;
 using GitWerka.Core.Mvvm;
 using GitWerka.Features.CommitLog.Domain.Enums;
+using GitWerka.Features.MergeRebase.UI.Screens.ConflictResolver;
 using GitWerka.Features.ProfileManagement.UI.Screens.ProfileManagement;
 using ReactiveUI;
 using ReactiveUI.SourceGenerators;
@@ -224,6 +225,16 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
     }
 
     /// <summary>
+    /// Sets the currently selected stash entry.
+    /// Usages: CommitLogView stashes list.
+    /// </summary>
+    /// <param name="stash">Stash information or null.</param>
+    public void SelectStash(StashInfo? stash)
+    {
+        UpdateState(s => s with { SelectedStash = stash });
+    }
+
+    /// <summary>
     /// Updates the description input for creating a stash.
     /// Usages: CommitLogView create stash modal.
     /// </summary>
@@ -398,6 +409,12 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
             DiffLines = ImmutableList<DiffLine>.Empty
         });
 
+        if (commit.IsWip)
+        {
+            await SelectWipCommitAsync(commit);
+            return;
+        }
+
         CommitDetail? detail = await _gitService.GetCommitDetailAsync(State.RepositoryPath, commit.Sha);
 
         UpdateState(s => s with { SelectedCommitDetail = detail });
@@ -405,6 +422,46 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
         if (detail != null && detail.ChangedFiles.Count > 0)
         {
             await SelectFileDiffAsync(detail.ChangedFiles[0]);
+        }
+    }
+
+    private async Task SelectWipCommitAsync(CommitSummary commit)
+    {
+        var changedFiles = State.WorkingTreeChanges
+            .GroupBy(c => c.Path)
+            .Select(g => new FileDiffSummary
+            {
+                Path = g.Key,
+                Status = g.First().Status,
+                LinesAdded = 0,
+                LinesDeleted = 0
+            })
+            .ToImmutableList();
+
+        CommitDetail wipDetail = new()
+        {
+            Sha = "WIP",
+            ShortSha = string.Empty,
+            Message = "Uncommitted changes in working directory",
+            AuthorName = "Working Directory",
+            AuthorEmail = string.Empty,
+            AuthorDate = DateTimeOffset.Now,
+            CommitterName = "Working Directory",
+            CommitterEmail = string.Empty,
+            CommitterDate = DateTimeOffset.Now,
+            ParentShas = commit.ParentShas,
+            ChangedFiles = changedFiles
+        };
+
+        UpdateState(s => s with
+        {
+            SelectedCommitDetail = wipDetail,
+            ActiveSidebarTab = CommitLogSidebarTab.WorkingTree
+        });
+
+        if (changedFiles.Count > 0)
+        {
+            await SelectFileDiffAsync(changedFiles[0]);
         }
     }
 
@@ -461,7 +518,9 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
                 Stashes = stashes.ToImmutableList(),
                 Remotes = remotes.ToImmutableList(),
                 WorkingTreeChanges = workingTree.ToImmutableList(),
-                OperationStatus = opStatus
+                OperationStatus = opStatus,
+                MergeSourceBranch = ExtractMergeSourceBranch(opStatus.Message),
+                MergeTargetBranch = info.CurrentBranch
             });
 
             await LoadProfilesDataAsync();
@@ -505,6 +564,58 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
                 ErrorMessage = ex.Message
             });
         }
+    }
+
+    /// <summary>
+    /// Opens the 3-panel conflict resolution screen for the selected conflicted or resolved file.
+    /// Usages: CommitLogView conflicted and resolved file lists.
+    /// </summary>
+    /// <param name="file">The working tree file change.</param>
+    public void OpenConflictResolver(WorkingTreeChange? file)
+    {
+        if (file == null)
+        {
+            return;
+        }
+
+        HostScreen.Router.Navigate.Execute(new ConflictResolverViewModel(HostScreen, _gitService, State.RepositoryPath, file.Path)).Subscribe();
+    }
+
+    [ReactiveCommand]
+    private async Task MarkAllResolved()
+    {
+        try
+        {
+            await _gitService.MarkAllConflictsResolvedAsync(State.RepositoryPath);
+            IReadOnlyList<WorkingTreeChange> changes = await _gitService.GetWorkingTreeChangesAsync(State.RepositoryPath);
+            RepositoryOperationStatus opStatus = await _gitService.GetRepositoryOperationStatusAsync(State.RepositoryPath);
+
+            UpdateState(s => s with
+            {
+                WorkingTreeChanges = changes.ToImmutableList(),
+                OperationStatus = opStatus
+            });
+        }
+        catch (Exception ex)
+        {
+            UpdateState(s => s with { ErrorMessage = ex.Message });
+        }
+    }
+
+    private static string ExtractMergeSourceBranch(string message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return "remote";
+        }
+
+        var match = System.Text.RegularExpressions.Regex.Match(message, @"(?:branch|remote-tracking branch)\s+'([^']+)'");
+        if (match.Success)
+        {
+            return match.Groups[1].Value;
+        }
+
+        return "remote";
     }
 
     [ReactiveCommand]
@@ -714,6 +825,48 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
         {
             HandleRemoteOperationException(ex, RemoteOperationPending.Fetch);
         }
+    }
+
+    [ReactiveCommand]
+    private async Task AutoFetch()
+    {
+        if (State.IsLoading || State.Remotes.Count == 0 || IsAnyModalOpen())
+        {
+            return;
+        }
+
+        try
+        {
+            GitCredentials? credentials = null;
+            if (State.ActiveProfile?.Credentials != null)
+            {
+                credentials = new GitCredentials
+                {
+                    Type = GitCredentialType.Https,
+                    Username = State.ActiveProfile.Credentials.Username,
+                    PasswordOrToken = State.ActiveProfile.Credentials.AccessToken
+                };
+            }
+
+            await _gitService.FetchAsync(State.RepositoryPath, credentials: credentials);
+            await LoadRepositoryData();
+        }
+        catch
+        {
+        }
+    }
+
+    private bool IsAnyModalOpen()
+    {
+        return State.IsCreateBranchModalVisible ||
+               State.IsMergeModalVisible ||
+               State.IsInteractiveRebaseModalVisible ||
+               State.IsCreateRemoteModalVisible ||
+               State.IsCreateTagModalVisible ||
+               State.IsStashModalVisible ||
+               State.IsSettingsModalVisible ||
+               State.IsResetConfirmModalVisible ||
+               State.IsCredentialsModalVisible;
     }
 
     [ReactiveCommand]
@@ -1562,7 +1715,8 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
         }
 
         return commits
-            .Where(c => c.Message.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+            .Where(c => c.IsWip ||
+                        c.Message.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                         c.AuthorName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                         c.Sha.Contains(query, StringComparison.OrdinalIgnoreCase))
             .ToImmutableList();

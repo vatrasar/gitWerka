@@ -9,13 +9,15 @@
 /// - Interactive rebase visual step editor (pick, reword, edit, squash, fixup, drop, step reordering).
 /// - Ongoing repository operation (merge / rebase) conflict detection with Abort and Continue actions.
 /// - Remote repositories listing, add remote modal, per-remote fetch and delete actions.
-/// - Stash listing and new stash creation modal.
+/// - Stash listing, new stash creation modal, and per-stash pop and drop actions.
 /// - Remote operations (Fetch, Pull, Push) with automatic credentials authentication dialog on challenge.
 /// - Profiles management: switch active Git profile from toolbar dropdown menu, or navigate to ProfileManagementView.
 /// - System shortcuts: Open repository in system file manager, default terminal, or code editor (direct toolbar buttons on wide layouts or compact 'Open in' dropdown).
-/// - Periodic automatic repository status refresh every 5 seconds.
+/// - Periodic automatic repository status refresh every 5 seconds and automatic background remote fetch every 30 seconds.
+/// - Uncommitted working tree changes displayed directly as a // WIP row in the commit history graph (GitKraken style).
 /// - Credentials modal for HTTPS username/token and SSH key passphrase input.
 /// - Working tree changes tracking (staged / unstaged) with bulk staging and commit composition.
+/// - GitKraken-style merge conflict resolution: replaces staged/unstaged changes with Conflicted Files and Resolved Files when conflicts are detected, provides Mark All Resolved action, and opens 3-panel ConflictResolverView on file selection.
 /// - Amend previous commit toggle in commit composer.
 /// - AI-assisted commit message generation from staged changes via OpenRouter integration.
 /// - Commit file changes and structured diff inspection.
@@ -35,7 +37,8 @@
 /// - BranchesListBox, BranchesContextMenu, BranchMergeMenuItem, NewBranchActionButton.
 /// - RemotesListBox, RemotesContextMenu, RemoteFetchMenuItem, RemoteDeleteMenuItem, ItemFetchRemoteButton, ItemDeleteRemoteButton, NewRemoteActionButton.
 /// - CreateRemoteModalBackdrop, NewRemoteNameTextBox, NewRemoteUrlTextBox, CancelCreateRemoteButton, ConfirmCreateRemoteButton.
-/// - StagedChangesListBox, UnstagedChangesListBox, StashesListBox, NewStashActionButton.
+/// - StagedChangesListBox, UnstagedChangesListBox, StashesListBox, StashesContextMenu, StashPopMenuItem, StashDropMenuItem, ItemPopStashButton, ItemDropStashButton, NewStashActionButton.
+/// - NormalWorkingTreePanel, ConflictWorkingTreePanel, ConflictedFilesHeaderTextBlock, MarkAllResolvedButton, ConflictedFilesListBox, ResolvedFilesHeaderTextBlock, ResolvedFilesListBox, ConflictMergingDetailsTextBlock.
 /// - CommitMessageTextBox, AmendCommitCheckBox, CommitMessageRemainingCountTextBlock, CommitButton, GenerateAiCommitButton, GenerateAiCommitNormalIcon, GenerateAiCommitLoadingIcon, GenerateAiCommitButtonText, AiGeneratingProgressBar, AiErrorBanner, AiErrorTextBlock, AiErrorSettingsButton, AiErrorDismissButton, StageAllButton, UnstageAllButton.
 /// - CommitsListBox, CommitsContextMenu, ContextCherryPickMenuItem, ContextRevertMenuItem, ContextResetMenuItem, ContextResetSoftMenuItem, ContextResetMixedMenuItem, ContextResetHardMenuItem, ContextCreateBranchMenuItem, ContextCreateTagMenuItem, ContextInteractiveRebaseMenuItem.
 /// - ChangedFilesListBox, DiffLinesItemsControl.
@@ -45,7 +48,7 @@
 /// - CreateTagModalBackdrop, CreateStashModalBackdrop, SettingsModalBackdrop, ResetConfirmModalBackdrop, CancelResetButton, ConfirmResetButton, CancelSettingsButton, ConfirmSettingsButton, DefaultProjectsDirectoryTextBox, BrowseDefaultProjectsDirectoryButton, AiApiKeyTextBox, AiModelTextBox, AiTokenLimitTextBox, AiCommitStyleTextBox, AiProjectDescriptionTextBox.
 /// Navigation:
 /// - Navigate From: RepositoryManagerView on opening a repository.
-/// - Navigate To: RepositoryManagerView via shell header BackButton.
+/// - Navigate To: RepositoryManagerView via shell header BackButton; ConflictResolverView on selecting a conflicted or resolved file.
 /// </summary>
 namespace GitWerka.Features.CommitLog.UI.Screens.CommitLog;
 
@@ -79,6 +82,7 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
 
         this.WhenActivated(disposables =>
         {
+            ViewModel?.LoadRepositoryDataCommand.Execute().Subscribe();
             SetupBindings(disposables);
             SetupCommands(disposables);
             SetupTabSwitching(disposables);
@@ -95,6 +99,35 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
         this.OneWayBind(ViewModel, x => x.State.Branches, x => x.BranchesListBox.ItemsSource);
         this.OneWayBind(ViewModel, x => x.State.StagedChanges, x => x.StagedChangesListBox.ItemsSource);
         this.OneWayBind(ViewModel, x => x.State.UnstagedChanges, x => x.UnstagedChangesListBox.ItemsSource);
+        this.OneWayBind(ViewModel, x => x.State.ConflictedFiles, x => x.ConflictedFilesListBox.ItemsSource);
+        this.OneWayBind(ViewModel, x => x.State.ResolvedFiles, x => x.ResolvedFilesListBox.ItemsSource);
+        this.OneWayBind(ViewModel, x => x.State.IsInConflictMode, x => x.ConflictWorkingTreePanel.IsVisible);
+
+        this.WhenAnyValue(x => x.ViewModel!.State.IsInConflictMode)
+            .Subscribe(Observer.Create<bool>(inConflict => NormalWorkingTreePanel.IsVisible = !inConflict))
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(x => x.ViewModel!.State.ConflictedFiles.Count)
+            .Subscribe(Observer.Create<int>(count =>
+            {
+                ConflictedFilesHeaderTextBlock.Text = string.Format(CommitLogStrings.ConflictedFilesHeader, count);
+            }))
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(x => x.ViewModel!.State.ResolvedFiles.Count)
+            .Subscribe(Observer.Create<int>(count =>
+            {
+                ResolvedFilesHeaderTextBlock.Text = string.Format(CommitLogStrings.ResolvedFilesHeader, count);
+            }))
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(x => x.ViewModel!.State.MergeSourceBranch, x => x.ViewModel!.State.MergeTargetBranch)
+            .Subscribe(Observer.Create<(string Source, string Target)>(t =>
+            {
+                ConflictMergingDetailsTextBlock.Text = string.Format(CommitLogStrings.MergingBranchFormat, t.Source, t.Target);
+            }))
+            .DisposeWith(disposables);
+
         this.OneWayBind(ViewModel, x => x.State.Remotes, x => x.RemotesListBox.ItemsSource);
         this.OneWayBind(ViewModel, x => x.State.Stashes, x => x.StashesListBox.ItemsSource);
         this.OneWayBind(ViewModel, x => x.State.FilteredCommits, x => x.CommitsListBox.ItemsSource);
@@ -287,6 +320,19 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
                 CredentialsErrorMessageTextBlock.Text = err ?? string.Empty;
             }))
             .DisposeWith(disposables);
+
+        this.WhenAnyValue(x => x.ViewModel!.State.SelectedCommit)
+            .Subscribe(Observer.Create<CommitSummary?>(commit =>
+            {
+                bool isRealCommit = commit != null && !commit.IsWip;
+                ContextCherryPickMenuItem.IsEnabled = isRealCommit;
+                ContextRevertMenuItem.IsEnabled = isRealCommit;
+                ContextResetMenuItem.IsEnabled = isRealCommit;
+                ContextCreateBranchMenuItem.IsEnabled = isRealCommit;
+                ContextCreateTagMenuItem.IsEnabled = isRealCommit;
+                ContextInteractiveRebaseMenuItem.IsEnabled = isRealCommit;
+            }))
+            .DisposeWith(disposables);
     }
 
     private void SetupCommands(CompositeDisposable disposables)
@@ -294,6 +340,7 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
         this.BindCommand(ViewModel, x => x.FetchCommand, x => x.FetchButton);
         this.BindCommand(ViewModel, x => x.PullCommand, x => x.PullButton);
         this.BindCommand(ViewModel, x => x.PushCommand, x => x.PushButton);
+        this.BindCommand(ViewModel, x => x.MarkAllResolvedCommand, x => x.MarkAllResolvedButton);
 
         this.BindCommand(ViewModel, x => x.ToggleFavoritesDockCommand, x => x.FavoritesToggleButton);
         this.BindCommand(ViewModel, x => x.CloseFavoritesDockCommand, x => x.CloseFavoritesDockButton);
@@ -344,6 +391,7 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
         this.BindCommand(ViewModel, x => x.ShowStashModalCommand, x => x.NewStashActionButton);
         this.BindCommand(ViewModel, x => x.HideStashModalCommand, x => x.CancelCreateStashButton);
         this.BindCommand(ViewModel, x => x.ExecuteCreateStashCommand, x => x.ConfirmCreateStashButton);
+        SetupStashesList(disposables);
 
         this.BindCommand(ViewModel, x => x.HideSettingsModalCommand, x => x.CancelSettingsButton);
         this.BindCommand(ViewModel, x => x.ExecuteSaveSettingsCommand, x => x.ConfirmSettingsButton);
@@ -400,6 +448,10 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
         Observable.Interval(TimeSpan.FromSeconds(5), RxApp.MainThreadScheduler)
             .Subscribe(Observer.Create<long>(_ => TriggerPeriodicAutoRefresh()))
             .DisposeWith(disposables);
+
+        Observable.Interval(TimeSpan.FromSeconds(30), RxApp.MainThreadScheduler)
+            .Subscribe(Observer.Create<long>(_ => TriggerPeriodicAutoFetch()))
+            .DisposeWith(disposables);
     }
 
     private void TriggerPeriodicAutoRefresh()
@@ -415,6 +467,21 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
         }
 
         ViewModel.LoadRepositoryDataCommand.Execute().Subscribe();
+    }
+
+    private void TriggerPeriodicAutoFetch()
+    {
+        if (ViewModel == null || ViewModel.State.IsLoading)
+        {
+            return;
+        }
+
+        if (IsAnyModalOpen())
+        {
+            return;
+        }
+
+        ViewModel.AutoFetchCommand.Execute().Subscribe();
     }
 
     private bool IsAnyModalOpen()
@@ -681,6 +748,24 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
                 ViewModel.SelectRebaseStep(step);
             }
         };
+
+        ConflictedFilesListBox.SelectionChanged += (sender, e) =>
+        {
+            if (ConflictedFilesListBox.SelectedItem is WorkingTreeChange item && ViewModel != null)
+            {
+                ViewModel.OpenConflictResolver(item);
+                ConflictedFilesListBox.SelectedItem = null;
+            }
+        };
+
+        ResolvedFilesListBox.SelectionChanged += (sender, e) =>
+        {
+            if (ResolvedFilesListBox.SelectedItem is WorkingTreeChange item && ViewModel != null)
+            {
+                ViewModel.OpenConflictResolver(item);
+                ResolvedFilesListBox.SelectedItem = null;
+            }
+        };
     }
 
     private static string GetOperationTitle(RepositoryOperationStatus? status)
@@ -798,6 +883,60 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
         else if (button.Name == "ItemDeleteRemoteButton")
         {
             ViewModel.DeleteRemoteCommand.Execute(remote.Name).Subscribe();
+            e.Handled = true;
+        }
+    }
+
+    private void SetupStashesList(CompositeDisposable disposables)
+    {
+        StashesListBox.SelectionChanged += (sender, e) =>
+        {
+            if (StashesListBox.SelectedItem is StashInfo stash && ViewModel != null)
+            {
+                ViewModel.SelectStash(stash);
+            }
+        };
+
+        StashPopMenuItem.Click += (sender, e) =>
+        {
+            if (StashesListBox.SelectedItem is StashInfo stash && ViewModel != null)
+            {
+                ViewModel.PopStashCommand.Execute(stash.Index).Subscribe();
+            }
+        };
+
+        StashDropMenuItem.Click += (sender, e) =>
+        {
+            if (StashesListBox.SelectedItem is StashInfo stash && ViewModel != null)
+            {
+                ViewModel.DropStashCommand.Execute(stash.Index).Subscribe();
+            }
+        };
+
+        StashesListBox.AddHandler(Button.ClickEvent, (sender, e) => HandleStashItemButtonClick(e));
+    }
+
+    private void HandleStashItemButtonClick(RoutedEventArgs e)
+    {
+        if (e.Source is not Visual source || ViewModel == null)
+        {
+            return;
+        }
+
+        Button? button = source as Button ?? source.FindAncestorOfType<Button>(true);
+        if (button?.DataContext is not StashInfo stash)
+        {
+            return;
+        }
+
+        if (button.Name == "ItemPopStashButton")
+        {
+            ViewModel.PopStashCommand.Execute(stash.Index).Subscribe();
+            e.Handled = true;
+        }
+        else if (button.Name == "ItemDropStashButton")
+        {
+            ViewModel.DropStashCommand.Execute(stash.Index).Subscribe();
             e.Handled = true;
         }
     }

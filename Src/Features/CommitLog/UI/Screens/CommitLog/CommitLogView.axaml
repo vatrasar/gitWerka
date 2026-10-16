@@ -8,6 +8,7 @@
                           xmlns:models="using:GitWerka.Core.Domain.Models"
                           xmlns:enums="using:GitWerka.Core.Domain.Enums"
                           xmlns:canvas="using:GitWerka.Features.CommitLog.UI.Screens.CommitLog.ScreenComponents.CommitGraphCanvas"
+                          xmlns:conv="using:GitWerka.Shared.Converters"
                           xmlns:material="using:Material.Icons.Avalonia"
                           x:Class="GitWerka.Features.CommitLog.UI.Screens.CommitLog.CommitLogView">
 
@@ -291,96 +292,218 @@
 
             <!-- 2. Working Tree Changes Tab -->
             <Grid x:Name="WorkingTreeTabPanel"
-                  RowDefinitions="Auto, *, Auto, *, Auto"
+                  RowDefinitions="*, Auto"
                   IsVisible="False">
-              <!-- Staged Changes Section Header -->
-              <Grid Grid.Row="0" ColumnDefinitions="*, Auto" Margin="12,8,8,4">
-                <TextBlock Grid.Column="0"
-                           Text="{x:Static res:CommitLogStrings.StagedChangesHeader}"
-                           Classes="SectionHeader"
-                           VerticalAlignment="Center" />
-                <Button Grid.Column="1"
-                        x:Name="UnstageAllButton"
-                        Classes="ToolbarAction"
-                        Padding="6,2">
-                  <TextBlock Text="{x:Static res:CommitLogStrings.UnstageAllButton}" FontSize="10" />
-                </Button>
+              <!-- Normal Mode: Staged & Unstaged Changes -->
+              <Grid x:Name="NormalWorkingTreePanel"
+                    Grid.Row="0"
+                    RowDefinitions="Auto, *, Auto, *">
+                <!-- Staged Changes Section Header -->
+                <Grid Grid.Row="0" ColumnDefinitions="*, Auto" Margin="12,8,8,4">
+                  <TextBlock Grid.Column="0"
+                             Text="{x:Static res:CommitLogStrings.StagedChangesHeader}"
+                             Classes="SectionHeader"
+                             VerticalAlignment="Center" />
+                  <Button Grid.Column="1"
+                          x:Name="UnstageAllButton"
+                          Classes="ToolbarAction"
+                          Padding="6,2">
+                    <TextBlock Text="{x:Static res:CommitLogStrings.UnstageAllButton}" FontSize="10" />
+                  </Button>
+                </Grid>
+
+                <ListBox Grid.Row="1"
+                         x:Name="StagedChangesListBox"
+                         Background="Transparent"
+                         BorderThickness="0">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="models:WorkingTreeChange">
+                      <Grid ColumnDefinitions="Auto, *, Auto">
+                        <material:MaterialIcon Grid.Column="0"
+                                              Kind="{Binding Status, Converter={x:Static conv:FileStatusToIconConverter.Instance}}"
+                                              Foreground="{Binding Status, Converter={x:Static conv:FileStatusToBrushConverter.Instance}}"
+                                              Width="14"
+                                              Height="14"
+                                              Margin="0,0,6,0"
+                                              VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding Path}"
+                                   FontSize="11"
+                                   TextTrimming="CharacterEllipsis"
+                                   VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding Status}"
+                                   FontSize="10"
+                                   Foreground="{DynamicResource SubtleTextBrush}"
+                                   Margin="4,0,0,0"
+                                   VerticalAlignment="Center" />
+                      </Grid>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- Unstaged Changes Section Header -->
+                <Grid Grid.Row="2" ColumnDefinitions="*, Auto" Margin="12,8,8,4">
+                  <TextBlock Grid.Column="0"
+                             Text="{x:Static res:CommitLogStrings.UnstagedChangesHeader}"
+                             Classes="SectionHeader"
+                             VerticalAlignment="Center" />
+                  <Button Grid.Column="1"
+                          x:Name="StageAllButton"
+                          Classes="ToolbarAction"
+                          Padding="6,2">
+                    <TextBlock Text="{x:Static res:CommitLogStrings.StageAllButton}" FontSize="10" />
+                  </Button>
+                </Grid>
+
+                <ListBox Grid.Row="3"
+                         x:Name="UnstagedChangesListBox"
+                         Background="Transparent"
+                         BorderThickness="0">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="models:WorkingTreeChange">
+                      <Grid ColumnDefinitions="Auto, *, Auto">
+                        <material:MaterialIcon Grid.Column="0"
+                                              Kind="{Binding Status, Converter={x:Static conv:FileStatusToIconConverter.Instance}}"
+                                              Foreground="{Binding Status, Converter={x:Static conv:FileStatusToBrushConverter.Instance}}"
+                                              Width="14"
+                                              Height="14"
+                                              Margin="0,0,6,0"
+                                              VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding Path}"
+                                   FontSize="11"
+                                   TextTrimming="CharacterEllipsis"
+                                   VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding Status}"
+                                   FontSize="10"
+                                   Foreground="{DynamicResource SubtleTextBrush}"
+                                   Margin="4,0,0,0"
+                                   VerticalAlignment="Center" />
+                      </Grid>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
               </Grid>
 
-              <ListBox Grid.Row="1"
-                       x:Name="StagedChangesListBox"
-                       Background="Transparent"
-                       BorderThickness="0">
-                <ListBox.ItemTemplate>
-                  <DataTemplate x:DataType="models:WorkingTreeChange">
-                    <Grid ColumnDefinitions="Auto, *, Auto">
-                      <material:MaterialIcon Grid.Column="0"
-                                            Kind="CheckCircleOutline"
-                                            Width="14"
-                                            Height="14"
-                                            Foreground="{DynamicResource SuccessBrush}"
-                                            Margin="0,0,6,0" />
-                      <TextBlock Grid.Column="1"
-                                 Text="{Binding Path}"
-                                 FontSize="11"
-                                 TextTrimming="CharacterEllipsis"
-                                 VerticalAlignment="Center" />
-                      <TextBlock Grid.Column="2"
-                                 Text="{Binding Status}"
-                                 FontSize="10"
-                                 Foreground="{DynamicResource SubtleTextBrush}"
-                                 Margin="4,0,0,0"
-                                 VerticalAlignment="Center" />
-                    </Grid>
-                  </DataTemplate>
-                </ListBox.ItemTemplate>
-              </ListBox>
+              <!-- Conflict Mode: Conflicted Files & Resolved Files (GitKraken style) -->
+              <Grid x:Name="ConflictWorkingTreePanel"
+                    Grid.Row="0"
+                    RowDefinitions="Auto, Auto, *, Auto, *"
+                    IsVisible="False">
+                <!-- Conflict Header Notification Banner -->
+                <Border Grid.Row="0"
+                        Background="{DynamicResource WarningBannerBackgroundBrush}"
+                        BorderBrush="{DynamicResource GitGraphBranch3Brush}"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        Margin="8,8,8,4"
+                        Padding="8,6">
+                  <StackPanel Spacing="3">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                      <material:MaterialIcon Kind="AlertCircleOutline" Width="16" Height="16" Foreground="{DynamicResource WarningBrush}" />
+                      <TextBlock Text="{x:Static res:CommitLogStrings.MergeConflictsDetected}"
+                                 FontWeight="SemiBold"
+                                 FontSize="12"
+                                 Foreground="{DynamicResource TextPrimaryBrush}" />
+                    </StackPanel>
+                    <TextBlock x:Name="ConflictMergingDetailsTextBlock"
+                               FontSize="11"
+                               Foreground="{DynamicResource WarningBrush}"
+                               Margin="22,0,0,0" />
+                  </StackPanel>
+                </Border>
 
-              <!-- Unstaged Changes Section Header -->
-              <Grid Grid.Row="2" ColumnDefinitions="*, Auto" Margin="12,8,8,4">
-                <TextBlock Grid.Column="0"
-                           Text="{x:Static res:CommitLogStrings.UnstagedChangesHeader}"
-                           Classes="SectionHeader"
-                           VerticalAlignment="Center" />
-                <Button Grid.Column="1"
-                        x:Name="StageAllButton"
-                        Classes="ToolbarAction"
-                        Padding="6,2">
-                  <TextBlock Text="{x:Static res:CommitLogStrings.StageAllButton}" FontSize="10" />
-                </Button>
+                <!-- Conflicted Files Section Header -->
+                <Grid Grid.Row="1" ColumnDefinitions="*, Auto" Margin="12,8,8,4">
+                  <TextBlock Grid.Column="0"
+                             x:Name="ConflictedFilesHeaderTextBlock"
+                             Classes="SectionHeader"
+                             Foreground="{DynamicResource WarningBrush}"
+                             VerticalAlignment="Center" />
+                  <Button Grid.Column="1"
+                          x:Name="MarkAllResolvedButton"
+                          Classes="ToolbarAction"
+                          Padding="6,2">
+                    <TextBlock Text="{x:Static res:CommitLogStrings.MarkAllResolvedButton}" FontSize="10" />
+                  </Button>
+                </Grid>
+
+                <ListBox Grid.Row="2"
+                         x:Name="ConflictedFilesListBox"
+                         Background="Transparent"
+                         BorderThickness="0">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="models:WorkingTreeChange">
+                      <Grid ColumnDefinitions="Auto, *, Auto">
+                        <material:MaterialIcon Grid.Column="0"
+                                              Kind="AlertCircleOutline"
+                                              Width="14"
+                                              Height="14"
+                                              Foreground="{DynamicResource WarningBrush}"
+                                              Margin="0,0,6,0"
+                                              VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding Path}"
+                                   FontSize="11"
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   TextTrimming="CharacterEllipsis"
+                                   VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding Status}"
+                                   FontSize="10"
+                                   Foreground="{DynamicResource WarningBrush}"
+                                   Margin="4,0,0,0"
+                                   VerticalAlignment="Center" />
+                      </Grid>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- Resolved Files Section Header -->
+                <Grid Grid.Row="3" ColumnDefinitions="*, Auto" Margin="12,8,8,4">
+                  <TextBlock Grid.Column="0"
+                             x:Name="ResolvedFilesHeaderTextBlock"
+                             Classes="SectionHeader"
+                             Foreground="{DynamicResource SuccessBrush}"
+                             VerticalAlignment="Center" />
+                </Grid>
+
+                <ListBox Grid.Row="4"
+                         x:Name="ResolvedFilesListBox"
+                         Background="Transparent"
+                         BorderThickness="0">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="models:WorkingTreeChange">
+                      <Grid ColumnDefinitions="Auto, *, Auto">
+                        <material:MaterialIcon Grid.Column="0"
+                                              Kind="CheckCircleOutline"
+                                              Width="14"
+                                              Height="14"
+                                              Foreground="{DynamicResource SuccessBrush}"
+                                              Margin="0,0,6,0"
+                                              VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding Path}"
+                                   FontSize="11"
+                                   TextTrimming="CharacterEllipsis"
+                                   VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding Status}"
+                                   FontSize="10"
+                                   Foreground="{DynamicResource SubtleTextBrush}"
+                                   Margin="4,0,0,0"
+                                   VerticalAlignment="Center" />
+                      </Grid>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
               </Grid>
-
-              <ListBox Grid.Row="3"
-                       x:Name="UnstagedChangesListBox"
-                       Background="Transparent"
-                       BorderThickness="0">
-                <ListBox.ItemTemplate>
-                  <DataTemplate x:DataType="models:WorkingTreeChange">
-                    <Grid ColumnDefinitions="Auto, *, Auto">
-                      <material:MaterialIcon Grid.Column="0"
-                                            Kind="FileDocumentOutline"
-                                            Width="14"
-                                            Height="14"
-                                            Foreground="{DynamicResource GitGraphBranch3Brush}"
-                                            Margin="0,0,6,0" />
-                      <TextBlock Grid.Column="1"
-                                 Text="{Binding Path}"
-                                 FontSize="11"
-                                 TextTrimming="CharacterEllipsis"
-                                 VerticalAlignment="Center" />
-                      <TextBlock Grid.Column="2"
-                                 Text="{Binding Status}"
-                                 FontSize="10"
-                                 Foreground="{DynamicResource SubtleTextBrush}"
-                                 Margin="4,0,0,0"
-                                 VerticalAlignment="Center" />
-                    </Grid>
-                  </DataTemplate>
-                </ListBox.ItemTemplate>
-              </ListBox>
 
               <!-- Commit Composer Panel -->
-              <Border Grid.Row="4"
+              <Border Grid.Row="1"
                       BorderThickness="0,1,0,0"
                       BorderBrush="{DynamicResource CardBorderBrush}"
                       Padding="10">
@@ -591,21 +714,59 @@
                        x:Name="StashesListBox"
                        Background="Transparent"
                        BorderThickness="0">
+                <ListBox.ContextMenu>
+                  <ContextMenu x:Name="StashesContextMenu">
+                    <MenuItem x:Name="StashPopMenuItem"
+                              Header="{x:Static res:CommitLogStrings.PopStashButton}">
+                      <MenuItem.Icon>
+                        <material:MaterialIcon Kind="PackageUp" Width="16" Height="16" />
+                      </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="StashDropMenuItem"
+                              Header="{x:Static res:CommitLogStrings.DropStashButton}">
+                      <MenuItem.Icon>
+                        <material:MaterialIcon Kind="DeleteOutline" Width="16" Height="16" />
+                      </MenuItem.Icon>
+                    </MenuItem>
+                  </ContextMenu>
+                </ListBox.ContextMenu>
                 <ListBox.ItemTemplate>
                   <DataTemplate x:DataType="models:StashInfo">
-                    <Grid ColumnDefinitions="Auto, *">
-                      <material:MaterialIcon Grid.Column="0"
-                                            Kind="PackageVariantClosed"
-                                            Width="16"
-                                            Height="16"
-                                            Foreground="{DynamicResource GitGraphBranch2Brush}"
-                                            Margin="0,0,6,0" />
-                      <TextBlock Grid.Column="1"
-                                 Text="{Binding Message}"
-                                 FontSize="12"
-                                 TextTrimming="CharacterEllipsis"
-                                 VerticalAlignment="Center" />
-                    </Grid>
+                    <Border Classes="StashItemCard" Padding="8,6" Margin="0,1">
+                      <Grid ColumnDefinitions="Auto, *, Auto">
+                        <material:MaterialIcon Grid.Column="0"
+                                               Kind="PackageVariantClosed"
+                                               Width="16"
+                                               Height="16"
+                                               Foreground="{DynamicResource GitGraphBranch2Brush}"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,8,0" />
+                        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                          <TextBlock Text="{Binding Message}"
+                                     FontSize="12"
+                                     FontWeight="SemiBold"
+                                     TextTrimming="CharacterEllipsis" />
+                          <TextBlock Text="{Binding Name}"
+                                     Classes="SubtleCaption"
+                                     FontSize="10"
+                                     TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                          <Button x:Name="ItemPopStashButton"
+                                  Classes="ToolbarAction"
+                                  Padding="4,2"
+                                  ToolTip.Tip="{x:Static res:CommitLogStrings.PopStashButton}">
+                            <material:MaterialIcon Kind="PackageUp" Width="13" Height="13" />
+                          </Button>
+                          <Button x:Name="ItemDropStashButton"
+                                  Classes="DeleteFavoriteButton"
+                                  Padding="4,2"
+                                  ToolTip.Tip="{x:Static res:CommitLogStrings.DropStashButton}">
+                            <material:MaterialIcon Kind="DeleteOutline" Width="13" Height="13" Foreground="{DynamicResource SubtleTextBrush}" />
+                          </Button>
+                        </StackPanel>
+                      </Grid>
+                    </Border>
                   </DataTemplate>
                 </ListBox.ItemTemplate>
               </ListBox>
@@ -703,6 +864,7 @@
                                            Width="80"
                                            Height="28"
                                            Lane="{Binding Lane}"
+                                           IsWip="{Binding IsWip}"
                                            PassingLanes="{Binding PassingLanes}"
                                            MergingLanes="{Binding MergingLanes}"
                                            ForkingOffLanes="{Binding ForkingOffLanes}" />
@@ -719,7 +881,16 @@
                               Orientation="Horizontal"
                               Spacing="6"
                               VerticalAlignment="Center">
-                    <ItemsControl ItemsSource="{Binding BranchNames}">
+                    <!-- WIP Indicator and Uncommitted Count -->
+                    <Border Classes="WipBadge" IsVisible="{Binding IsWip}">
+                      <TextBlock Text="// WIP" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource AccentPrimaryBrush}" />
+                    </Border>
+                    <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding IsWip}" VerticalAlignment="Center">
+                      <material:MaterialIcon Kind="Pencil" Width="13" Height="13" Foreground="{DynamicResource GitGraphBranch3Brush}" VerticalAlignment="Center" />
+                      <TextBlock Text="{Binding UncommittedFilesCount}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <ItemsControl ItemsSource="{Binding BranchNames}" IsVisible="{Binding !IsWip}">
                       <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                           <StackPanel Orientation="Horizontal" />
@@ -734,7 +905,7 @@
                       </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <ItemsControl ItemsSource="{Binding TagNames}">
+                    <ItemsControl ItemsSource="{Binding TagNames}" IsVisible="{Binding !IsWip}">
                       <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                           <StackPanel Orientation="Horizontal" />
@@ -750,6 +921,7 @@
                     </ItemsControl>
 
                     <TextBlock Text="{Binding MessageShort}"
+                               IsVisible="{Binding !IsWip}"
                                FontSize="13"
                                TextTrimming="CharacterEllipsis" />
                   </StackPanel>
@@ -763,6 +935,7 @@
 
                   <!-- Date -->
                   <TextBlock Grid.Column="4"
+                             IsVisible="{Binding !IsWip}"
                              Text="{Binding AuthorDate, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"
                              Classes="SubtleCaption"
                              VerticalAlignment="Center" />
@@ -796,12 +969,20 @@
                 <ListBox.ItemTemplate>
                   <DataTemplate x:DataType="models:FileDiffSummary">
                     <Border Classes="ChangedFileCard">
-                      <Grid ColumnDefinitions="*, Auto">
-                        <TextBlock Grid.Column="0"
+                      <Grid ColumnDefinitions="Auto, *, Auto">
+                        <material:MaterialIcon Grid.Column="0"
+                                              Kind="{Binding Status, Converter={x:Static conv:FileStatusToIconConverter.Instance}}"
+                                              Foreground="{Binding Status, Converter={x:Static conv:FileStatusToBrushConverter.Instance}}"
+                                              Width="14"
+                                              Height="14"
+                                              Margin="0,0,6,0"
+                                              VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1"
                                    Text="{Binding Path}"
                                    FontSize="12"
-                                   TextTrimming="CharacterEllipsis" />
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                                   TextTrimming="CharacterEllipsis"
+                                   VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                           <TextBlock Text="{Binding LinesAdded, StringFormat='+{0}'}"
                                      Foreground="{DynamicResource SuccessBrush}"
                                      FontSize="11" />

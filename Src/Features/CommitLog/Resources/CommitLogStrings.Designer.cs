@@ -194,5 +194,10 @@ namespace GitWerka.Features.CommitLog.Resources {
         public static string RemoteUrlPlaceholder => ResourceManager.GetString("RemoteUrlPlaceholder", resourceCulture) ?? "Remote URL (e.g., https://github.com/user/repo.git)...";
         public static string DeleteRemoteButton => ResourceManager.GetString("DeleteRemoteButton", resourceCulture) ?? "Delete Remote";
         public static string FetchRemoteButton => ResourceManager.GetString("FetchRemoteButton", resourceCulture) ?? "Fetch Remote";
+        public static string ConflictedFilesHeader => ResourceManager.GetString("ConflictedFilesHeader", resourceCulture) ?? "Conflicted Files ({0})";
+        public static string ResolvedFilesHeader => ResourceManager.GetString("ResolvedFilesHeader", resourceCulture) ?? "Resolved Files ({0})";
+        public static string MarkAllResolvedButton => ResourceManager.GetString("MarkAllResolvedButton", resourceCulture) ?? "Mark All Resolved";
+        public static string MergeConflictsDetected => ResourceManager.GetString("MergeConflictsDetected", resourceCulture) ?? "Merge conflicts detected";
+        public static string MergingBranchFormat => ResourceManager.GetString("MergingBranchFormat", resourceCulture) ?? "Merging {0} into {1}";
     }
 }

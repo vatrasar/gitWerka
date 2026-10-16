@@ -11,5 +11,6 @@ public enum FileChangeStatus
     Deleted,
     Renamed,
     Copied,
-    Ignored
+    Ignored,
+    Conflicted
 }

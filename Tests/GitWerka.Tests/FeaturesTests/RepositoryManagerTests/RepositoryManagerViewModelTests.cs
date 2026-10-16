@@ -209,6 +209,15 @@ public class RepositoryManagerViewModelTests
 
         public Task<bool> ContinueRebaseAsync(string repositoryPath, CancellationToken cancellationToken = default) =>
             Task.FromResult(true);
+
+        public Task<ConflictFileModel> GetConflictFileAsync(string repositoryPath, string filePath, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new ConflictFileModel { FilePath = filePath, FileName = "file.txt" });
+
+        public Task SaveConflictResolutionAsync(string repositoryPath, string filePath, string resolvedContent, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task MarkAllConflictsResolvedAsync(string repositoryPath, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
     }
 
     [Fact]
