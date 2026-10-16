@@ -98,6 +98,8 @@ public record CommitLogState
 
     public string NewStashMessageInput { get; init; } = string.Empty;
 
+    public StashInfo? SelectedStash { get; init; }
+
     public bool IsSettingsModalVisible { get; init; }
 
     public string ConfigUserNameInput { get; init; } = string.Empty;

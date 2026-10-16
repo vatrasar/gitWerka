@@ -9,7 +9,7 @@
 /// - Interactive rebase visual step editor (pick, reword, edit, squash, fixup, drop, step reordering).
 /// - Ongoing repository operation (merge / rebase) conflict detection with Abort and Continue actions.
 /// - Remote repositories listing, add remote modal, per-remote fetch and delete actions.
-/// - Stash listing and new stash creation modal.
+/// - Stash listing, new stash creation modal, and per-stash pop and drop actions.
 /// - Remote operations (Fetch, Pull, Push) with automatic credentials authentication dialog on challenge.
 /// - Profiles management: switch active Git profile from toolbar dropdown menu, or navigate to ProfileManagementView.
 /// - System shortcuts: Open repository in system file manager, default terminal, or code editor (direct toolbar buttons on wide layouts or compact 'Open in' dropdown).
@@ -35,7 +35,7 @@
 /// - BranchesListBox, BranchesContextMenu, BranchMergeMenuItem, NewBranchActionButton.
 /// - RemotesListBox, RemotesContextMenu, RemoteFetchMenuItem, RemoteDeleteMenuItem, ItemFetchRemoteButton, ItemDeleteRemoteButton, NewRemoteActionButton.
 /// - CreateRemoteModalBackdrop, NewRemoteNameTextBox, NewRemoteUrlTextBox, CancelCreateRemoteButton, ConfirmCreateRemoteButton.
-/// - StagedChangesListBox, UnstagedChangesListBox, StashesListBox, NewStashActionButton.
+/// - StagedChangesListBox, UnstagedChangesListBox, StashesListBox, StashesContextMenu, StashPopMenuItem, StashDropMenuItem, ItemPopStashButton, ItemDropStashButton, NewStashActionButton.
 /// - CommitMessageTextBox, AmendCommitCheckBox, CommitMessageRemainingCountTextBlock, CommitButton, GenerateAiCommitButton, GenerateAiCommitNormalIcon, GenerateAiCommitLoadingIcon, GenerateAiCommitButtonText, AiGeneratingProgressBar, AiErrorBanner, AiErrorTextBlock, AiErrorSettingsButton, AiErrorDismissButton, StageAllButton, UnstageAllButton.
 /// - CommitsListBox, CommitsContextMenu, ContextCherryPickMenuItem, ContextRevertMenuItem, ContextResetMenuItem, ContextResetSoftMenuItem, ContextResetMixedMenuItem, ContextResetHardMenuItem, ContextCreateBranchMenuItem, ContextCreateTagMenuItem, ContextInteractiveRebaseMenuItem.
 /// - ChangedFilesListBox, DiffLinesItemsControl.
@@ -344,6 +344,7 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
         this.BindCommand(ViewModel, x => x.ShowStashModalCommand, x => x.NewStashActionButton);
         this.BindCommand(ViewModel, x => x.HideStashModalCommand, x => x.CancelCreateStashButton);
         this.BindCommand(ViewModel, x => x.ExecuteCreateStashCommand, x => x.ConfirmCreateStashButton);
+        SetupStashesList(disposables);
 
         this.BindCommand(ViewModel, x => x.HideSettingsModalCommand, x => x.CancelSettingsButton);
         this.BindCommand(ViewModel, x => x.ExecuteSaveSettingsCommand, x => x.ConfirmSettingsButton);
@@ -798,6 +799,60 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
         else if (button.Name == "ItemDeleteRemoteButton")
         {
             ViewModel.DeleteRemoteCommand.Execute(remote.Name).Subscribe();
+            e.Handled = true;
+        }
+    }
+
+    private void SetupStashesList(CompositeDisposable disposables)
+    {
+        StashesListBox.SelectionChanged += (sender, e) =>
+        {
+            if (StashesListBox.SelectedItem is StashInfo stash && ViewModel != null)
+            {
+                ViewModel.SelectStash(stash);
+            }
+        };
+
+        StashPopMenuItem.Click += (sender, e) =>
+        {
+            if (StashesListBox.SelectedItem is StashInfo stash && ViewModel != null)
+            {
+                ViewModel.PopStashCommand.Execute(stash.Index).Subscribe();
+            }
+        };
+
+        StashDropMenuItem.Click += (sender, e) =>
+        {
+            if (StashesListBox.SelectedItem is StashInfo stash && ViewModel != null)
+            {
+                ViewModel.DropStashCommand.Execute(stash.Index).Subscribe();
+            }
+        };
+
+        StashesListBox.AddHandler(Button.ClickEvent, (sender, e) => HandleStashItemButtonClick(e));
+    }
+
+    private void HandleStashItemButtonClick(RoutedEventArgs e)
+    {
+        if (e.Source is not Visual source || ViewModel == null)
+        {
+            return;
+        }
+
+        Button? button = source as Button ?? source.FindAncestorOfType<Button>(true);
+        if (button?.DataContext is not StashInfo stash)
+        {
+            return;
+        }
+
+        if (button.Name == "ItemPopStashButton")
+        {
+            ViewModel.PopStashCommand.Execute(stash.Index).Subscribe();
+            e.Handled = true;
+        }
+        else if (button.Name == "ItemDropStashButton")
+        {
+            ViewModel.DropStashCommand.Execute(stash.Index).Subscribe();
             e.Handled = true;
         }
     }

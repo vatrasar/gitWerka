@@ -224,6 +224,16 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
     }
 
     /// <summary>
+    /// Sets the currently selected stash entry.
+    /// Usages: CommitLogView stashes list.
+    /// </summary>
+    /// <param name="stash">Stash information or null.</param>
+    public void SelectStash(StashInfo? stash)
+    {
+        UpdateState(s => s with { SelectedStash = stash });
+    }
+
+    /// <summary>
     /// Updates the description input for creating a stash.
     /// Usages: CommitLogView create stash modal.
     /// </summary>
