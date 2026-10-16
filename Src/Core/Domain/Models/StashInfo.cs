@@ -10,4 +10,6 @@ public record StashInfo
     public string Message { get; init; } = string.Empty;
 
     public string Sha { get; init; } = string.Empty;
+
+    public string Name => $"stash@{{{Index}}}";
 }

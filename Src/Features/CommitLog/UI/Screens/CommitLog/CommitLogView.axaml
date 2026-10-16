@@ -714,21 +714,59 @@
                        x:Name="StashesListBox"
                        Background="Transparent"
                        BorderThickness="0">
+                <ListBox.ContextMenu>
+                  <ContextMenu x:Name="StashesContextMenu">
+                    <MenuItem x:Name="StashPopMenuItem"
+                              Header="{x:Static res:CommitLogStrings.PopStashButton}">
+                      <MenuItem.Icon>
+                        <material:MaterialIcon Kind="PackageUp" Width="16" Height="16" />
+                      </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="StashDropMenuItem"
+                              Header="{x:Static res:CommitLogStrings.DropStashButton}">
+                      <MenuItem.Icon>
+                        <material:MaterialIcon Kind="DeleteOutline" Width="16" Height="16" />
+                      </MenuItem.Icon>
+                    </MenuItem>
+                  </ContextMenu>
+                </ListBox.ContextMenu>
                 <ListBox.ItemTemplate>
                   <DataTemplate x:DataType="models:StashInfo">
-                    <Grid ColumnDefinitions="Auto, *">
-                      <material:MaterialIcon Grid.Column="0"
-                                            Kind="PackageVariantClosed"
-                                            Width="16"
-                                            Height="16"
-                                            Foreground="{DynamicResource GitGraphBranch2Brush}"
-                                            Margin="0,0,6,0" />
-                      <TextBlock Grid.Column="1"
-                                 Text="{Binding Message}"
-                                 FontSize="12"
-                                 TextTrimming="CharacterEllipsis"
-                                 VerticalAlignment="Center" />
-                    </Grid>
+                    <Border Classes="StashItemCard" Padding="8,6" Margin="0,1">
+                      <Grid ColumnDefinitions="Auto, *, Auto">
+                        <material:MaterialIcon Grid.Column="0"
+                                               Kind="PackageVariantClosed"
+                                               Width="16"
+                                               Height="16"
+                                               Foreground="{DynamicResource GitGraphBranch2Brush}"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,8,0" />
+                        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                          <TextBlock Text="{Binding Message}"
+                                     FontSize="12"
+                                     FontWeight="SemiBold"
+                                     TextTrimming="CharacterEllipsis" />
+                          <TextBlock Text="{Binding Name}"
+                                     Classes="SubtleCaption"
+                                     FontSize="10"
+                                     TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                          <Button x:Name="ItemPopStashButton"
+                                  Classes="ToolbarAction"
+                                  Padding="4,2"
+                                  ToolTip.Tip="{x:Static res:CommitLogStrings.PopStashButton}">
+                            <material:MaterialIcon Kind="PackageUp" Width="13" Height="13" />
+                          </Button>
+                          <Button x:Name="ItemDropStashButton"
+                                  Classes="DeleteFavoriteButton"
+                                  Padding="4,2"
+                                  ToolTip.Tip="{x:Static res:CommitLogStrings.DropStashButton}">
+                            <material:MaterialIcon Kind="DeleteOutline" Width="13" Height="13" Foreground="{DynamicResource SubtleTextBrush}" />
+                          </Button>
+                        </StackPanel>
+                      </Grid>
+                    </Border>
                   </DataTemplate>
                 </ListBox.ItemTemplate>
               </ListBox>

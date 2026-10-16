@@ -173,11 +173,20 @@ public class CommitLogViewModelTests
         public Task ApplyStashAsync(string repositoryPath, int stashIndex, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
 
-        public Task PopStashAsync(string repositoryPath, int stashIndex, CancellationToken cancellationToken = default) =>
-            Task.CompletedTask;
+        public int? LastPoppedStashIndex { get; private set; }
+        public int? LastDroppedStashIndex { get; private set; }
 
-        public Task DropStashAsync(string repositoryPath, int stashIndex, CancellationToken cancellationToken = default) =>
-            Task.CompletedTask;
+        public Task PopStashAsync(string repositoryPath, int stashIndex, CancellationToken cancellationToken = default)
+        {
+            LastPoppedStashIndex = stashIndex;
+            return Task.CompletedTask;
+        }
+
+        public Task DropStashAsync(string repositoryPath, int stashIndex, CancellationToken cancellationToken = default)
+        {
+            LastDroppedStashIndex = stashIndex;
+            return Task.CompletedTask;
+        }
 
         public List<RemoteInfo> Remotes { get; set; } = new();
 
@@ -621,6 +630,44 @@ public class CommitLogViewModelTests
 
         Assert.Equal("WIP changes", gitService.LastCreatedStash);
         Assert.False(vm.State.IsStashModalVisible);
+    }
+
+    [Fact]
+    public void SelectStash_SetsSelectedStashInState()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        CommitLogViewModel vm = new(screen, "/repo/path", gitService);
+
+        StashInfo stash = new() { Index = 1, Message = "Test stash", Sha = "1234567" };
+        vm.SelectStash(stash);
+
+        Assert.Equal(stash, vm.State.SelectedStash);
+        Assert.Equal("stash@{1}", stash.Name);
+    }
+
+    [Fact]
+    public void PopStash_ExecutesPopCommand()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        CommitLogViewModel vm = new(screen, "/repo/path", gitService);
+
+        vm.PopStashCommand.Execute(2).Subscribe();
+
+        Assert.Equal(2, gitService.LastPoppedStashIndex);
+    }
+
+    [Fact]
+    public void DropStash_ExecutesDropCommand()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        CommitLogViewModel vm = new(screen, "/repo/path", gitService);
+
+        vm.DropStashCommand.Execute(3).Subscribe();
+
+        Assert.Equal(3, gitService.LastDroppedStashIndex);
     }
 
     [Fact]
