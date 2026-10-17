@@ -3,6 +3,7 @@ namespace GitWerka.Features.CommitLog.UI.Screens.CommitLog;
 using System.Collections.Immutable;
 using GitWerka.Core.Domain.Enums;
 using GitWerka.Core.Domain.Models;
+using GitWerka.Core.Domain.Services;
 using GitWerka.Features.CommitLog.Domain.Enums;
 
 /// <summary>
@@ -70,7 +71,7 @@ public record CommitLogState
         {
             if (string.IsNullOrEmpty(CommitMessageInput))
             {
-                return 72;
+                return IAiCommitMessageService.MaxCommitSubjectLength;
             }
 
             int newlineIndex = CommitMessageInput.IndexOf('\n');
@@ -78,7 +79,7 @@ public record CommitLogState
                 ? CommitMessageInput.Substring(0, newlineIndex).TrimEnd('\r')
                 : CommitMessageInput;
 
-            return 72 - firstLine.Length;
+            return IAiCommitMessageService.MaxCommitSubjectLength - firstLine.Length;
         }
     }
 

@@ -691,9 +691,10 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
         try
         {
             string proposal = await _aiCommitMessageService.GenerateCommitMessageAsync(State.RepositoryPath);
+            string sanitizedProposal = IAiCommitMessageService.TruncateCommitSubject(proposal);
             UpdateState(s => s with
             {
-                CommitMessageInput = proposal,
+                CommitMessageInput = sanitizedProposal,
                 IsGeneratingAiCommit = false,
                 AiErrorMessage = null,
                 IsAiErrorSettingsActionVisible = false

@@ -225,7 +225,7 @@ public class OpenRouterAiCommitMessageService : IAiCommitMessageService
 
         builder.AppendLine($"Current branch: {branchName}");
         builder.AppendLine($"Required commit style: {commitStyle}");
-        builder.AppendLine("Length constraint: The first line (commit title/subject) MUST NOT exceed 72 characters.");
+        builder.AppendLine($"Length constraint: The commit message MUST be a single line (commit title / name) and MUST NOT exceed {IAiCommitMessageService.MaxCommitSubjectLength} characters. Do NOT output a body or multiple lines.");
         builder.AppendLine();
 
         if (recentCommits.Count > 0)
@@ -308,7 +308,7 @@ public class OpenRouterAiCommitMessageService : IAiCommitMessageService
                 new
                 {
                     role = "system",
-                    content = "You are an expert Git commit message generator. Output ONLY the raw final commit message. Do NOT output any reasoning, chain of thought, analysis, or conversational commentary. Follow the requested style strictly with no markdown formatting, code fences, quotes, or explanations. CRITICAL LIMIT: The first line (commit title/subject) must be at most 72 characters long (recommended 50 characters or fewer)."
+                    content = $"You are an expert Git commit message generator. Output ONLY a single-line commit title (commit name). Do NOT output multiple lines, body, reasoning, chain of thought, analysis, or conversational commentary. Follow the requested style strictly with no markdown formatting, code fences, quotes, or explanations. CRITICAL LIMIT: The commit title must be a single line and MUST NOT exceed {IAiCommitMessageService.MaxCommitSubjectLength} characters (recommended 50 characters or fewer)."
                 },
                 new
                 {
@@ -342,24 +342,38 @@ public class OpenRouterAiCommitMessageService : IAiCommitMessageService
     private static string CleanCommitProposal(string rawProposal)
     {
         string cleaned = StripThinkingBlock(rawProposal.Trim());
+        cleaned = StripMarkdownFences(cleaned);
+        cleaned = StripSurroundingQuotes(cleaned);
 
-        if (cleaned.StartsWith("```") && cleaned.EndsWith("```"))
+        return IAiCommitMessageService.TruncateCommitSubject(cleaned);
+    }
+
+    private static string StripMarkdownFences(string text)
+    {
+        if (!text.StartsWith("```"))
         {
-            int firstNewline = cleaned.IndexOf('\n');
-            int lastBacktick = cleaned.LastIndexOf("```", StringComparison.Ordinal);
-
-            if (firstNewline >= 0 && lastBacktick > firstNewline)
-            {
-                cleaned = cleaned.Substring(firstNewline + 1, lastBacktick - firstNewline - 1).Trim();
-            }
+            return text;
         }
 
-        if (cleaned.StartsWith('"') && cleaned.EndsWith('"') && cleaned.Length >= 2)
+        int firstNewline = text.IndexOf('\n');
+        string withoutOpeningFence = firstNewline >= 0 ? text.Substring(firstNewline + 1) : text;
+        int closingFenceIndex = withoutOpeningFence.IndexOf("```", StringComparison.Ordinal);
+        if (closingFenceIndex >= 0)
         {
-            cleaned = cleaned.Substring(1, cleaned.Length - 2).Trim();
+            return withoutOpeningFence.Substring(0, closingFenceIndex).Trim();
         }
 
-        return cleaned;
+        return withoutOpeningFence.Trim();
+    }
+
+    private static string StripSurroundingQuotes(string text)
+    {
+        if (text.StartsWith('"') && text.EndsWith('"') && text.Length >= 2)
+        {
+            return text.Substring(1, text.Length - 2).Trim();
+        }
+
+        return text;
     }
 
     private static string StripThinkingBlock(string text)
