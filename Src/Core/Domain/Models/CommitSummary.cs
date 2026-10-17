@@ -39,4 +39,10 @@ public record CommitSummary
     public bool IsWip { get; init; }
 
     public int UncommittedFilesCount { get; init; }
+
+    public bool HasBranches => BranchNames.Count > 0;
+
+    public bool HasTags => TagNames.Count > 0;
+
+    public bool HasBadges => IsWip || BranchNames.Count > 0 || TagNames.Count > 0;
 }

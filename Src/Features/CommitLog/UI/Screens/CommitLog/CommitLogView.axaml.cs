@@ -3,6 +3,7 @@
 /// Purpose: Main repository workspace screen showing visual commit history graph, branches, remotes, stashes, commit details, diff inspection, branch merging, interactive rebasing, system shortcuts, and authentication dialogs.
 /// Available Functionalities:
 /// - Visual commit graph rendering with multi-lane topology.
+/// - Responsive commit item layout with CommitTitlePanel: badges and title side-by-side when space allows, badges on top and wrapped title below when constrained.
 /// - Commit searching and filtering by message, author, or hash.
 /// - Branch listing, checkout, and new branch creation modal.
 /// - Branch merging modal with fast-forward strategy selection.

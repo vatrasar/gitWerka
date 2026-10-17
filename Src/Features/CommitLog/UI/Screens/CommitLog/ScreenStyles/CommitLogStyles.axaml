@@ -34,8 +34,8 @@
   </Style>
 
   <!-- Commit Row Card -->
-  <Style Selector="ListBoxItem.CommitRowItem">
-    <Setter Property="Padding" Value="0" />
+  <Style Selector="ListBox#CommitsListBox > ListBoxItem, ListBoxItem.CommitRowItem">
+    <Setter Property="Padding" Value="0,2" />
     <Setter Property="Margin" Value="0,1" />
     <Setter Property="MinHeight" Value="28" />
   </Style>

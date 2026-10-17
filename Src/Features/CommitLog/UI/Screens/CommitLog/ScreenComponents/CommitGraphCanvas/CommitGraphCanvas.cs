@@ -81,6 +81,13 @@ public class CommitGraphCanvas : Control
         AffectsRender<CommitGraphCanvas>(LaneProperty, PassingLanesProperty, MergingLanesProperty, ForkingOffLanesProperty, IsWipProperty);
     }
 
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        double width = double.IsNaN(Width) ? 80.0 : Width;
+        double height = double.IsNaN(Height) ? 28.0 : Height;
+        return new Size(width, height);
+    }
+
     public override void Render(DrawingContext context)
     {
         base.Render(context);
