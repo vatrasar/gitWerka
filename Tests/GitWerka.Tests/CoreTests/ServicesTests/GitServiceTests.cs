@@ -49,6 +49,26 @@ public class GitServiceTests : IDisposable
     }
 
     [Fact]
+    public void FindRepositoryRoot_NullOrEmptyOrInvalid_ReturnsNull()
+    {
+        Assert.Null(_gitService.FindRepositoryRoot(string.Empty));
+        Assert.Null(_gitService.FindRepositoryRoot(_testDirectory));
+    }
+
+    [Fact]
+    public async Task FindRepositoryRoot_Subdirectory_ReturnsRootPath()
+    {
+        string initPath = await _gitService.InitializeRepositoryAsync(_testDirectory);
+        string subDir = Path.Combine(initPath, "nested", "deep", "folder");
+        Directory.CreateDirectory(subDir);
+
+        string? foundRoot = _gitService.FindRepositoryRoot(subDir);
+
+        Assert.NotNull(foundRoot);
+        Assert.Equal(Path.TrimEndingDirectorySeparator(Path.GetFullPath(initPath)), foundRoot);
+    }
+
+    [Fact]
     public async Task InitializeRepositoryAsync_CreatesValidRepository()
     {
         string initPath = await _gitService.InitializeRepositoryAsync(_testDirectory);

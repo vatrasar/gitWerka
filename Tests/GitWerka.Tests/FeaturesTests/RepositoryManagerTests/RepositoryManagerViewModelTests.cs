@@ -81,6 +81,8 @@ public class RepositoryManagerViewModelTests
     {
         public bool IsValidRepository(string path) => true;
 
+        public string? FindRepositoryRoot(string path) => path;
+
         public Task<string> InitializeRepositoryAsync(string directoryPath, bool isBare = false, CancellationToken cancellationToken = default) =>
             Task.FromResult(directoryPath);
 
@@ -449,5 +451,24 @@ public class RepositoryManagerViewModelTests
 
         Assert.Single(screen.Router.NavigationStack);
         Assert.IsType<CommitLogViewModel>(screen.Router.NavigationStack[0]);
+    }
+
+    [Fact]
+    public async Task OpenRepositoryPath_ResolvesRootFromSubdirectory()
+    {
+        MockScreen screen = new();
+        MockRecentRepositoriesRepository repo = new();
+        MockGitService gitService = new();
+
+        RepositoryManagerViewModel vm = new(
+            screen,
+            repo,
+            gitService);
+
+        await vm.OpenRepositoryPathAsync("/valid/repo/sub/directory");
+
+        Assert.Single(screen.Router.NavigationStack);
+        CommitLogViewModel commitLogVm = Assert.IsType<CommitLogViewModel>(screen.Router.NavigationStack[0]);
+        Assert.NotNull(commitLogVm);
     }
 }

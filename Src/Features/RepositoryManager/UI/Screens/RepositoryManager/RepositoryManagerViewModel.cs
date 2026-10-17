@@ -147,7 +147,7 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
 
     /// <summary>
     /// Attempts to open a repository from a file system path.
-    /// Usages: RepositoryManagerView code-behind folder picker.
+    /// Usages: RepositoryManagerView code-behind folder picker, MainWindowViewModel.
     /// </summary>
     /// <param name="path">Directory path selected by the user.</param>
     /// <returns>Task representing the async open operation.</returns>
@@ -158,18 +158,20 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
             return;
         }
 
-        if (!_gitService.IsValidRepository(path))
+        string resolvedPath = _gitService.FindRepositoryRoot(path) ?? path;
+
+        if (!_gitService.IsValidRepository(resolvedPath))
         {
             UpdateState(s => s with { ErrorMessage = "Selected directory is not a valid Git repository." });
             return;
         }
 
-        await SaveRecentRepositoryAsync(path);
+        await SaveRecentRepositoryAsync(resolvedPath);
         await ReloadRepositoriesAsync();
 
         HostScreen.Router.Navigate.Execute(new CommitLogViewModel(
             HostScreen,
-            path,
+            resolvedPath,
             _gitService,
             _systemLauncherService,
             _profileRepository,

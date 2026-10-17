@@ -31,6 +31,8 @@ public class ConflictResolverViewModelTests
 
         public bool IsValidRepository(string path) => true;
 
+        public string? FindRepositoryRoot(string path) => path;
+
         public Task<string> InitializeRepositoryAsync(string directoryPath, bool isBare = false, CancellationToken cancellationToken = default) =>
             Task.FromResult(directoryPath);
 

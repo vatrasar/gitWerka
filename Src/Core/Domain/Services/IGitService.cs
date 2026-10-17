@@ -20,6 +20,14 @@ public interface IGitService
     bool IsValidRepository(string path);
 
     /// <summary>
+    /// Finds the Git repository root directory for the given path.
+    /// Usages: MainWindowViewModel, RepositoryManagerViewModel.
+    /// </summary>
+    /// <param name="path">The file system path to search from.</param>
+    /// <returns>The root path of the Git repository if found; otherwise null.</returns>
+    string? FindRepositoryRoot(string path);
+
+    /// <summary>
     /// Initializes a new Git repository at the specified directory path.
     /// Usages: RepositoryManagerViewModel.
     /// </summary>

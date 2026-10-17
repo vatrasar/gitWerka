@@ -35,6 +35,43 @@ public class GitService : IGitService
     }
 
     /// <summary>
+    /// Finds the Git repository root directory for the given path.
+    /// Usages: MainWindowViewModel, RepositoryManagerViewModel.
+    /// </summary>
+    /// <param name="path">The file system path to search from.</param>
+    /// <returns>The root path of the Git repository if found; otherwise null.</returns>
+    public string? FindRepositoryRoot(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+
+        try
+        {
+            string? discoveredGitPath = Repository.Discover(path);
+            if (string.IsNullOrEmpty(discoveredGitPath))
+            {
+                return null;
+            }
+
+            using Repository repository = new(discoveredGitPath);
+            string? workingDirectory = repository.Info.WorkingDirectory;
+            if (!string.IsNullOrEmpty(workingDirectory))
+            {
+                return Path.TrimEndingDirectorySeparator(Path.GetFullPath(workingDirectory));
+            }
+
+            return Path.TrimEndingDirectorySeparator(Path.GetFullPath(discoveredGitPath));
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error discovering repository root for '{path}': {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Initializes a new Git repository at the specified directory path.
     /// Usages: RepositoryManagerViewModel.
     /// </summary>

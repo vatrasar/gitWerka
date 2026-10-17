@@ -14,6 +14,8 @@ using ReactiveUI;
 /// </summary>
 public class MainWindowViewModel : ViewModelBase, IScreen
 {
+    private readonly RepositoryManagerViewModel _initialScreen;
+
     public RoutingState Router { get; } = new RoutingState();
 
     public HostViewModel HostViewModel { get; }
@@ -28,7 +30,7 @@ public class MainWindowViewModel : ViewModelBase, IScreen
     {
         HostViewModel = new HostViewModel(this, profileRepository);
 
-        RepositoryManagerViewModel initialScreen = new(
+        _initialScreen = new(
             this,
             recentRepositoriesRepository,
             gitService,
@@ -36,6 +38,16 @@ public class MainWindowViewModel : ViewModelBase, IScreen
             applicationSettingsRepository: applicationSettingsRepository,
             aiConfigurationRepository: aiConfigurationRepository,
             aiCommitMessageService: aiCommitMessageService);
-        Router.Navigate.Execute(initialScreen).Subscribe();
+        Router.Navigate.Execute(_initialScreen).Subscribe();
+    }
+
+    /// <summary>
+    /// Opens the specified file system path as the active repository.
+    /// Usages: App.OnFrameworkInitializationCompleted.
+    /// </summary>
+    /// <param name="path">The directory path of the repository.</param>
+    public void OpenInitialRepository(string path)
+    {
+        _ = _initialScreen.OpenRepositoryPathAsync(path);
     }
 }

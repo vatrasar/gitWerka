@@ -45,9 +45,84 @@ public partial class App : Application
             MainWindowViewModel viewModel = _serviceProvider.GetRequiredService<MainWindowViewModel>();
             mainWindow.ViewModel = viewModel;
             desktop.MainWindow = mainWindow;
+
+            string? targetDirectory = ParseDirectoryArgument(desktop.Args);
+            if (!string.IsNullOrWhiteSpace(targetDirectory))
+            {
+                viewModel.OpenInitialRepository(targetDirectory);
+            }
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private static string? ParseDirectoryArgument(string[]? args)
+    {
+        if (args == null || args.Length == 0)
+        {
+            return null;
+        }
+
+        foreach (string rawArg in args)
+        {
+            string? directoryPath = TryExtractDirectoryPath(rawArg);
+            if (!string.IsNullOrWhiteSpace(directoryPath))
+            {
+                return directoryPath;
+            }
+        }
+
+        return null;
+    }
+
+    private static string? TryExtractDirectoryPath(string rawArg)
+    {
+        if (string.IsNullOrWhiteSpace(rawArg))
+        {
+            return null;
+        }
+
+        string arg = rawArg.Trim().Trim('"', '\'');
+        if (arg.StartsWith("--", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        string candidatePath = NormalizePathArgument(arg);
+        return ValidateDirectoryOrFilePath(candidatePath);
+    }
+
+    private static string NormalizePathArgument(string arg)
+    {
+        if (!arg.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
+        {
+            return arg;
+        }
+
+        if (Uri.TryCreate(arg, UriKind.Absolute, out Uri? uri) && uri.IsFile)
+        {
+            return uri.LocalPath;
+        }
+
+        return Uri.UnescapeDataString(arg.Substring(7));
+    }
+
+    private static string? ValidateDirectoryOrFilePath(string candidatePath)
+    {
+        try
+        {
+            string fullPath = Path.GetFullPath(candidatePath);
+            if (Directory.Exists(fullPath) || File.Exists(fullPath))
+            {
+                return fullPath;
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to parse path '{candidatePath}': {ex.Message}");
+        }
+
+        return null;
     }
 
     private static void RegisterSplatServices(IServiceProvider serviceProvider)
