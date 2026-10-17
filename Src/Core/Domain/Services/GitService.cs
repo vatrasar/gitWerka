@@ -133,7 +133,8 @@ public class GitService : IGitService
             List<CommitSummary> summaries = new();
             Dictionary<int, string> reservedLanes = new();
 
-            RepositoryStatus status = repository.RetrieveStatus();
+            StatusOptions statusOptions = new() { IncludeIgnored = false };
+            RepositoryStatus status = repository.RetrieveStatus(statusOptions);
             int uncommittedCount = status.Count();
 
             if (uncommittedCount > 0)
@@ -256,7 +257,8 @@ public class GitService : IGitService
         return Task.Run(() =>
         {
             using Repository repository = new(repositoryPath);
-            RepositoryStatus status = repository.RetrieveStatus();
+            StatusOptions statusOptions = new() { IncludeIgnored = false };
+            RepositoryStatus status = repository.RetrieveStatus(statusOptions);
             List<WorkingTreeChange> changes = new();
 
             foreach (StatusEntry entry in status)
@@ -1145,7 +1147,8 @@ public class GitService : IGitService
                 throw new InvalidOperationException("Cannot continue rebase: unresolved conflicts remain in index.");
             }
 
-            if (repository.RetrieveStatus().IsDirty)
+            StatusOptions statusOptions = new() { IncludeIgnored = false };
+            if (repository.RetrieveStatus(statusOptions).IsDirty)
             {
                 Signature sig = BuildSignatureOrDefault(repository);
                 repository.Commit("Resolved rebase step", sig, sig);

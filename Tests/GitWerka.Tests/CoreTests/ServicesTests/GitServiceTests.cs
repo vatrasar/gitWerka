@@ -22,6 +22,25 @@ public class GitServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetCommitsAsync_RepositoryWithIgnoredFiles_DoesNotCreateWipNode()
+    {
+        string repoPath = await _gitService.InitializeRepositoryAsync(_testDirectory);
+        await File.WriteAllTextAsync(Path.Combine(repoPath, ".gitignore"), "*.log\nbin/\n");
+        await _gitService.StageFileAsync(repoPath, ".gitignore");
+        await _gitService.CreateCommitAsync(repoPath, "Initial commit", "Tester", "tester@example.com");
+
+        await File.WriteAllTextAsync(Path.Combine(repoPath, "test.log"), "Ignored log contents");
+        Directory.CreateDirectory(Path.Combine(repoPath, "bin"));
+        await File.WriteAllTextAsync(Path.Combine(repoPath, "bin", "app.dll"), "binary");
+
+        var commits = await _gitService.GetCommitLogAsync(repoPath);
+        var changes = await _gitService.GetWorkingTreeChangesAsync(repoPath);
+
+        Assert.DoesNotContain(commits, c => c.IsWip);
+        Assert.Empty(changes);
+    }
+
+    [Fact]
     public void IsValidRepository_NonExistentOrEmptyDirectory_ReturnsFalse()
     {
         bool isValid = _gitService.IsValidRepository(_testDirectory);
