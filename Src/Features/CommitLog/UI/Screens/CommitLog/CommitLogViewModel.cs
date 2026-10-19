@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using GitWerka.Core.Domain.Enums;
 using GitWerka.Core.Domain.Models;
@@ -34,10 +35,17 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
     private readonly IAiConfigurationRepository? _aiConfigurationRepository;
     private readonly IApplicationSettingsRepository? _applicationSettingsRepository;
     private readonly IAppStatusService? _appStatusService;
+    private CancellationTokenSource? _aiCancellationTokenSource;
 
     public string? UrlPathSegment => "commit-log";
 
     public IScreen HostScreen { get; }
+
+    /// <summary>
+    /// Observable tracking whether a commit can be performed (requires an active Git profile).
+    /// Usages: ExecuteCommitCommand canExecute restriction, UI commit button state.
+    /// </summary>
+    public IObservable<bool> CanCommit { get; }
 
     public CommitLogViewModel(
         IScreen hostScreen,
@@ -64,6 +72,9 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
         _aiConfigurationRepository = aiConfigurationRepository ?? Locator.Current.GetService<IAiConfigurationRepository>();
         _applicationSettingsRepository = applicationSettingsRepository ?? Locator.Current.GetService<IApplicationSettingsRepository>();
         _appStatusService = appStatusService ?? Locator.Current.GetService<IAppStatusService>();
+
+        CanCommit = this.WhenAnyValue(x => x.State.ActiveProfile)
+            .Select(profile => profile != null);
 
         LoadRepositoryDataCommand.Execute().Subscribe();
         LoadApplicationSettingsCommand.Execute().Subscribe();
@@ -704,30 +715,61 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
         {
             UpdateState(s => s with
             {
-                AiErrorMessage = "AI commit message service is not available.",
-                IsAiErrorSettingsActionVisible = false
+                AiErrorMessage = CommitLogStrings.AiServiceUnavailableError,
+                IsAiErrorSettingsActionVisible = false,
+                IsAiRetrying = false
             });
             return;
         }
+
+        _aiCancellationTokenSource?.Cancel();
+        _aiCancellationTokenSource?.Dispose();
+        _aiCancellationTokenSource = new CancellationTokenSource();
+        CancellationToken cancellationToken = _aiCancellationTokenSource.Token;
 
         UpdateState(s => s with
         {
             IsGeneratingAiCommit = true,
             AiErrorMessage = null,
-            IsAiErrorSettingsActionVisible = false
+            IsAiErrorSettingsActionVisible = false,
+            IsAiRetrying = false
         });
+
+        _appStatusService?.SetInProgress(CommitLogStrings.GeneratingAiCommitMessage);
+
+        SynchronousProgress<AiRetryAttempt> progress = new(HandleAiRetryProgress);
 
         try
         {
-            string proposal = await _aiCommitMessageService.GenerateCommitMessageAsync(State.RepositoryPath);
+            string proposal = await _aiCommitMessageService.GenerateCommitMessageAsync(
+                State.RepositoryPath,
+                progress,
+                cancellationToken);
+
             string sanitizedProposal = IAiCommitMessageService.TruncateCommitSubject(proposal);
+
             UpdateState(s => s with
             {
                 CommitMessageInput = sanitizedProposal,
                 IsGeneratingAiCommit = false,
                 AiErrorMessage = null,
-                IsAiErrorSettingsActionVisible = false
+                IsAiErrorSettingsActionVisible = false,
+                IsAiRetrying = false
             });
+
+            _appStatusService?.SetSuccess(CommitLogStrings.AiCommitMessageGeneratedSuccess, TimeSpan.FromSeconds(3));
+        }
+        catch (OperationCanceledException)
+        {
+            UpdateState(s => s with
+            {
+                IsGeneratingAiCommit = false,
+                AiErrorMessage = null,
+                IsAiErrorSettingsActionVisible = false,
+                IsAiRetrying = false
+            });
+
+            _appStatusService?.SetReady();
         }
         catch (Exception ex)
         {
@@ -737,24 +779,88 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
             {
                 IsGeneratingAiCommit = false,
                 AiErrorMessage = ex.Message,
-                IsAiErrorSettingsActionVisible = isMissingApiKey
+                IsAiErrorSettingsActionVisible = isMissingApiKey,
+                IsAiRetrying = false
             });
+
+            _appStatusService?.SetError(ex.Message, TimeSpan.FromSeconds(5));
         }
+    }
+
+    private void HandleAiRetryProgress(AiRetryAttempt retry)
+    {
+        if (!State.IsGeneratingAiCommit)
+        {
+            return;
+        }
+
+        string message = FormatRetryProgressMessage(retry);
+
+        UpdateState(s => s with
+        {
+            AiErrorMessage = message,
+            IsAiRetrying = true,
+            IsAiErrorSettingsActionVisible = false
+        });
+
+        _appStatusService?.SetInProgress(message);
+    }
+
+    private sealed class SynchronousProgress<T> : IProgress<T>
+    {
+        private readonly Action<T> _handler;
+
+        public SynchronousProgress(Action<T> handler)
+        {
+            _handler = handler;
+        }
+
+        public void Report(T value) => _handler(value);
+    }
+
+    private static string FormatRetryProgressMessage(AiRetryAttempt retry)
+    {
+        if (retry.IsWaiting)
+        {
+            int seconds = Math.Max(1, (int)Math.Ceiling(retry.Delay.TotalSeconds));
+            return string.Format(
+                CommitLogStrings.AiRateLimitRetryingCountdown,
+                seconds,
+                retry.AttemptNumber,
+                retry.MaxRetries);
+        }
+
+        return string.Format(
+            CommitLogStrings.AiRateLimitRetryingAttempt,
+            retry.AttemptNumber,
+            retry.MaxRetries);
     }
 
     [ReactiveCommand]
     private void DismissAiError()
     {
+        _aiCancellationTokenSource?.Cancel();
+
         UpdateState(s => s with
         {
             AiErrorMessage = null,
-            IsAiErrorSettingsActionVisible = false
+            IsAiErrorSettingsActionVisible = false,
+            IsAiRetrying = false
         });
+
+        _appStatusService?.SetReady();
     }
 
-    [ReactiveCommand]
+    [ReactiveCommand(CanExecute = nameof(CanCommit))]
     private async Task ExecuteCommit()
     {
+        if (State.ActiveProfile == null)
+        {
+            UpdateState(s => s with { ErrorMessage = CommitLogStrings.ProfileRequiredToCommit });
+            _appStatusService?.SetError(CommitLogStrings.ProfileRequiredToCommit);
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(State.CommitMessageInput))
         {
             UpdateState(s => s with { ErrorMessage = "Commit message cannot be empty." });
@@ -766,12 +872,12 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
 
         try
         {
-            string authorName = !string.IsNullOrWhiteSpace(State.ActiveProfile?.Author?.Name)
+            string authorName = !string.IsNullOrWhiteSpace(State.ActiveProfile.Author?.Name)
                 ? State.ActiveProfile.Author.Name
-                : "GitWerka User";
-            string authorEmail = !string.IsNullOrWhiteSpace(State.ActiveProfile?.Author?.Email)
+                : State.ActiveProfile.Name;
+            string authorEmail = !string.IsNullOrWhiteSpace(State.ActiveProfile.Author?.Email)
                 ? State.ActiveProfile.Author.Email
-                : "user@gitwerka.local";
+                : $"{State.ActiveProfile.Name.ToLowerInvariant().Replace(' ', '.')}@gitwerka.local";
 
             await _gitService.CreateCommitAsync(
                 State.RepositoryPath,

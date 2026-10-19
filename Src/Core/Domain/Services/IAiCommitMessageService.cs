@@ -1,7 +1,9 @@
 namespace GitWerka.Core.Domain.Services;
 
+using System;
 using System.Threading;
 using System.Threading.Tasks;
+using GitWerka.Core.Domain.Models;
 
 /// <summary>
 /// Service contract for generating commit messages using artificial intelligence.
@@ -48,11 +50,27 @@ public interface IAiCommitMessageService
     }
 
     /// <summary>
+    /// Generates a suggested commit message based on staged git changes and configured context, with optional retry reporting.
+    /// Usages: CommitLogViewModel.
+    /// </summary>
+    /// <param name="repositoryPath">Directory path of the Git repository.</param>
+    /// <param name="retryProgress">Optional progress sink for tracking automatic retry attempts.</param>
+    /// <param name="cancellationToken">Cancellation token for async operation.</param>
+    /// <returns>Suggested commit message text.</returns>
+    Task<string> GenerateCommitMessageAsync(
+        string repositoryPath,
+        IProgress<AiRetryAttempt>? retryProgress,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Generates a suggested commit message based on staged git changes and configured context.
     /// Usages: CommitLogViewModel.
     /// </summary>
     /// <param name="repositoryPath">Directory path of the Git repository.</param>
     /// <param name="cancellationToken">Cancellation token for async operation.</param>
     /// <returns>Suggested commit message text.</returns>
-    Task<string> GenerateCommitMessageAsync(string repositoryPath, CancellationToken cancellationToken = default);
+    Task<string> GenerateCommitMessageAsync(
+        string repositoryPath,
+        CancellationToken cancellationToken = default) =>
+        GenerateCommitMessageAsync(repositoryPath, null, cancellationToken);
 }
