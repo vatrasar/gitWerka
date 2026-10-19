@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using GitWerka.Core.Domain.Models;
 using GitWerka.Core.Domain.Services;
 using GitWerka.Core.Mvvm;
+using GitWerka.Features.MergeRebase.Resources;
 using ReactiveUI;
 using ReactiveUI.SourceGenerators;
 
@@ -43,8 +44,8 @@ public partial class ConflictResolverViewModel : ViewModelBase<ConflictResolverS
     }
 
     /// <summary>
-    /// Toggles selection of the Ours (local) changes for the specified conflict hunk.
-    /// Usages: ConflictResolverView.
+    /// Toggles selection of the entire Ours (local) changes for the specified conflict hunk.
+    /// Usages: ConflictResolverView, ConflictResolverViewModelTests.
     /// </summary>
     /// <param name="hunkIndex">The 1-based index of the conflict hunk.</param>
     public void ToggleHunkOurs(int hunkIndex)
@@ -54,13 +55,37 @@ public partial class ConflictResolverViewModel : ViewModelBase<ConflictResolverS
     }
 
     /// <summary>
-    /// Toggles selection of the Theirs (remote) changes for the specified conflict hunk.
-    /// Usages: ConflictResolverView.
+    /// Toggles selection of the entire Theirs (remote) changes for the specified conflict hunk.
+    /// Usages: ConflictResolverView, ConflictResolverViewModelTests.
     /// </summary>
     /// <param name="hunkIndex">The 1-based index of the conflict hunk.</param>
     public void ToggleHunkTheirs(int hunkIndex)
     {
         var updatedChunks = UpdateChunkSelection(State.Chunks, hunkIndex, toggleOurs: false);
+        RefreshDisplayState(updatedChunks, State.ActiveConflictIndex);
+    }
+
+    /// <summary>
+    /// Toggles selection of an individual line from Ours (local) in the specified conflict hunk.
+    /// Usages: ConflictResolverView, ConflictResolverViewModelTests.
+    /// </summary>
+    /// <param name="hunkIndex">The 1-based index of the conflict hunk.</param>
+    /// <param name="lineIndex">The 0-based index of the line within the hunk Ours lines.</param>
+    public void ToggleOursLine(int hunkIndex, int lineIndex)
+    {
+        var updatedChunks = ToggleChunkLine(State.Chunks, hunkIndex, lineIndex, isOurs: true);
+        RefreshDisplayState(updatedChunks, State.ActiveConflictIndex);
+    }
+
+    /// <summary>
+    /// Toggles selection of an individual line from Theirs (remote) in the specified conflict hunk.
+    /// Usages: ConflictResolverView, ConflictResolverViewModelTests.
+    /// </summary>
+    /// <param name="hunkIndex">The 1-based index of the conflict hunk.</param>
+    /// <param name="lineIndex">The 0-based index of the line within the hunk Theirs lines.</param>
+    public void ToggleTheirsLine(int hunkIndex, int lineIndex)
+    {
+        var updatedChunks = ToggleChunkLine(State.Chunks, hunkIndex, lineIndex, isOurs: false);
         RefreshDisplayState(updatedChunks, State.ActiveConflictIndex);
     }
 
@@ -74,18 +99,33 @@ public partial class ConflictResolverViewModel : ViewModelBase<ConflictResolverS
         UpdateState(s => s with { MergedOutputText = newText });
     }
 
+    /// <summary>
+    /// Resets the merged output text to match the currently selected conflict lines.
+    /// Usages: ConflictResolverView.
+    /// </summary>
+    public void ResetOutputToSelection()
+    {
+        var (outputLines, mergedText) = BuildOutput(State.Chunks);
+        UpdateState(s => s with
+        {
+            OutputDisplayLines = outputLines,
+            MergedOutputText = mergedText
+        });
+    }
+
     [ReactiveCommand]
     private async Task LoadData()
     {
         try
         {
             ConflictFileModel model = await _gitService.GetConflictFileAsync(State.RepositoryPath, State.FilePath);
-            var (outputLines, mergedText) = BuildOutput(model.Chunks);
-            var oursLines = BuildOursLines(model.Chunks);
-            var theirsLines = BuildTheirsLines(model.Chunks);
+            var normalizedChunks = NormalizeChunks(model.Chunks);
+            var (outputLines, mergedText) = BuildOutput(normalizedChunks);
+            var oursLines = BuildOursLines(normalizedChunks);
+            var theirsLines = BuildTheirsLines(normalizedChunks);
 
-            bool allOurs = model.TotalConflicts > 0 && model.Chunks.Where(c => c.IsConflict).All(c => c.IsOursSelected);
-            bool allTheirs = model.TotalConflicts > 0 && model.Chunks.Where(c => c.IsConflict).All(c => c.IsTheirsSelected);
+            bool allOurs = model.TotalConflicts > 0 && normalizedChunks.Where(c => c.IsConflict).All(c => c.IsOursSelected);
+            bool allTheirs = model.TotalConflicts > 0 && normalizedChunks.Where(c => c.IsConflict).All(c => c.IsTheirsSelected);
 
             UpdateState(s => s with
             {
@@ -95,7 +135,7 @@ public partial class ConflictResolverViewModel : ViewModelBase<ConflictResolverS
                 OursBranch = model.OursBranch,
                 TheirsCommitSha = model.TheirsCommitSha,
                 TheirsBranch = model.TheirsBranch,
-                Chunks = model.Chunks,
+                Chunks = normalizedChunks,
                 OursDisplayLines = oursLines,
                 TheirsDisplayLines = theirsLines,
                 OutputDisplayLines = outputLines,
@@ -116,7 +156,7 @@ public partial class ConflictResolverViewModel : ViewModelBase<ConflictResolverS
     {
         bool targetValue = !State.IsAllOursChecked;
         var updated = State.Chunks.Select(c => c.IsConflict
-            ? c with { IsOursSelected = targetValue }
+            ? SetAllLinesSelection(c, isOurs: true, select: targetValue)
             : c).ToImmutableList();
 
         RefreshDisplayState(updated, State.ActiveConflictIndex);
@@ -127,7 +167,7 @@ public partial class ConflictResolverViewModel : ViewModelBase<ConflictResolverS
     {
         bool targetValue = !State.IsAllTheirsChecked;
         var updated = State.Chunks.Select(c => c.IsConflict
-            ? c with { IsTheirsSelected = targetValue }
+            ? SetAllLinesSelection(c, isOurs: false, select: targetValue)
             : c).ToImmutableList();
 
         RefreshDisplayState(updated, State.ActiveConflictIndex);
@@ -201,6 +241,88 @@ public partial class ConflictResolverViewModel : ViewModelBase<ConflictResolverS
         });
     }
 
+    private static ImmutableList<ConflictFileChunk> NormalizeChunks(ImmutableList<ConflictFileChunk> chunks)
+    {
+        return chunks.Select(chunk =>
+        {
+            if (!chunk.IsConflict)
+            {
+                return chunk;
+            }
+
+            if (chunk.SelectedLines.Count > 0)
+            {
+                return chunk;
+            }
+
+            var selected = new List<ConflictSelectedLine>();
+            if (chunk.IsOursSelected)
+            {
+                for (int i = 0; i < chunk.OursLines.Count; i++)
+                {
+                    selected.Add(new ConflictSelectedLine { IsOurs = true, LineIndex = i, Text = chunk.OursLines[i] });
+                }
+            }
+
+            if (chunk.IsTheirsSelected)
+            {
+                for (int i = 0; i < chunk.TheirsLines.Count; i++)
+                {
+                    selected.Add(new ConflictSelectedLine { IsOurs = false, LineIndex = i, Text = chunk.TheirsLines[i] });
+                }
+            }
+
+            return chunk with { SelectedLines = selected.ToImmutableList() };
+        }).ToImmutableList();
+    }
+
+    private static ImmutableList<ConflictFileChunk> ToggleChunkLine(
+        ImmutableList<ConflictFileChunk> chunks,
+        int hunkIndex,
+        int lineIndex,
+        bool isOurs)
+    {
+        return chunks.Select(chunk =>
+        {
+            if (!chunk.IsConflict || chunk.HunkIndex != hunkIndex)
+            {
+                return chunk;
+            }
+
+            return ToggleLineInChunk(chunk, lineIndex, isOurs);
+        }).ToImmutableList();
+    }
+
+    private static ConflictFileChunk ToggleLineInChunk(ConflictFileChunk chunk, int lineIndex, bool isOurs)
+    {
+        var existing = chunk.SelectedLines.FirstOrDefault(s => s.IsOurs == isOurs && s.LineIndex == lineIndex);
+        if (existing != null)
+        {
+            var updated = chunk.SelectedLines.Remove(existing);
+            return chunk with
+            {
+                SelectedLines = updated,
+                IsOursSelected = updated.Any(s => s.IsOurs),
+                IsTheirsSelected = updated.Any(s => !s.IsOurs)
+            };
+        }
+
+        string text = isOurs ? chunk.OursLines[lineIndex] : chunk.TheirsLines[lineIndex];
+        var added = chunk.SelectedLines.Add(new ConflictSelectedLine
+        {
+            IsOurs = isOurs,
+            LineIndex = lineIndex,
+            Text = text
+        });
+
+        return chunk with
+        {
+            SelectedLines = added,
+            IsOursSelected = added.Any(s => s.IsOurs),
+            IsTheirsSelected = added.Any(s => !s.IsOurs)
+        };
+    }
+
     private static ImmutableList<ConflictFileChunk> UpdateChunkSelection(
         ImmutableList<ConflictFileChunk> chunks,
         int hunkIndex,
@@ -213,10 +335,43 @@ public partial class ConflictResolverViewModel : ViewModelBase<ConflictResolverS
                 return c;
             }
 
-            return toggleOurs
-                ? c with { IsOursSelected = !c.IsOursSelected }
-                : c with { IsTheirsSelected = !c.IsTheirsSelected };
+            return ToggleHunkSelection(c, toggleOurs);
         }).ToImmutableList();
+    }
+
+    private static ConflictFileChunk ToggleHunkSelection(ConflictFileChunk chunk, bool isOurs)
+    {
+        var lineList = isOurs ? chunk.OursLines : chunk.TheirsLines;
+        bool allSelected = lineList.Count > 0 && lineList.Select((_, idx) => idx)
+            .All(idx => chunk.SelectedLines.Any(s => s.IsOurs == isOurs && s.LineIndex == idx));
+
+        return SetAllLinesSelection(chunk, isOurs, !allSelected);
+    }
+
+    private static ConflictFileChunk SetAllLinesSelection(ConflictFileChunk chunk, bool isOurs, bool select)
+    {
+        var filtered = chunk.SelectedLines.Where(s => s.IsOurs != isOurs).ToList();
+        if (select)
+        {
+            var lines = isOurs ? chunk.OursLines : chunk.TheirsLines;
+            for (int i = 0; i < lines.Count; i++)
+            {
+                filtered.Add(new ConflictSelectedLine
+                {
+                    IsOurs = isOurs,
+                    LineIndex = i,
+                    Text = lines[i]
+                });
+            }
+        }
+
+        var result = filtered.ToImmutableList();
+        return chunk with
+        {
+            SelectedLines = result,
+            IsOursSelected = result.Any(s => s.IsOurs),
+            IsTheirsSelected = result.Any(s => !s.IsOurs)
+        };
     }
 
     private ImmutableList<ConflictLineDisplay> BuildOursLines(ImmutableList<ConflictFileChunk> chunks)
@@ -239,21 +394,33 @@ public partial class ConflictResolverViewModel : ViewModelBase<ConflictResolverS
             return AppendCommonLines(chunk.CommonLines, lines, lineCounter, isOurs: true);
         }
 
-        bool isFirst = true;
-        foreach (string text in chunk.OursLines)
+        int selectedCount = chunk.SelectedLines.Count(s => s.IsOurs);
+        bool allSelected = chunk.OursLines.Count > 0 && selectedCount == chunk.OursLines.Count;
+        bool? hunkChecked = allSelected ? true : (selectedCount > 0 ? null : false);
+        string hunkTooltip = allSelected ? MergeRebaseStrings.DontTakeHunkTooltip : MergeRebaseStrings.TakeHunkTooltip;
+        var toggleHunkCommand = ReactiveCommand.Create(() => ToggleHunkOurs(chunk.HunkIndex));
+
+        for (int i = 0; i < chunk.OursLines.Count; i++)
         {
+            int lineIndex = i;
+            string text = chunk.OursLines[i];
+            bool isSelected = chunk.SelectedLines.Any(s => s.IsOurs && s.LineIndex == lineIndex);
             lines.Add(new ConflictLineDisplay
             {
                 LineNumber = lineCounter++.ToString(),
                 Text = text,
                 IsConflict = true,
-                IsHunkFirstLine = isFirst,
+                IsHunkFirstLine = i == 0,
                 HunkIndex = chunk.HunkIndex,
-                IsSelected = chunk.IsOursSelected,
+                LineIndex = lineIndex,
+                IsSelected = isSelected,
                 IsOurs = true,
-                ToggleCommand = ReactiveCommand.Create(() => ToggleHunkOurs(chunk.HunkIndex))
+                IsHunkChecked = i == 0 ? hunkChecked : false,
+                HunkTooltip = i == 0 ? hunkTooltip : string.Empty,
+                ActionTooltip = isSelected ? MergeRebaseStrings.DontTakeLineTooltip : MergeRebaseStrings.TakeLineTooltip,
+                ToggleCommand = ReactiveCommand.Create(() => ToggleOursLine(chunk.HunkIndex, lineIndex)),
+                ToggleHunkCommand = i == 0 ? toggleHunkCommand : null
             });
-            isFirst = false;
         }
 
         return lineCounter;
@@ -279,21 +446,33 @@ public partial class ConflictResolverViewModel : ViewModelBase<ConflictResolverS
             return AppendCommonLines(chunk.CommonLines, lines, lineCounter, isOurs: false);
         }
 
-        bool isFirst = true;
-        foreach (string text in chunk.TheirsLines)
+        int selectedCount = chunk.SelectedLines.Count(s => !s.IsOurs);
+        bool allSelected = chunk.TheirsLines.Count > 0 && selectedCount == chunk.TheirsLines.Count;
+        bool? hunkChecked = allSelected ? true : (selectedCount > 0 ? null : false);
+        string hunkTooltip = allSelected ? MergeRebaseStrings.DontTakeHunkTooltip : MergeRebaseStrings.TakeHunkTooltip;
+        var toggleHunkCommand = ReactiveCommand.Create(() => ToggleHunkTheirs(chunk.HunkIndex));
+
+        for (int i = 0; i < chunk.TheirsLines.Count; i++)
         {
+            int lineIndex = i;
+            string text = chunk.TheirsLines[i];
+            bool isSelected = chunk.SelectedLines.Any(s => !s.IsOurs && s.LineIndex == lineIndex);
             lines.Add(new ConflictLineDisplay
             {
                 LineNumber = lineCounter++.ToString(),
                 Text = text,
                 IsConflict = true,
-                IsHunkFirstLine = isFirst,
+                IsHunkFirstLine = i == 0,
                 HunkIndex = chunk.HunkIndex,
-                IsSelected = chunk.IsTheirsSelected,
+                LineIndex = lineIndex,
+                IsSelected = isSelected,
                 IsOurs = false,
-                ToggleCommand = ReactiveCommand.Create(() => ToggleHunkTheirs(chunk.HunkIndex))
+                IsHunkChecked = i == 0 ? hunkChecked : false,
+                HunkTooltip = i == 0 ? hunkTooltip : string.Empty,
+                ActionTooltip = isSelected ? MergeRebaseStrings.DontTakeLineTooltip : MergeRebaseStrings.TakeLineTooltip,
+                ToggleCommand = ReactiveCommand.Create(() => ToggleTheirsLine(chunk.HunkIndex, lineIndex)),
+                ToggleHunkCommand = i == 0 ? toggleHunkCommand : null
             });
-            isFirst = false;
         }
 
         return lineCounter;
@@ -314,8 +493,12 @@ public partial class ConflictResolverViewModel : ViewModelBase<ConflictResolverS
                 IsConflict = false,
                 IsHunkFirstLine = false,
                 HunkIndex = 0,
+                LineIndex = -1,
                 IsSelected = false,
-                IsOurs = isOurs
+                IsOurs = isOurs,
+                IsHunkChecked = false,
+                ActionTooltip = string.Empty,
+                HunkTooltip = string.Empty
             });
         }
 
@@ -347,14 +530,17 @@ public partial class ConflictResolverViewModel : ViewModelBase<ConflictResolverS
             return AppendOutputCommonLines(chunk.CommonLines, lines, textBuilder, lineCounter);
         }
 
-        if (chunk.IsOursSelected)
+        foreach (ConflictSelectedLine selected in chunk.SelectedLines)
         {
-            lineCounter = AppendOutputConflictLines(chunk.OursLines, lines, textBuilder, lineCounter, fromOurs: true, fromTheirs: false);
-        }
-
-        if (chunk.IsTheirsSelected)
-        {
-            lineCounter = AppendOutputConflictLines(chunk.TheirsLines, lines, textBuilder, lineCounter, fromOurs: false, fromTheirs: true);
+            lines.Add(new ConflictOutputLineDisplay
+            {
+                LineNumber = lineCounter++.ToString(),
+                Text = selected.Text,
+                IsConflict = true,
+                IsFromOurs = selected.IsOurs,
+                IsFromTheirs = !selected.IsOurs
+            });
+            textBuilder.AppendLine(selected.Text);
         }
 
         return lineCounter;
@@ -373,30 +559,6 @@ public partial class ConflictResolverViewModel : ViewModelBase<ConflictResolverS
                 LineNumber = lineCounter++.ToString(),
                 Text = text,
                 IsConflict = false
-            });
-            textBuilder.AppendLine(text);
-        }
-
-        return lineCounter;
-    }
-
-    private static int AppendOutputConflictLines(
-        ImmutableList<string> hunkLines,
-        List<ConflictOutputLineDisplay> lines,
-        StringBuilder textBuilder,
-        int lineCounter,
-        bool fromOurs,
-        bool fromTheirs)
-    {
-        foreach (string text in hunkLines)
-        {
-            lines.Add(new ConflictOutputLineDisplay
-            {
-                LineNumber = lineCounter++.ToString(),
-                Text = text,
-                IsConflict = true,
-                IsFromOurs = fromOurs,
-                IsFromTheirs = fromTheirs
             });
             textBuilder.AppendLine(text);
         }

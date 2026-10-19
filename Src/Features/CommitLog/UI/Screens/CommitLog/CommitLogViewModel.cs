@@ -1426,7 +1426,7 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
 
                 await _applicationSettingsRepository.SaveSettingsAsync(new ApplicationSettings
                 {
-                    MaxVisibleBranches = maxBranches
+                    MaxVisibleBranches = maxBranches,
                     DefaultProjectsDirectory = trimmedDir
                 });
             }

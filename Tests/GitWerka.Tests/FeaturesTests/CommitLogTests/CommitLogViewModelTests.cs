@@ -2201,20 +2201,6 @@ public class CommitLogViewModelTests
         Assert.Equal(9, appSettingsRepo.Settings.MaxVisibleBranches);
         Assert.Equal("/new/projects", appSettingsRepo.Settings.DefaultProjectsDirectory);
     }
-
-    private class MockApplicationSettingsRepository : IApplicationSettingsRepository
-    {
-        public ApplicationSettings Settings { get; set; } = new();
-
-        public Task<ApplicationSettings> GetSettingsAsync(CancellationToken cancellationToken = default) =>
-            Task.FromResult(Settings);
-
-        public Task SaveSettingsAsync(ApplicationSettings settings, CancellationToken cancellationToken = default)
-        {
-            Settings = settings;
-            return Task.CompletedTask;
-        }
-    }
 }
 
 

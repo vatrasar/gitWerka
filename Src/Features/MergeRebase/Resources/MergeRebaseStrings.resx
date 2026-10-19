@@ -104,4 +104,22 @@
   <data name="EditOutputToggle" xml:space="preserve">
     <value>Edit Output</value>
   </data>
+  <data name="TakeLineTooltip" xml:space="preserve">
+    <value>Take this line</value>
+  </data>
+  <data name="DontTakeLineTooltip" xml:space="preserve">
+    <value>Don't take this line</value>
+  </data>
+  <data name="ResetOutputButton" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="ResetOutputTooltip" xml:space="preserve">
+    <value>Reset output to selected conflict lines</value>
+  </data>
+  <data name="TakeHunkTooltip" xml:space="preserve">
+    <value>Take block</value>
+  </data>
+  <data name="DontTakeHunkTooltip" xml:space="preserve">
+    <value>Don't take block</value>
+  </data>
 </root>
