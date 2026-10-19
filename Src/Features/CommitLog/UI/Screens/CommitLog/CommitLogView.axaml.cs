@@ -1055,7 +1055,7 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
         }
     }
 
-    private async Task<string?> PickFolderAsync()
+    private async Task<string?> PickFolderAsync(string? suggestedPath = null)
     {
         TopLevel? topLevel = TopLevel.GetTopLevel(this);
         if (topLevel == null)
@@ -1063,10 +1063,21 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
             return null;
         }
 
+        IStorageFolder? startLocation = null;
+        string? effectivePath = !string.IsNullOrWhiteSpace(suggestedPath)
+            ? suggestedPath
+            : ViewModel?.State.DefaultProjectsDirectory;
+
+        if (!string.IsNullOrWhiteSpace(effectivePath) && Directory.Exists(effectivePath))
+        {
+            startLocation = await topLevel.StorageProvider.TryGetFolderFromPathAsync(effectivePath);
+        }
+
         IReadOnlyList<IStorageFolder> folders = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
         {
             Title = "Select Git Repository Directory",
-            AllowMultiple = false
+            AllowMultiple = false,
+            SuggestedStartLocation = startLocation
         });
 
         if (folders.Count == 0)

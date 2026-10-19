@@ -66,6 +66,7 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
         _appStatusService = appStatusService ?? Locator.Current.GetService<IAppStatusService>();
 
         LoadRepositoryDataCommand.Execute().Subscribe();
+        LoadApplicationSettingsCommand.Execute().Subscribe();
     }
 
     /// <summary>
@@ -1312,6 +1313,22 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
     }
 
     [ReactiveCommand]
+    private async Task LoadApplicationSettings()
+    {
+        if (_applicationSettingsRepository == null)
+        {
+            return;
+        }
+
+        ApplicationSettings settings = await _applicationSettingsRepository.GetSettingsAsync();
+        UpdateState(s => s with
+        {
+            DefaultProjectsDirectory = settings.DefaultProjectsDirectory ?? string.Empty,
+            DefaultProjectsDirectoryInput = settings.DefaultProjectsDirectory ?? string.Empty
+        });
+    }
+
+    [ReactiveCommand]
     private async Task ShowSettingsModal()
     {
         try
@@ -1320,13 +1337,14 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
             (AiConfiguration aiConfig, string? projectDesc) = await LoadAiSettingsAsync();
             ApplicationSettings appSettings = _applicationSettingsRepository != null
                 ? await _applicationSettingsRepository.GetSettingsAsync()
-                : new ApplicationSettings();
+                : new ApplicationSettings { DefaultProjectsDirectory = State.DefaultProjectsDirectory };
 
             UpdateState(s => s with
             {
                 IsSettingsModalVisible = true,
                 ConfigUserNameInput = config.UserName,
                 ConfigUserEmailInput = config.UserEmail,
+                DefaultProjectsDirectory = appSettings.DefaultProjectsDirectory,
                 DefaultProjectsDirectoryInput = appSettings.DefaultProjectsDirectory,
                 AiApiKeyInput = aiConfig.ApiKey ?? string.Empty,
                 AiModelInput = aiConfig.Model,
@@ -1371,13 +1389,19 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
                 State.ConfigUserNameInput.Trim(),
                 State.ConfigUserEmailInput.Trim());
 
+            string trimmedDir = State.DefaultProjectsDirectoryInput?.Trim() ?? string.Empty;
             if (_applicationSettingsRepository != null)
             {
                 await _applicationSettingsRepository.SaveSettingsAsync(new ApplicationSettings
                 {
-                    DefaultProjectsDirectory = State.DefaultProjectsDirectoryInput.Trim()
+                    DefaultProjectsDirectory = trimmedDir
                 });
             }
+
+            UpdateState(s => s with
+            {
+                DefaultProjectsDirectory = trimmedDir
+            });
 
             await SaveAiSettingsAsync();
         }
