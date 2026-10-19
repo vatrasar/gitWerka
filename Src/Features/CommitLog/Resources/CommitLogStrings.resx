@@ -532,4 +532,40 @@
   <data name="MergingBranchFormat" xml:space="preserve">
     <value>Merging {0} into {1}</value>
   </data>
+  <data name="PushingChanges" xml:space="preserve">
+    <value>Pushing changes...</value>
+  </data>
+  <data name="PushSucceeded" xml:space="preserve">
+    <value>Push completed successfully.</value>
+  </data>
+  <data name="PushFailed" xml:space="preserve">
+    <value>Push failed</value>
+  </data>
+  <data name="CommittingChanges" xml:space="preserve">
+    <value>Creating commit...</value>
+  </data>
+  <data name="CommitSucceeded" xml:space="preserve">
+    <value>Commit created successfully.</value>
+  </data>
+  <data name="CommitFailed" xml:space="preserve">
+    <value>Commit failed</value>
+  </data>
+  <data name="FetchingRemotes" xml:space="preserve">
+    <value>Fetching remote changes...</value>
+  </data>
+  <data name="FetchSucceeded" xml:space="preserve">
+    <value>Fetch completed successfully.</value>
+  </data>
+  <data name="FetchFailed" xml:space="preserve">
+    <value>Fetch failed</value>
+  </data>
+  <data name="PullingChanges" xml:space="preserve">
+    <value>Pulling changes...</value>
+  </data>
+  <data name="PullSucceeded" xml:space="preserve">
+    <value>Pull completed successfully.</value>
+  </data>
+  <data name="PullFailed" xml:space="preserve">
+    <value>Pull failed</value>
+  </data>
 </root>

@@ -6,8 +6,10 @@ using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using GitWerka.Core.Domain.Enums;
 using GitWerka.Core.Domain.Models;
 using GitWerka.Core.Domain.RepositoryContracts;
+using GitWerka.Core.Domain.Services;
 using GitWerka.Core.Mvvm;
 using GitWerka.Features.CommitLog.UI.Screens.CommitLog;
 using GitWerka.Features.ProfileManagement.UI.Screens.ProfileManagement;
@@ -22,6 +24,7 @@ using Splat;
 public partial class HostViewModel : ViewModelBase<HostState>, IRoutableViewModel
 {
     private readonly IProfileRepository? _profileRepository;
+    private readonly IAppStatusService? _appStatusService;
     private IDisposable? _commitLogSubscription;
 
     public string? UrlPathSegment => "host";
@@ -30,14 +33,28 @@ public partial class HostViewModel : ViewModelBase<HostState>, IRoutableViewMode
 
     public RoutingState Router => HostScreen.Router;
 
-    public HostViewModel(IScreen hostScreen, IProfileRepository? profileRepository = null)
+    public HostViewModel(
+        IScreen hostScreen,
+        IProfileRepository? profileRepository = null,
+        IAppStatusService? appStatusService = null)
         : base(new HostState { AppVersion = ResolveAppVersion() })
     {
         HostScreen = hostScreen;
         _profileRepository = profileRepository ?? Locator.Current.GetService<IProfileRepository>();
+        _appStatusService = appStatusService ?? Locator.Current.GetService<IAppStatusService>();
 
         Router.CurrentViewModel
             .Subscribe(Observer.Create<IRoutableViewModel?>(OnCurrentViewModelChanged));
+
+        _appStatusService?.Status
+            .Subscribe(Observer.Create<AppStatus>(status =>
+            {
+                UpdateState(s => s with
+                {
+                    StatusMessage = status.Message,
+                    StatusSeverity = status.Severity
+                });
+            }));
     }
 
     /// <summary>
@@ -61,9 +78,39 @@ public partial class HostViewModel : ViewModelBase<HostState>, IRoutableViewMode
     /// Usages: HostView / Global notifications.
     /// </summary>
     /// <param name="message">Status message text.</param>
-    public void SetStatusMessage(string message)
+    /// <param name="severity">Optional severity level.</param>
+    public void SetStatusMessage(string message, AppStatusSeverity severity = AppStatusSeverity.Ready)
     {
-        UpdateState(s => s with { StatusMessage = message ?? "Ready" });
+        if (_appStatusService != null)
+        {
+            ForwardStatusToService(message, severity);
+            return;
+        }
+
+        UpdateState(s => s with
+        {
+            StatusMessage = message ?? "Ready",
+            StatusSeverity = severity
+        });
+    }
+
+    private void ForwardStatusToService(string message, AppStatusSeverity severity)
+    {
+        switch (severity)
+        {
+            case AppStatusSeverity.InProgress:
+                _appStatusService?.SetInProgress(message);
+                break;
+            case AppStatusSeverity.Success:
+                _appStatusService?.SetSuccess(message);
+                break;
+            case AppStatusSeverity.Error:
+                _appStatusService?.SetError(message);
+                break;
+            default:
+                _appStatusService?.SetReady(message);
+                break;
+        }
     }
 
     /// <summary>

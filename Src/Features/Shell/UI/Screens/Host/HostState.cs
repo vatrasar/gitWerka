@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using GitWerka.Core.Domain.Enums;
 using GitWerka.Core.Domain.Models;
 
 namespace GitWerka.Features.Shell.UI.Screens.Host;
@@ -15,6 +16,16 @@ public record HostState
     public bool IsRepositoryLoaded { get; init; }
 
     public string StatusMessage { get; init; } = "Ready";
+
+    public AppStatusSeverity StatusSeverity { get; init; } = AppStatusSeverity.Ready;
+
+    public bool IsStatusInProgress => StatusSeverity == AppStatusSeverity.InProgress;
+
+    public bool IsStatusSuccess => StatusSeverity == AppStatusSeverity.Success;
+
+    public bool IsStatusError => StatusSeverity == AppStatusSeverity.Error;
+
+    public bool IsStatusReady => StatusSeverity == AppStatusSeverity.Ready;
 
     public ImmutableList<GitProfile> AvailableProfiles { get; init; } = ImmutableList<GitProfile>.Empty;
 

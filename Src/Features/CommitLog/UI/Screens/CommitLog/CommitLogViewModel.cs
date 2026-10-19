@@ -14,6 +14,7 @@ using GitWerka.Core.Domain.RepositoryContracts;
 using GitWerka.Core.Domain.Services;
 using GitWerka.Core.Mvvm;
 using GitWerka.Features.CommitLog.Domain.Enums;
+using GitWerka.Features.CommitLog.Resources;
 using GitWerka.Features.MergeRebase.UI.Screens.ConflictResolver;
 using GitWerka.Features.ProfileManagement.UI.Screens.ProfileManagement;
 using ReactiveUI;
@@ -32,6 +33,7 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
     private readonly IAiCommitMessageService? _aiCommitMessageService;
     private readonly IAiConfigurationRepository? _aiConfigurationRepository;
     private readonly IApplicationSettingsRepository? _applicationSettingsRepository;
+    private readonly IAppStatusService? _appStatusService;
 
     public string? UrlPathSegment => "commit-log";
 
@@ -46,7 +48,8 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
         IRecentRepositoriesRepository? recentRepositoriesRepository = null,
         IAiCommitMessageService? aiCommitMessageService = null,
         IAiConfigurationRepository? aiConfigurationRepository = null,
-        IApplicationSettingsRepository? applicationSettingsRepository = null) : base(new CommitLogState
+        IApplicationSettingsRepository? applicationSettingsRepository = null,
+        IAppStatusService? appStatusService = null) : base(new CommitLogState
         {
             RepositoryPath = repositoryPath,
             RepositoryName = new DirectoryInfo(repositoryPath).Name
@@ -60,6 +63,7 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
         _aiCommitMessageService = aiCommitMessageService ?? Locator.Current.GetService<IAiCommitMessageService>();
         _aiConfigurationRepository = aiConfigurationRepository ?? Locator.Current.GetService<IAiConfigurationRepository>();
         _applicationSettingsRepository = applicationSettingsRepository ?? Locator.Current.GetService<IApplicationSettingsRepository>();
+        _appStatusService = appStatusService ?? Locator.Current.GetService<IAppStatusService>();
 
         LoadRepositoryDataCommand.Execute().Subscribe();
     }
@@ -733,6 +737,7 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
         }
 
         UpdateState(s => s with { IsLoading = true, ErrorMessage = null });
+        _appStatusService?.SetInProgress(CommitLogStrings.CommittingChanges);
 
         try
         {
@@ -756,6 +761,7 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
                 IsAmendCommit = false
             });
             await LoadRepositoryData();
+            _appStatusService?.SetSuccess(CommitLogStrings.CommitSucceeded);
         }
         catch (Exception ex)
         {
@@ -764,6 +770,7 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
                 IsLoading = false,
                 ErrorMessage = ex.Message
             });
+            _appStatusService?.SetError($"{CommitLogStrings.CommitFailed}: {ex.Message}");
         }
     }
 
@@ -816,14 +823,17 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
     private async Task Fetch()
     {
         UpdateState(s => s with { IsLoading = true, ErrorMessage = null });
+        _appStatusService?.SetInProgress(CommitLogStrings.FetchingRemotes);
         try
         {
             await _gitService.FetchAsync(State.RepositoryPath);
             await LoadRepositoryData();
+            _appStatusService?.SetSuccess(CommitLogStrings.FetchSucceeded);
         }
         catch (Exception ex)
         {
             HandleRemoteOperationException(ex, RemoteOperationPending.Fetch);
+            _appStatusService?.SetError($"{CommitLogStrings.FetchFailed}: {ex.Message}");
         }
     }
 
@@ -873,14 +883,17 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
     private async Task Pull()
     {
         UpdateState(s => s with { IsLoading = true, ErrorMessage = null });
+        _appStatusService?.SetInProgress(CommitLogStrings.PullingChanges);
         try
         {
             await _gitService.PullAsync(State.RepositoryPath);
             await LoadRepositoryData();
+            _appStatusService?.SetSuccess(CommitLogStrings.PullSucceeded);
         }
         catch (Exception ex)
         {
             HandleRemoteOperationException(ex, RemoteOperationPending.Pull);
+            _appStatusService?.SetError($"{CommitLogStrings.PullFailed}: {ex.Message}");
         }
     }
 
@@ -888,6 +901,7 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
     private async Task Push()
     {
         UpdateState(s => s with { IsLoading = true, ErrorMessage = null });
+        _appStatusService?.SetInProgress(CommitLogStrings.PushingChanges);
         try
         {
             GitCredentials? credentials = null;
@@ -903,10 +917,12 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
 
             await _gitService.PushAsync(State.RepositoryPath, credentials: credentials);
             await LoadRepositoryData();
+            _appStatusService?.SetSuccess(CommitLogStrings.PushSucceeded);
         }
         catch (Exception ex)
         {
             HandleRemoteOperationException(ex, RemoteOperationPending.Push);
+            _appStatusService?.SetError($"{CommitLogStrings.PushFailed}: {ex.Message}");
         }
     }
 
@@ -921,6 +937,7 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
             CredentialsPasswordInput = string.Empty,
             CredentialsErrorMessage = null
         });
+        _appStatusService?.SetReady();
     }
 
     [ReactiveCommand]
@@ -935,6 +952,7 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
 
         GitCredentials credentials = BuildCredentialsFromState();
         UpdateState(s => s with { IsLoading = true, CredentialsErrorMessage = null });
+        SetRemoteOperationInProgress(pending);
 
         try
         {
@@ -947,6 +965,7 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
                 CredentialsPasswordInput = string.Empty
             });
             await LoadRepositoryData();
+            SetRemoteOperationSuccess(pending);
         }
         catch (Exception ex)
         {
@@ -955,6 +974,61 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
                 IsLoading = false,
                 CredentialsErrorMessage = ex.Message
             });
+            SetRemoteOperationFailed(pending, ex.Message);
+        }
+    }
+
+    private void SetRemoteOperationInProgress(RemoteOperationPending operation)
+    {
+        switch (operation)
+        {
+            case RemoteOperationPending.Push:
+                _appStatusService?.SetInProgress(CommitLogStrings.PushingChanges);
+                break;
+            case RemoteOperationPending.Pull:
+                _appStatusService?.SetInProgress(CommitLogStrings.PullingChanges);
+                break;
+            case RemoteOperationPending.Fetch:
+                _appStatusService?.SetInProgress(CommitLogStrings.FetchingRemotes);
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void SetRemoteOperationSuccess(RemoteOperationPending operation)
+    {
+        switch (operation)
+        {
+            case RemoteOperationPending.Push:
+                _appStatusService?.SetSuccess(CommitLogStrings.PushSucceeded);
+                break;
+            case RemoteOperationPending.Pull:
+                _appStatusService?.SetSuccess(CommitLogStrings.PullSucceeded);
+                break;
+            case RemoteOperationPending.Fetch:
+                _appStatusService?.SetSuccess(CommitLogStrings.FetchSucceeded);
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void SetRemoteOperationFailed(RemoteOperationPending operation, string errorMessage)
+    {
+        switch (operation)
+        {
+            case RemoteOperationPending.Push:
+                _appStatusService?.SetError($"{CommitLogStrings.PushFailed}: {errorMessage}");
+                break;
+            case RemoteOperationPending.Pull:
+                _appStatusService?.SetError($"{CommitLogStrings.PullFailed}: {errorMessage}");
+                break;
+            case RemoteOperationPending.Fetch:
+                _appStatusService?.SetError($"{CommitLogStrings.FetchFailed}: {errorMessage}");
+                break;
+            default:
+                break;
         }
     }
 
@@ -2107,7 +2181,8 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
             _recentRepositoriesRepository,
             _aiCommitMessageService,
             _aiConfigurationRepository,
-            _applicationSettingsRepository
+            _applicationSettingsRepository,
+            _appStatusService
         )).Subscribe();
     }
 }

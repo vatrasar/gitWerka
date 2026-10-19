@@ -12,7 +12,7 @@
 /// Key UI Elements:
 /// - BackButton, ActiveRepositoryHeaderPanel, ActiveRepositoryNameTextBlock, SettingsButton.
 /// - ProfileMenuButton, ActiveProfileNameTextBlock, ProfilesFlyoutListBox, NoProfilesFlyoutTextBlock, ManageProfilesButton.
-/// - RoutedViewHostControl, StatusMessageTextBlock, FooterInfoTextBlock.
+/// - RoutedViewHostControl, StatusLoadingIcon, StatusSuccessIcon, StatusErrorIcon, StatusReadyIcon, StatusMessageTextBlock, FooterInfoTextBlock.
 /// Navigation:
 /// - Navigate From: MainWindow initialization.
 /// - Navigate To: Child screens (RepositoryManager, CommitLog, ProfileManagement) routed inside RoutedViewHostControl.
@@ -41,7 +41,15 @@ public partial class HostView : ReactiveUserControl<HostViewModel>
             this.OneWayBind(ViewModel, x => x.State.CurrentRepositoryName, x => x.ActiveRepositoryNameTextBlock.Text);
             this.OneWayBind(ViewModel, x => x.State.IsRepositoryLoaded, x => x.ActiveRepositoryHeaderPanel.IsVisible);
             this.OneWayBind(ViewModel, x => x.State.StatusMessage, x => x.StatusMessageTextBlock.Text);
+            this.OneWayBind(ViewModel, x => x.State.IsStatusInProgress, x => x.StatusLoadingIcon.IsVisible);
+            this.OneWayBind(ViewModel, x => x.State.IsStatusSuccess, x => x.StatusSuccessIcon.IsVisible);
+            this.OneWayBind(ViewModel, x => x.State.IsStatusError, x => x.StatusErrorIcon.IsVisible);
+            this.OneWayBind(ViewModel, x => x.State.IsStatusReady, x => x.StatusReadyIcon.IsVisible);
             this.OneWayBind(ViewModel, x => x.State.FooterInfoText, x => x.FooterInfoTextBlock.Text);
+
+            this.WhenAnyValue(x => x.ViewModel!.State.StatusMessage)
+                .Subscribe(Observer.Create<string>(msg => ToolTip.SetTip(StatusMessageTextBlock, msg)))
+                .DisposeWith(disposables);
 
             this.WhenAnyValue(x => x.ViewModel!.State.FooterInfoText)
                 .Subscribe(Observer.Create<string>(text => ToolTip.SetTip(FooterInfoTextBlock, text)))

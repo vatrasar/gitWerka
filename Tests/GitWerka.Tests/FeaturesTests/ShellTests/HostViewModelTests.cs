@@ -10,10 +10,12 @@ using GitWerka.Core.Domain.Models;
 using GitWerka.Core.Domain.Services;
 using GitWerka.Features.CommitLog.UI.Screens.CommitLog;
 using GitWerka.Features.Shell.UI.Screens.Host;
+using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using GitWerka.Core.Domain.RepositoryContracts;
 using GitWerka.Features.ProfileManagement.UI.Screens.ProfileManagement;
 using GitWerka.Features.RepositoryManager.UI.Screens.RepositoryManager;
+using GitWerka.Infrastructure.Services;
 using ReactiveUI;
 using Xunit;
 
@@ -547,5 +549,59 @@ public class HostViewModelTests
 
         Assert.False(hostVm.State.IsRepositoryLoaded);
         Assert.Equal(hostVm.State.AppVersion, hostVm.State.FooterInfoText);
+    }
+
+    [Fact]
+    public void HostViewModel_WhenStatusServicePublishesStatus_UpdatesHostStateAndFlags()
+    {
+        MockScreen screen = new();
+        HistoricalScheduler scheduler = new();
+        using AppStatusService statusService = new(scheduler);
+        HostViewModel hostVm = new(screen, appStatusService: statusService);
+
+        Assert.Equal("Ready", hostVm.State.StatusMessage);
+        Assert.True(hostVm.State.IsStatusReady);
+        Assert.False(hostVm.State.IsStatusInProgress);
+
+        statusService.SetInProgress("Pushing changes...");
+
+        Assert.Equal("Pushing changes...", hostVm.State.StatusMessage);
+        Assert.Equal(AppStatusSeverity.InProgress, hostVm.State.StatusSeverity);
+        Assert.True(hostVm.State.IsStatusInProgress);
+        Assert.False(hostVm.State.IsStatusReady);
+
+        statusService.SetSuccess("Push completed successfully.");
+
+        Assert.Equal("Push completed successfully.", hostVm.State.StatusMessage);
+        Assert.Equal(AppStatusSeverity.Success, hostVm.State.StatusSeverity);
+        Assert.True(hostVm.State.IsStatusSuccess);
+        Assert.False(hostVm.State.IsStatusInProgress);
+
+        statusService.SetError("Push failed: rejected");
+
+        Assert.Equal("Push failed: rejected", hostVm.State.StatusMessage);
+        Assert.Equal(AppStatusSeverity.Error, hostVm.State.StatusSeverity);
+        Assert.True(hostVm.State.IsStatusError);
+
+        statusService.SetReady();
+
+        Assert.Equal("Ready", hostVm.State.StatusMessage);
+        Assert.Equal(AppStatusSeverity.Ready, hostVm.State.StatusSeverity);
+        Assert.True(hostVm.State.IsStatusReady);
+    }
+
+    [Fact]
+    public void SetStatusMessage_WithAppStatusService_ForwardsToService()
+    {
+        MockScreen screen = new();
+        HistoricalScheduler scheduler = new();
+        using AppStatusService statusService = new(scheduler);
+        HostViewModel hostVm = new(screen, appStatusService: statusService);
+
+        hostVm.SetStatusMessage("Working...", AppStatusSeverity.InProgress);
+
+        Assert.Equal("Working...", statusService.CurrentStatus.Message);
+        Assert.Equal(AppStatusSeverity.InProgress, statusService.CurrentStatus.Severity);
+        Assert.True(hostVm.State.IsStatusInProgress);
     }
 }
