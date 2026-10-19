@@ -12,7 +12,7 @@
 /// - Remote repositories listing, add remote modal, per-remote fetch and delete actions.
 /// - Stash listing, new stash creation modal, and per-stash pop and drop actions.
 /// - Remote operations (Fetch, Pull, Push) with automatic credentials authentication dialog on challenge.
-/// - Profiles management: switch active Git profile from toolbar dropdown menu, or navigate to ProfileManagementView.
+/// - Profiles management: switch active Git profile from toolbar dropdown menu, or navigate to ProfileManagementView; enforce active Git profile requirement to execute commits with alert guidance.
 /// - System shortcuts: Open repository in system file manager, default terminal, or code editor (direct toolbar buttons on wide layouts or compact 'Open in' dropdown).
 /// - Periodic automatic repository status refresh every 5 seconds and automatic background remote fetch every 30 seconds.
 /// - Uncommitted working tree changes displayed directly as a // WIP row in the commit history graph (GitKraken style).
@@ -40,7 +40,7 @@
 /// - CreateRemoteModalBackdrop, NewRemoteNameTextBox, NewRemoteUrlTextBox, CancelCreateRemoteButton, ConfirmCreateRemoteButton.
 /// - StagedChangesListBox, UnstagedChangesListBox, StashesListBox, StashesContextMenu, StashPopMenuItem, StashDropMenuItem, ItemPopStashButton, ItemDropStashButton, NewStashActionButton.
 /// - NormalWorkingTreePanel, ConflictWorkingTreePanel, ConflictedFilesHeaderTextBlock, MarkAllResolvedButton, ConflictedFilesListBox, ResolvedFilesHeaderTextBlock, ResolvedFilesListBox, ConflictMergingDetailsTextBlock.
-/// - CommitMessageTextBox, AmendCommitCheckBox, CommitMessageRemainingCountTextBlock, CommitButton, GenerateAiCommitButton, GenerateAiCommitNormalIcon, GenerateAiCommitLoadingIcon, GenerateAiCommitButtonText, AiGeneratingProgressBar, AiErrorBanner, AiErrorIcon, AiErrorTextBlock, AiErrorSettingsButton, AiErrorDismissButton, StageAllButton, UnstageAllButton.
+/// - NoActiveProfileBanner, NoActiveProfileTextBlock, ConfigureProfileButton, CommitMessageTextBox, AmendCommitCheckBox, CommitMessageRemainingCountTextBlock, CommitButton, GenerateAiCommitButton, GenerateAiCommitNormalIcon, GenerateAiCommitLoadingIcon, GenerateAiCommitButtonText, AiGeneratingProgressBar, AiErrorBanner, AiErrorIcon, AiErrorTextBlock, AiErrorSettingsButton, AiErrorDismissButton, StageAllButton, UnstageAllButton.
 /// - CommitsListBox, CommitsContextMenu, ContextCherryPickMenuItem, ContextRevertMenuItem, ContextResetMenuItem, ContextResetSoftMenuItem, ContextResetMixedMenuItem, ContextResetHardMenuItem, ContextCreateBranchMenuItem, ContextCreateTagMenuItem, ContextInteractiveRebaseMenuItem.
 /// - ChangedFilesListBox, DiffLinesItemsControl.
 /// - CreateBranchModalBackdrop, MergeModalBackdrop, MergeBranchesComboBox, MergeFastForwardRadioButton, MergeNoFastForwardRadioButton, CancelMergeButton, ConfirmMergeButton.
@@ -435,6 +435,14 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
         this.BindCommand(ViewModel, x => x.DismissAiErrorCommand, x => x.AiErrorDismissButton);
         this.BindCommand(ViewModel, x => x.ShowSettingsModalCommand, x => x.AiErrorSettingsButton);
         this.BindCommand(ViewModel, x => x.ExecuteCommitCommand, x => x.CommitButton);
+        this.BindCommand(ViewModel, x => x.NavigateToProfilesCommand, x => x.ConfigureProfileButton);
+        this.OneWayBind(ViewModel, x => x.State.ActiveProfile, x => x.NoActiveProfileBanner.IsVisible, profile => profile == null);
+        this.WhenAnyValue(x => x.ViewModel!.State.ActiveProfile)
+            .Subscribe(Observer.Create<GitProfile?>(profile =>
+            {
+                ToolTip.SetTip(CommitButton, profile == null ? CommitLogStrings.CommitProfileRequiredToolTip : null);
+            }))
+            .DisposeWith(disposables);
         AmendCommitCheckBox.IsCheckedChanged += (s, e) => HandleAmendCommitOptionChanged();
         this.BindCommand(ViewModel, x => x.StageAllCommand, x => x.StageAllButton);
         this.BindCommand(ViewModel, x => x.UnstageAllCommand, x => x.UnstageAllButton);

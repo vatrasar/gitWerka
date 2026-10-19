@@ -41,6 +41,12 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
 
     public IScreen HostScreen { get; }
 
+    /// <summary>
+    /// Observable tracking whether a commit can be performed (requires an active Git profile).
+    /// Usages: ExecuteCommitCommand canExecute restriction, UI commit button state.
+    /// </summary>
+    public IObservable<bool> CanCommit { get; }
+
     public CommitLogViewModel(
         IScreen hostScreen,
         string repositoryPath,
@@ -66,6 +72,9 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
         _aiConfigurationRepository = aiConfigurationRepository ?? Locator.Current.GetService<IAiConfigurationRepository>();
         _applicationSettingsRepository = applicationSettingsRepository ?? Locator.Current.GetService<IApplicationSettingsRepository>();
         _appStatusService = appStatusService ?? Locator.Current.GetService<IAppStatusService>();
+
+        CanCommit = this.WhenAnyValue(x => x.State.ActiveProfile)
+            .Select(profile => profile != null);
 
         LoadRepositoryDataCommand.Execute().Subscribe();
         LoadApplicationSettingsCommand.Execute().Subscribe();
@@ -842,9 +851,16 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
         _appStatusService?.SetReady();
     }
 
-    [ReactiveCommand]
+    [ReactiveCommand(CanExecute = nameof(CanCommit))]
     private async Task ExecuteCommit()
     {
+        if (State.ActiveProfile == null)
+        {
+            UpdateState(s => s with { ErrorMessage = CommitLogStrings.ProfileRequiredToCommit });
+            _appStatusService?.SetError(CommitLogStrings.ProfileRequiredToCommit);
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(State.CommitMessageInput))
         {
             UpdateState(s => s with { ErrorMessage = "Commit message cannot be empty." });
@@ -856,12 +872,12 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
 
         try
         {
-            string authorName = !string.IsNullOrWhiteSpace(State.ActiveProfile?.Author?.Name)
+            string authorName = !string.IsNullOrWhiteSpace(State.ActiveProfile.Author?.Name)
                 ? State.ActiveProfile.Author.Name
-                : "GitWerka User";
-            string authorEmail = !string.IsNullOrWhiteSpace(State.ActiveProfile?.Author?.Email)
+                : State.ActiveProfile.Name;
+            string authorEmail = !string.IsNullOrWhiteSpace(State.ActiveProfile.Author?.Email)
                 ? State.ActiveProfile.Author.Email
-                : "user@gitwerka.local";
+                : $"{State.ActiveProfile.Name.ToLowerInvariant().Replace(' ', '.')}@gitwerka.local";
 
             await _gitService.CreateCommitAsync(
                 State.RepositoryPath,

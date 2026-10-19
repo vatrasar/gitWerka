@@ -586,6 +586,40 @@
                                Foreground="{DynamicResource AccentPrimaryBrush}"
                                IsVisible="False" />
 
+                  <!-- No Active Profile Warning Banner -->
+                  <Border x:Name="NoActiveProfileBanner"
+                          Background="{DynamicResource WarningBannerBackgroundBrush}"
+                          BorderBrush="{DynamicResource WarningBrush}"
+                          BorderThickness="1"
+                          CornerRadius="6"
+                          Padding="8,6"
+                          IsVisible="False">
+                    <Grid ColumnDefinitions="Auto, *, Auto">
+                      <material:MaterialIcon Grid.Column="0"
+                                             Kind="AccountAlertOutline"
+                                             Width="16"
+                                             Height="16"
+                                             Foreground="{DynamicResource WarningBrush}"
+                                             VerticalAlignment="Center"
+                                             Margin="0,0,8,0" />
+                      <TextBlock x:Name="NoActiveProfileTextBlock"
+                                 Grid.Column="1"
+                                 FontSize="11"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 TextWrapping="Wrap"
+                                 VerticalAlignment="Center"
+                                 Text="{x:Static res:CommitLogStrings.NoActiveProfileCommitWarning}" />
+                      <Button x:Name="ConfigureProfileButton"
+                              Grid.Column="2"
+                              Classes="SecondaryAction"
+                              Content="{x:Static res:CommitLogStrings.SelectProfileButton}"
+                              Padding="6,2"
+                              Margin="6,0,0,0"
+                              FontSize="11"
+                              VerticalAlignment="Center" />
+                    </Grid>
+                  </Border>
+
                   <TextBox x:Name="CommitMessageTextBox"
                            AcceptsReturn="True"
                            TextWrapping="Wrap"
@@ -608,6 +642,7 @@
                           Classes="PrimaryAction"
                           HorizontalAlignment="Stretch"
                           HorizontalContentAlignment="Center"
+                          ToolTip.ShowOnDisabled="True"
                           Content="{x:Static res:CommitLogStrings.CommitButton}" />
                 </StackPanel>
               </Border>
