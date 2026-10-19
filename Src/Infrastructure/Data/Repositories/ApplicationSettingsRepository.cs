@@ -39,7 +39,8 @@ public class ApplicationSettingsRepository : IApplicationSettingsRepository
 
         return new ApplicationSettings
         {
-            DefaultProjectsDirectory = entity.DefaultProjectsDirectory ?? string.Empty
+            DefaultProjectsDirectory = entity.DefaultProjectsDirectory ?? string.Empty,
+            MaxVisibleBranches = entity.MaxVisibleBranches > 0 ? entity.MaxVisibleBranches : 5
         };
     }
 
@@ -55,15 +56,19 @@ public class ApplicationSettingsRepository : IApplicationSettingsRepository
         ApplicationSettingsEntity? entity = await _dbContext.ApplicationSettings
             .FirstOrDefaultAsync(cancellationToken);
 
+        int branchLimit = settings.MaxVisibleBranches > 0 ? settings.MaxVisibleBranches : 5;
+
         if (entity != null)
         {
             entity.DefaultProjectsDirectory = settings.DefaultProjectsDirectory ?? string.Empty;
+            entity.MaxVisibleBranches = branchLimit;
         }
         else
         {
             entity = new ApplicationSettingsEntity
             {
-                DefaultProjectsDirectory = settings.DefaultProjectsDirectory ?? string.Empty
+                DefaultProjectsDirectory = settings.DefaultProjectsDirectory ?? string.Empty,
+                MaxVisibleBranches = branchLimit
             };
             await _dbContext.ApplicationSettings.AddAsync(entity, cancellationToken);
         }

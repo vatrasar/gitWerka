@@ -6,4 +6,7 @@ namespace GitWerka.Core.Domain.Models;
 public class ApplicationSettings
 {
     public string DefaultProjectsDirectory { get; set; } = string.Empty;
+
+    public int MaxVisibleBranches { get; set; } = 5;
 }
+

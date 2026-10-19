@@ -289,6 +289,16 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
     }
 
     /// <summary>
+    /// Updates maximum visible branches input in settings modal.
+    /// Usages: CommitLogView settings modal.
+    /// </summary>
+    /// <param name="text">Maximum visible branches count string.</param>
+    public void UpdateMaxVisibleBranchesInput(string text)
+    {
+        UpdateState(s => s with { MaxVisibleBranchesInput = text ?? string.Empty });
+    }
+
+    /// <summary>
     /// Updates OpenRouter API key configuration input in settings modal.
     /// Usages: CommitLogView settings modal.
     /// </summary>
@@ -510,7 +520,11 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
         try
         {
             GitRepositoryInfo info = await _gitService.GetRepositoryInfoAsync(State.RepositoryPath);
-            IReadOnlyList<CommitSummary> commits = await _gitService.GetCommitLogAsync(State.RepositoryPath);
+            int maxVisibleBranches = await ResolveMaxVisibleBranchesAsync();
+            IReadOnlyList<CommitSummary> commits = await _gitService.GetCommitLogAsync(
+                State.RepositoryPath,
+                maxCount: 300,
+                maxBranches: maxVisibleBranches);
             IReadOnlyList<BranchInfo> branches = await _gitService.GetBranchesAsync(State.RepositoryPath);
             IReadOnlyList<TagInfo> tags = await _gitService.GetTagsAsync(State.RepositoryPath);
             IReadOnlyList<StashInfo> stashes = await _gitService.GetStashesAsync(State.RepositoryPath);
@@ -1328,6 +1342,7 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
                 ConfigUserNameInput = config.UserName,
                 ConfigUserEmailInput = config.UserEmail,
                 DefaultProjectsDirectoryInput = appSettings.DefaultProjectsDirectory,
+                MaxVisibleBranchesInput = (appSettings.MaxVisibleBranches > 0 ? appSettings.MaxVisibleBranches : 5).ToString(),
                 AiApiKeyInput = aiConfig.ApiKey ?? string.Empty,
                 AiModelInput = aiConfig.Model,
                 AiCommitStyleInput = aiConfig.CommitStyle,
@@ -1339,6 +1354,17 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
         {
             UpdateState(s => s with { ErrorMessage = ex.Message });
         }
+    }
+
+    private async Task<int> ResolveMaxVisibleBranchesAsync()
+    {
+        if (_applicationSettingsRepository == null)
+        {
+            return 5;
+        }
+
+        ApplicationSettings appSettings = await _applicationSettingsRepository.GetSettingsAsync();
+        return appSettings.MaxVisibleBranches > 0 ? appSettings.MaxVisibleBranches : 5;
     }
 
     private async Task<(AiConfiguration, string?)> LoadAiSettingsAsync()
@@ -1373,13 +1399,21 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
 
             if (_applicationSettingsRepository != null)
             {
+                int maxBranches = 5;
+                if (int.TryParse(State.MaxVisibleBranchesInput, out int parsedBranches) && parsedBranches > 0)
+                {
+                    maxBranches = parsedBranches;
+                }
+
                 await _applicationSettingsRepository.SaveSettingsAsync(new ApplicationSettings
                 {
-                    DefaultProjectsDirectory = State.DefaultProjectsDirectoryInput.Trim()
+                    DefaultProjectsDirectory = State.DefaultProjectsDirectoryInput.Trim(),
+                    MaxVisibleBranches = maxBranches
                 });
             }
 
             await SaveAiSettingsAsync();
+            await LoadRepositoryData();
         }
         catch (Exception ex)
         {

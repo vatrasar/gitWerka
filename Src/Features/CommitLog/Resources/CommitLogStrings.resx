@@ -583,4 +583,10 @@
   <data name="PullFailed" xml:space="preserve">
     <value>Pull failed</value>
   </data>
+  <data name="MaxVisibleBranchesLabel" xml:space="preserve">
+    <value>Max Visible Branches in Graph</value>
+  </data>
+  <data name="MaxVisibleBranchesPlaceholder" xml:space="preserve">
+    <value>e.g., 5</value>
+  </data>
 </root>

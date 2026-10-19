@@ -314,6 +314,47 @@ public class GitServiceTests : IDisposable
         Assert.Contains(log, c => c.Message == "Main branch commit");
         Assert.Contains(log, c => c.Message == "Base commit");
         Assert.Equal(3, log.Count);
+        Assert.All(log, c => Assert.True(c.GraphWidth >= 80.0));
+    }
+
+    [Fact]
+    public async Task GetCommitLogAsync_WithMaxBranches_LimitsReachableCommitsToMostRecentlyUpdatedBranches()
+    {
+        string repoPath = await _gitService.InitializeRepositoryAsync(_testDirectory);
+        await File.WriteAllTextAsync(Path.Combine(repoPath, "base.txt"), "Base");
+        await _gitService.StageFileAsync(repoPath, "base.txt");
+        await _gitService.CreateCommitAsync(repoPath, "Base commit", "Tester", "tester@example.com");
+
+        var repoInfo = await _gitService.GetRepositoryInfoAsync(repoPath);
+        string mainBranch = repoInfo.CurrentBranch;
+
+        await _gitService.CreateBranchAsync(repoPath, "older-branch");
+        await _gitService.CheckoutBranchAsync(repoPath, "older-branch");
+        await File.WriteAllTextAsync(Path.Combine(repoPath, "older.txt"), "Older");
+        await _gitService.StageFileAsync(repoPath, "older.txt");
+        await _gitService.CreateCommitAsync(repoPath, "Older commit", "Tester", "tester@example.com");
+
+        await Task.Delay(1100);
+
+        await _gitService.CheckoutBranchAsync(repoPath, mainBranch);
+        await _gitService.CreateBranchAsync(repoPath, "newer-branch");
+        await _gitService.CheckoutBranchAsync(repoPath, "newer-branch");
+        await File.WriteAllTextAsync(Path.Combine(repoPath, "newer.txt"), "Newer");
+        await _gitService.StageFileAsync(repoPath, "newer.txt");
+        await _gitService.CreateCommitAsync(repoPath, "Newer commit", "Tester", "tester@example.com");
+
+        await Task.Delay(1100);
+
+        await _gitService.CheckoutBranchAsync(repoPath, mainBranch);
+        await File.WriteAllTextAsync(Path.Combine(repoPath, "main.txt"), "Main");
+        await _gitService.StageFileAsync(repoPath, "main.txt");
+        await _gitService.CreateCommitAsync(repoPath, "Main head commit", "Tester", "tester@example.com");
+
+        var logWithMaxTwo = await _gitService.GetCommitLogAsync(repoPath, maxBranches: 2);
+
+        Assert.Contains(logWithMaxTwo, c => c.Message == "Main head commit");
+        Assert.Contains(logWithMaxTwo, c => c.Message == "Newer commit");
+        Assert.DoesNotContain(logWithMaxTwo, c => c.Message == "Older commit");
     }
 
     [Fact]

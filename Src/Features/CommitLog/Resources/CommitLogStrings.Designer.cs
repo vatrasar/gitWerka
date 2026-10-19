@@ -216,5 +216,7 @@ namespace GitWerka.Features.CommitLog.Resources {
         public static string PullingChanges => ResourceManager.GetString("PullingChanges", resourceCulture) ?? "Pulling changes...";
         public static string PullSucceeded => ResourceManager.GetString("PullSucceeded", resourceCulture) ?? "Pull completed successfully.";
         public static string PullFailed => ResourceManager.GetString("PullFailed", resourceCulture) ?? "Pull failed";
+        public static string MaxVisibleBranchesLabel => ResourceManager.GetString("MaxVisibleBranchesLabel", resourceCulture) ?? "Max Visible Branches in Graph";
+        public static string MaxVisibleBranchesPlaceholder => ResourceManager.GetString("MaxVisibleBranchesPlaceholder", resourceCulture) ?? "e.g., 5";
     }
 }

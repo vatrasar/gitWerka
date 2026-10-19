@@ -46,7 +46,7 @@ public class HostViewModelTests
                 CurrentBranch = "main"
             });
 
-        public Task<IReadOnlyList<CommitSummary>> GetCommitLogAsync(string repositoryPath, int maxCount = 300, CancellationToken cancellationToken = default) =>
+        public Task<IReadOnlyList<CommitSummary>> GetCommitLogAsync(string repositoryPath, int maxCount = 300, int maxBranches = 5, CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<CommitSummary>>(new List<CommitSummary>());
 
         public Task<CommitDetail?> GetCommitDetailAsync(string repositoryPath, string commitSha, CancellationToken cancellationToken = default) =>

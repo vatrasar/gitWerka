@@ -863,7 +863,7 @@
                   <!-- Visual Graph Lane Canvas -->
                   <canvas:CommitGraphCanvas Grid.Column="0"
                                            x:Name="CommitLaneCanvas"
-                                           Width="80"
+                                           GraphWidth="{Binding GraphWidth}"
                                            Lane="{Binding Lane}"
                                            IsWip="{Binding IsWip}"
                                            PassingLanes="{Binding PassingLanes}"
@@ -1243,6 +1243,12 @@
                         Classes="SecondaryAction"
                         Content="{x:Static res:CommitLogStrings.BrowseButton}" />
               </Grid>
+            </StackPanel>
+
+            <StackPanel Spacing="4">
+              <TextBlock Text="{x:Static res:CommitLogStrings.MaxVisibleBranchesLabel}" FontSize="12" />
+              <TextBox x:Name="MaxVisibleBranchesTextBox"
+                       Watermark="{x:Static res:CommitLogStrings.MaxVisibleBranchesPlaceholder}" />
             </StackPanel>
 
             <Border Height="1"

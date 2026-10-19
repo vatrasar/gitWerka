@@ -2,7 +2,7 @@
 /// Screen: CommitLogView
 /// Purpose: Main repository workspace screen showing visual commit history graph, branches, remotes, stashes, commit details, diff inspection, branch merging, interactive rebasing, system shortcuts, and authentication dialogs.
 /// Available Functionalities:
-/// - Visual commit graph rendering with multi-lane topology.
+/// - Visual commit graph rendering with multi-lane topology, dynamic column width sizing, and configurable maximum visible branches limit (default 5 recently updated branches).
 /// - Responsive commit item layout with CommitTitlePanel: badges and title side-by-side when space allows, badges on top and wrapped title below when constrained.
 /// - Commit searching and filtering by message, author, or hash.
 /// - Branch listing, checkout, and new branch creation modal.
@@ -22,7 +22,7 @@
 /// - Amend previous commit toggle in commit composer.
 /// - AI-assisted commit message generation from staged changes via OpenRouter integration.
 /// - Commit file changes and structured diff inspection.
-/// - Git configuration modal for user name and email settings, default projects directory, AI API key, model, commit style, token limit, and per-repository project description.
+/// - Git configuration modal for user name and email settings, default projects directory, max visible branches in graph, AI API key, model, commit style, token limit, and per-repository project description.
 /// - Commit context actions: Cherry-pick, Revert, Reset current branch (Soft, Mixed, Hard), Create branch or tag from commit, Interactive rebase onto commit.
 /// - Favorites drawer dock: shows recently opened repository not in favorites, grouped and ungrouped favorite repositories with expandable categories, add and edit favorite with custom name and group modal, remove from favorites button, switch repository on item selection.
 /// Key UI Elements:
@@ -196,6 +196,7 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
         this.OneWayBind(ViewModel, x => x.State.ConfigUserNameInput, x => x.ConfigUserNameTextBox.Text);
         this.OneWayBind(ViewModel, x => x.State.ConfigUserEmailInput, x => x.ConfigUserEmailTextBox.Text);
         this.OneWayBind(ViewModel, x => x.State.DefaultProjectsDirectoryInput, x => x.DefaultProjectsDirectoryTextBox.Text);
+        this.OneWayBind(ViewModel, x => x.State.MaxVisibleBranchesInput, x => x.MaxVisibleBranchesTextBox.Text);
         this.OneWayBind(ViewModel, x => x.State.AiApiKeyInput, x => x.AiApiKeyTextBox.Text);
         this.OneWayBind(ViewModel, x => x.State.AiModelInput, x => x.AiModelTextBox.Text);
         this.OneWayBind(ViewModel, x => x.State.AiTokenLimitInput, x => x.AiTokenLimitTextBox.Text);
@@ -651,6 +652,10 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
 
         this.WhenAnyValue(x => x.DefaultProjectsDirectoryTextBox.Text)
             .Subscribe(Observer.Create<string?>(dir => ViewModel?.UpdateDefaultProjectsDirectoryInput(dir ?? string.Empty)))
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(x => x.MaxVisibleBranchesTextBox.Text)
+            .Subscribe(Observer.Create<string?>(branches => ViewModel?.UpdateMaxVisibleBranchesInput(branches ?? string.Empty)))
             .DisposeWith(disposables);
 
         this.WhenAnyValue(x => x.AiApiKeyTextBox.Text)

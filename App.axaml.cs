@@ -193,7 +193,8 @@ public partial class App : Application
             );
             CREATE TABLE IF NOT EXISTS ApplicationSettings (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                DefaultProjectsDirectory TEXT NOT NULL DEFAULT ''
+                DefaultProjectsDirectory TEXT NOT NULL DEFAULT '',
+                MaxVisibleBranches INTEGER NOT NULL DEFAULT 5
             );
         ");
     }
@@ -203,6 +204,7 @@ public partial class App : Application
         TryExecuteMigrationSql(dbContext, "ALTER TABLE RecentRepositories ADD COLUMN IsFavorite INTEGER NOT NULL DEFAULT 0;");
         TryExecuteMigrationSql(dbContext, "ALTER TABLE RecentRepositories ADD COLUMN CustomName TEXT NULL;");
         TryExecuteMigrationSql(dbContext, "ALTER TABLE RecentRepositories ADD COLUMN GroupName TEXT NULL;");
+        TryExecuteMigrationSql(dbContext, "ALTER TABLE ApplicationSettings ADD COLUMN MaxVisibleBranches INTEGER NOT NULL DEFAULT 5;");
     }
 
     private static void TryExecuteMigrationSql(GitWerkaDbContext dbContext, string sql)

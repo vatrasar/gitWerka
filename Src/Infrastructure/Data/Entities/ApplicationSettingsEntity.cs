@@ -12,4 +12,6 @@ public class ApplicationSettingsEntity
 
     [MaxLength(1024)]
     public string DefaultProjectsDirectory { get; set; } = string.Empty;
+
+    public int MaxVisibleBranches { get; set; } = 5;
 }
