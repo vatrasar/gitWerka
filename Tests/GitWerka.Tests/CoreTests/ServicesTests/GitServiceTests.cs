@@ -318,6 +318,41 @@ public class GitServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetCommitLogAsync_WithSpecificBranchName_ReturnsOnlyCommitsOfThatBranch()
+    {
+        string repoPath = await _gitService.InitializeRepositoryAsync(_testDirectory);
+        await File.WriteAllTextAsync(Path.Combine(repoPath, "base.txt"), "Base");
+        await _gitService.StageFileAsync(repoPath, "base.txt");
+        await _gitService.CreateCommitAsync(repoPath, "Base commit", "Tester", "tester@example.com");
+
+        var repoInfo = await _gitService.GetRepositoryInfoAsync(repoPath);
+        string baseBranch = repoInfo.CurrentBranch;
+
+        await _gitService.CreateBranchAsync(repoPath, "feature");
+        await _gitService.CheckoutBranchAsync(repoPath, "feature");
+        await File.WriteAllTextAsync(Path.Combine(repoPath, "feature.txt"), "Feature");
+        await _gitService.StageFileAsync(repoPath, "feature.txt");
+        await _gitService.CreateCommitAsync(repoPath, "Feature commit", "Tester", "tester@example.com");
+
+        await _gitService.CheckoutBranchAsync(repoPath, baseBranch);
+        await File.WriteAllTextAsync(Path.Combine(repoPath, "main.txt"), "Main");
+        await _gitService.StageFileAsync(repoPath, "main.txt");
+        await _gitService.CreateCommitAsync(repoPath, "Main branch commit", "Tester", "tester@example.com");
+
+        var featureLog = await _gitService.GetCommitLogAsync(repoPath, branchName: "feature");
+        Assert.Equal(2, featureLog.Count);
+        Assert.Contains(featureLog, c => c.Message == "Feature commit");
+        Assert.Contains(featureLog, c => c.Message == "Base commit");
+        Assert.DoesNotContain(featureLog, c => c.Message == "Main branch commit");
+
+        var mainLog = await _gitService.GetCommitLogAsync(repoPath, branchName: baseBranch);
+        Assert.Equal(2, mainLog.Count);
+        Assert.Contains(mainLog, c => c.Message == "Main branch commit");
+        Assert.Contains(mainLog, c => c.Message == "Base commit");
+        Assert.DoesNotContain(mainLog, c => c.Message == "Feature commit");
+    }
+
+    [Fact]
     public async Task GetCommitLogAsync_WithMaxBranches_LimitsReachableCommitsToMostRecentlyUpdatedBranches()
     {
         string repoPath = await _gitService.InitializeRepositoryAsync(_testDirectory);

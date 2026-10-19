@@ -149,9 +149,15 @@ public class GitService : IGitService
     /// <param name="repositoryPath">Directory path of the repository.</param>
     /// <param name="maxCount">Maximum number of commits to retrieve.</param>
     /// <param name="maxBranches">Maximum number of visible branches to include in graph topology.</param>
+    /// <param name="branchName">Optional specific branch name to retrieve commits for. If null or empty, includes reachable commits from all visible branches.</param>
     /// <param name="cancellationToken">Cancellation token for async operation.</param>
     /// <returns>Read-only list of commit summary objects with graph topology.</returns>
-    public Task<IReadOnlyList<CommitSummary>> GetCommitLogAsync(string repositoryPath, int maxCount = 300, int maxBranches = 5, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<CommitSummary>> GetCommitLogAsync(
+        string repositoryPath,
+        int maxCount = 300,
+        int maxBranches = 5,
+        string? branchName = null,
+        CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -161,8 +167,7 @@ public class GitService : IGitService
             var branchMap = BuildReferenceMap(repository.Branches);
             var tagMap = BuildReferenceMap(repository.Tags);
 
-            int effectiveMaxBranches = maxBranches > 0 ? maxBranches : 5;
-            var reachableCommits = BuildReachableCommitList(repository, effectiveMaxBranches);
+            List<Commit> reachableCommits = ResolveReachableCommits(repository, maxBranches, branchName);
             CommitFilter filter = new()
             {
                 SortBy = CommitSortStrategies.Topological | CommitSortStrategies.Time,
@@ -176,7 +181,10 @@ public class GitService : IGitService
             RepositoryStatus status = repository.RetrieveStatus(statusOptions);
             int uncommittedCount = status.Count();
 
-            if (uncommittedCount > 0)
+            bool shouldShowWip = string.IsNullOrWhiteSpace(branchName) ||
+                                 string.Equals(branchName, repository.Head.FriendlyName, StringComparison.OrdinalIgnoreCase);
+
+            if (uncommittedCount > 0 && shouldShowWip)
             {
                 string headSha = repository.Head.Tip?.Sha ?? string.Empty;
                 if (!string.IsNullOrEmpty(headSha))
@@ -1842,6 +1850,31 @@ public class GitService : IGitService
     private static double CalculateGraphWidth(int maxLane)
     {
         return Math.Max(80.0, 10.0 + ((maxLane + 1) * 16.0) + 12.0);
+    }
+
+    private static List<Commit> ResolveReachableCommits(Repository repository, int maxBranches, string? branchName)
+    {
+        if (string.IsNullOrWhiteSpace(branchName))
+        {
+            int effectiveMaxBranches = maxBranches > 0 ? maxBranches : 5;
+            return BuildReachableCommitList(repository, effectiveMaxBranches);
+        }
+
+        return BuildSingleBranchCommitList(repository, branchName);
+    }
+
+    private static List<Commit> BuildSingleBranchCommitList(Repository repository, string branchName)
+    {
+        List<Commit> commits = new();
+        Branch? branch = repository.Branches[branchName] ??
+                         repository.Branches.FirstOrDefault(b => string.Equals(b.FriendlyName, branchName, StringComparison.OrdinalIgnoreCase));
+
+        if (branch?.Tip != null)
+        {
+            commits.Add(branch.Tip);
+        }
+
+        return commits;
     }
 
     private static List<Commit> BuildReachableCommitList(Repository repository, int maxBranches)

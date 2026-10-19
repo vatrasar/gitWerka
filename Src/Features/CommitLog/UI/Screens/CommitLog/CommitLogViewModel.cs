@@ -87,6 +87,70 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
     }
 
     /// <summary>
+    /// Selects a branch from the sidebar to filter the commit history graph, or resets to all branches.
+    /// Usages: CommitLogView branch list selection.
+    /// </summary>
+    /// <param name="item">Selected branch list item, or null for all branches.</param>
+    public async Task SelectBranchAsync(BranchListItem? item)
+    {
+        string? targetBranch = (item == null || item.IsAllBranches) ? null : item.Name;
+        if (string.Equals(State.SelectedBranchName, targetBranch, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        UpdateState(s => s with
+        {
+            IsLoading = true,
+            SelectedBranchName = targetBranch,
+            ErrorMessage = null
+        });
+
+        try
+        {
+            int maxVisibleBranches = await ResolveMaxVisibleBranchesAsync();
+            IReadOnlyList<CommitSummary> commits = await _gitService.GetCommitLogAsync(
+                State.RepositoryPath,
+                maxCount: 300,
+                maxBranches: maxVisibleBranches,
+                branchName: targetBranch);
+
+            var commitList = commits.ToImmutableList();
+            var filtered = FilterCommits(commitList, State.SearchQuery);
+
+            UpdateState(s => s with
+            {
+                IsLoading = false,
+                AllCommits = commitList,
+                FilteredCommits = filtered,
+                SelectedCommit = filtered.FirstOrDefault()
+            });
+
+            if (filtered.Count > 0)
+            {
+                await SelectCommitAsync(filtered[0]);
+            }
+            else
+            {
+                UpdateState(s => s with
+                {
+                    SelectedCommit = null,
+                    SelectedCommitDetail = null,
+                    DiffLines = ImmutableList<DiffLine>.Empty
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            UpdateState(s => s with
+            {
+                IsLoading = false,
+                ErrorMessage = ex.Message
+            });
+        }
+    }
+
+    /// <summary>
     /// Updates the text of the commit message composer.
     /// Usages: CommitLogView commit composer.
     /// </summary>
@@ -513,6 +577,48 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
         UpdateState(s => s with { DiffLines = lines.ToImmutableList() });
     }
 
+    private static string? ResolveActiveBranchName(string? currentSelected, IReadOnlyList<BranchInfo> branches)
+    {
+        if (string.IsNullOrEmpty(currentSelected))
+        {
+            return null;
+        }
+
+        bool branchExists = branches.Any(b => string.Equals(b.Name, currentSelected, StringComparison.OrdinalIgnoreCase));
+        return branchExists ? currentSelected : null;
+    }
+
+    private static ImmutableList<BranchListItem> BuildBranchListItems(IReadOnlyList<BranchInfo> branches, int maxVisibleBranches)
+    {
+        int effectiveMax = maxVisibleBranches > 0 ? maxVisibleBranches : 5;
+        string allBranchesLabel = branches.Count > effectiveMax
+            ? string.Format(CommitLogStrings.RecentlyModifiedBranchesFormat, effectiveMax)
+            : CommitLogStrings.AllBranchesOption;
+
+        BranchListItem allBranchesItem = new()
+        {
+            Name = string.Empty,
+            DisplayName = allBranchesLabel,
+            IsAllBranches = true
+        };
+
+        return ImmutableList.Create(allBranchesItem)
+            .AddRange(branches.Select(MapToBranchListItem));
+    }
+
+    private static BranchListItem MapToBranchListItem(BranchInfo branch)
+    {
+        return new BranchListItem
+        {
+            Name = branch.Name,
+            DisplayName = branch.Name,
+            IsRemote = branch.IsRemote,
+            IsCurrentHead = branch.IsCurrentHead,
+            TipSha = branch.TipSha,
+            IsAllBranches = false
+        };
+    }
+
     [ReactiveCommand]
     private async Task LoadRepositoryData()
     {
@@ -522,11 +628,13 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
         {
             GitRepositoryInfo info = await _gitService.GetRepositoryInfoAsync(State.RepositoryPath);
             int maxVisibleBranches = await ResolveMaxVisibleBranchesAsync();
+            IReadOnlyList<BranchInfo> branches = await _gitService.GetBranchesAsync(State.RepositoryPath);
+            string? activeBranch = ResolveActiveBranchName(State.SelectedBranchName, branches);
             IReadOnlyList<CommitSummary> commits = await _gitService.GetCommitLogAsync(
                 State.RepositoryPath,
                 maxCount: 300,
-                maxBranches: maxVisibleBranches);
-            IReadOnlyList<BranchInfo> branches = await _gitService.GetBranchesAsync(State.RepositoryPath);
+                maxBranches: maxVisibleBranches,
+                branchName: activeBranch);
             IReadOnlyList<TagInfo> tags = await _gitService.GetTagsAsync(State.RepositoryPath);
             IReadOnlyList<StashInfo> stashes = await _gitService.GetStashesAsync(State.RepositoryPath);
             IReadOnlyList<RemoteInfo> remotes = await _gitService.GetRemotesAsync(State.RepositoryPath);
@@ -535,14 +643,17 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
 
             var commitList = commits.ToImmutableList();
             var filtered = FilterCommits(commitList, State.SearchQuery);
+            var branchItems = BuildBranchListItems(branches, maxVisibleBranches);
 
             UpdateState(s => s with
             {
                 IsLoading = false,
                 CurrentBranch = info.CurrentBranch,
+                SelectedBranchName = activeBranch,
                 AllCommits = commitList,
                 FilteredCommits = filtered,
                 Branches = branches.ToImmutableList(),
+                BranchListItems = branchItems,
                 Tags = tags.ToImmutableList(),
                 Stashes = stashes.ToImmutableList(),
                 Remotes = remotes.ToImmutableList(),
@@ -1426,7 +1537,7 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
 
                 await _applicationSettingsRepository.SaveSettingsAsync(new ApplicationSettings
                 {
-                    MaxVisibleBranches = maxBranches
+                    MaxVisibleBranches = maxBranches,
                     DefaultProjectsDirectory = trimmedDir
                 });
             }

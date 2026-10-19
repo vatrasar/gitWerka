@@ -80,8 +80,20 @@ public class CommitLogViewModelTests
                 CurrentBranch = "main"
             });
 
-        public Task<IReadOnlyList<CommitSummary>> GetCommitLogAsync(string repositoryPath, int maxCount = 300, int maxBranches = 5, CancellationToken cancellationToken = default) =>
-            Task.FromResult<IReadOnlyList<CommitSummary>>(Commits);
+        public string? LastRequestedBranchName { get; private set; }
+
+        public Dictionary<string, IReadOnlyList<CommitSummary>> BranchCommits { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+        public Task<IReadOnlyList<CommitSummary>> GetCommitLogAsync(string repositoryPath, int maxCount = 300, int maxBranches = 5, string? branchName = null, CancellationToken cancellationToken = default)
+        {
+            LastRequestedBranchName = branchName;
+            if (!string.IsNullOrEmpty(branchName) && BranchCommits.TryGetValue(branchName, out var branchSpecific))
+            {
+                return Task.FromResult(branchSpecific);
+            }
+
+            return Task.FromResult<IReadOnlyList<CommitSummary>>(Commits);
+        }
 
         public Task<CommitDetail?> GetCommitDetailAsync(string repositoryPath, string commitSha, CancellationToken cancellationToken = default)
         {
@@ -2202,18 +2214,118 @@ public class CommitLogViewModelTests
         Assert.Equal("/new/projects", appSettingsRepo.Settings.DefaultProjectsDirectory);
     }
 
-    private class MockApplicationSettingsRepository : IApplicationSettingsRepository
+    [Fact]
+    public async Task LoadRepositoryData_PopulatesBranchListItemsWithAllBranchesOptionAsDefault()
     {
-        public ApplicationSettings Settings { get; set; } = new();
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        gitService.Branches.Add(new BranchInfo { Name = "main", IsCurrentHead = true });
+        gitService.Branches.Add(new BranchInfo { Name = "feature", IsCurrentHead = false });
 
-        public Task<ApplicationSettings> GetSettingsAsync(CancellationToken cancellationToken = default) =>
-            Task.FromResult(Settings);
+        CommitLogViewModel vm = new(screen, "/repo/test", gitService);
+        await vm.LoadRepositoryDataCommand.Execute().FirstAsync();
 
-        public Task SaveSettingsAsync(ApplicationSettings settings, CancellationToken cancellationToken = default)
+        Assert.Null(vm.State.SelectedBranchName);
+        Assert.Equal(3, vm.State.BranchListItems.Count);
+        Assert.True(vm.State.BranchListItems[0].IsAllBranches);
+        Assert.Equal("All branches", vm.State.BranchListItems[0].DisplayName);
+        Assert.Equal("main", vm.State.BranchListItems[1].Name);
+        Assert.True(vm.State.BranchListItems[1].IsCurrentHead);
+        Assert.Equal("feature", vm.State.BranchListItems[2].Name);
+    }
+
+    [Fact]
+    public async Task LoadRepositoryData_WhenBranchesExceedLimit_SetsRecentlyModifiedBranchesLabel()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        MockApplicationSettingsRepository appSettingsRepo = new()
         {
-            Settings = settings;
-            return Task.CompletedTask;
+            Settings = new ApplicationSettings { MaxVisibleBranches = 3 }
+        };
+
+        for (int i = 1; i <= 5; i++)
+        {
+            gitService.Branches.Add(new BranchInfo { Name = $"branch-{i}" });
         }
+
+        CommitLogViewModel vm = new(screen, "/repo/test", gitService, applicationSettingsRepository: appSettingsRepo);
+        await vm.LoadRepositoryDataCommand.Execute().FirstAsync();
+
+        Assert.True(vm.State.BranchListItems[0].IsAllBranches);
+        Assert.Equal("Recently modified (3)", vm.State.BranchListItems[0].DisplayName);
+    }
+
+    [Fact]
+    public async Task SelectBranchAsync_FiltersCommitsToSelectedBranch()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        gitService.Branches.Add(new BranchInfo { Name = "main" });
+        gitService.Branches.Add(new BranchInfo { Name = "feature" });
+
+        var allCommits = new List<CommitSummary>
+        {
+            new CommitSummary { Sha = "c1", MessageShort = "Commit 1" },
+            new CommitSummary { Sha = "c2", MessageShort = "Commit 2" }
+        };
+        var featureCommits = new List<CommitSummary>
+        {
+            new CommitSummary { Sha = "c1", MessageShort = "Commit 1" }
+        };
+
+        gitService.Commits.AddRange(allCommits);
+        gitService.BranchCommits["feature"] = featureCommits;
+
+        CommitLogViewModel vm = new(screen, "/repo/test", gitService);
+        await vm.LoadRepositoryDataCommand.Execute().FirstAsync();
+
+        Assert.Equal(2, vm.State.AllCommits.Count);
+
+        var featureItem = vm.State.BranchListItems.First(b => b.Name == "feature");
+        await vm.SelectBranchAsync(featureItem);
+
+        Assert.Equal("feature", vm.State.SelectedBranchName);
+        Assert.Equal("feature", gitService.LastRequestedBranchName);
+        Assert.Single(vm.State.AllCommits);
+        Assert.Equal("c1", vm.State.AllCommits[0].Sha);
+    }
+
+    [Fact]
+    public async Task SelectBranchAsync_WithAllBranchesItem_RestoresAllCommits()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        gitService.Branches.Add(new BranchInfo { Name = "main" });
+        gitService.Branches.Add(new BranchInfo { Name = "feature" });
+
+        var allCommits = new List<CommitSummary>
+        {
+            new CommitSummary { Sha = "c1", MessageShort = "Commit 1" },
+            new CommitSummary { Sha = "c2", MessageShort = "Commit 2" }
+        };
+        var featureCommits = new List<CommitSummary>
+        {
+            new CommitSummary { Sha = "c1", MessageShort = "Commit 1" }
+        };
+
+        gitService.Commits.AddRange(allCommits);
+        gitService.BranchCommits["feature"] = featureCommits;
+
+        CommitLogViewModel vm = new(screen, "/repo/test", gitService);
+        await vm.LoadRepositoryDataCommand.Execute().FirstAsync();
+
+        var featureItem = vm.State.BranchListItems.First(b => b.Name == "feature");
+        await vm.SelectBranchAsync(featureItem);
+        Assert.Equal("feature", vm.State.SelectedBranchName);
+        Assert.Single(vm.State.AllCommits);
+
+        var allBranchesItem = vm.State.BranchListItems.First(b => b.IsAllBranches);
+        await vm.SelectBranchAsync(allBranchesItem);
+
+        Assert.Null(vm.State.SelectedBranchName);
+        Assert.Null(gitService.LastRequestedBranchName);
+        Assert.Equal(2, vm.State.AllCommits.Count);
     }
 }
 

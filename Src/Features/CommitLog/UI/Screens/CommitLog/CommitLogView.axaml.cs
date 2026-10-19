@@ -5,7 +5,7 @@
 /// - Visual commit graph rendering with multi-lane topology, dynamic column width sizing, and configurable maximum visible branches limit (default 5 recently updated branches).
 /// - Responsive commit item layout with CommitTitlePanel: badges and title side-by-side when space allows, badges on top and wrapped title below when constrained.
 /// - Commit searching and filtering by message, author, or hash.
-/// - Branch listing, checkout, and new branch creation modal.
+/// - Branch listing with default 'All branches' (or recently modified count when exceeding visibility limit) filter option, per-branch commit filtering, checkout on double click, and new branch creation modal.
 /// - Branch merging modal with fast-forward strategy selection.
 /// - Interactive rebase visual step editor (pick, reword, edit, squash, fixup, drop, step reordering).
 /// - Ongoing repository operation (merge / rebase) conflict detection with Abort and Continue actions.
@@ -97,7 +97,27 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
     private void SetupBindings(CompositeDisposable disposables)
     {
         this.OneWayBind(ViewModel, x => x.State.CurrentBranch, x => x.CurrentBranchTextBlock.Text);
-        this.OneWayBind(ViewModel, x => x.State.Branches, x => x.BranchesListBox.ItemsSource);
+        this.OneWayBind(ViewModel, x => x.State.BranchListItems, x => x.BranchesListBox.ItemsSource);
+
+        this.WhenAnyValue(x => x.ViewModel!.State.BranchListItems, x => x.ViewModel!.State.SelectedBranchName)
+            .Subscribe(Observer.Create<(ImmutableList<BranchListItem> Items, string? SelectedName)>(t =>
+            {
+                if (t.Items.IsEmpty)
+                {
+                    return;
+                }
+
+                BranchListItem? match = string.IsNullOrEmpty(t.SelectedName)
+                    ? t.Items.FirstOrDefault(i => i.IsAllBranches)
+                    : t.Items.FirstOrDefault(i => string.Equals(i.Name, t.SelectedName, StringComparison.OrdinalIgnoreCase));
+
+                BranchListItem? target = match ?? t.Items.FirstOrDefault();
+                if (!ReferenceEquals(BranchesListBox.SelectedItem, target))
+                {
+                    BranchesListBox.SelectedItem = target;
+                }
+            }))
+            .DisposeWith(disposables);
         this.OneWayBind(ViewModel, x => x.State.StagedChanges, x => x.StagedChangesListBox.ItemsSource);
         this.OneWayBind(ViewModel, x => x.State.UnstagedChanges, x => x.UnstagedChangesListBox.ItemsSource);
         this.OneWayBind(ViewModel, x => x.State.ConflictedFiles, x => x.ConflictedFilesListBox.ItemsSource);
@@ -383,6 +403,11 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
 
         MergeButton.Click += (s, e) => ViewModel?.ShowMergeModalCommand.Execute(null!).Subscribe();
         BranchMergeMenuItem.Click += (s, e) => HandleBranchMergeMenuItemClick();
+        BranchesContextMenu.Opening += (s, e) =>
+        {
+            bool isRealBranch = BranchesListBox.SelectedItem is BranchListItem item && !item.IsAllBranches;
+            BranchMergeMenuItem.IsEnabled = isRealBranch;
+        };
         this.BindCommand(ViewModel, x => x.HideMergeModalCommand, x => x.CancelMergeButton);
         this.BindCommand(ViewModel, x => x.ExecuteMergeCommand, x => x.ConfirmMergeButton);
         MergeFastForwardRadioButton.IsCheckedChanged += (s, e) => HandleFastForwardOptionChanged();
@@ -551,9 +576,9 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
 
     private void HandleBranchMergeMenuItemClick()
     {
-        if (BranchesListBox.SelectedItem is BranchInfo branch && ViewModel != null)
+        if (BranchesListBox.SelectedItem is BranchListItem item && !item.IsAllBranches && ViewModel != null)
         {
-            ViewModel.ShowMergeModalCommand.Execute(branch.Name).Subscribe();
+            ViewModel.ShowMergeModalCommand.Execute(item.Name).Subscribe();
         }
     }
 
@@ -783,11 +808,19 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
             }
         };
 
+        BranchesListBox.SelectionChanged += async (sender, e) =>
+        {
+            if (BranchesListBox.SelectedItem is BranchListItem item && ViewModel != null)
+            {
+                await ViewModel.SelectBranchAsync(item);
+            }
+        };
+
         BranchesListBox.DoubleTapped += (sender, e) =>
         {
-            if (BranchesListBox.SelectedItem is BranchInfo branch && ViewModel != null)
+            if (BranchesListBox.SelectedItem is BranchListItem item && !item.IsAllBranches && ViewModel != null)
             {
-                ViewModel.CheckoutBranchCommand.Execute(branch.Name).Subscribe();
+                ViewModel.CheckoutBranchCommand.Execute(item.Name).Subscribe();
             }
         };
 

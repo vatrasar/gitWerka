@@ -73,7 +73,7 @@ public class MainWindowViewModelTests
         public Task<GitRepositoryInfo> GetRepositoryInfoAsync(string repositoryPath, CancellationToken cancellationToken = default) =>
             Task.FromResult(new GitRepositoryInfo { Name = "TestRepo", Path = repositoryPath });
 
-        public Task<IReadOnlyList<CommitSummary>> GetCommitLogAsync(string repositoryPath, int maxCount = 300, int maxBranches = 5, CancellationToken cancellationToken = default) =>
+        public Task<IReadOnlyList<CommitSummary>> GetCommitLogAsync(string repositoryPath, int maxCount = 300, int maxBranches = 5, string? branchName = null, CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<CommitSummary>>(Array.Empty<CommitSummary>());
 
         public Task<CommitDetail?> GetCommitDetailAsync(string repositoryPath, string commitSha, CancellationToken cancellationToken = default) =>

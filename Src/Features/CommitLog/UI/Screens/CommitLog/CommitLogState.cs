@@ -35,6 +35,10 @@ public record CommitLogState
 
     public ImmutableList<BranchInfo> Branches { get; init; } = ImmutableList<BranchInfo>.Empty;
 
+    public ImmutableList<BranchListItem> BranchListItems { get; init; } = ImmutableList<BranchListItem>.Empty;
+
+    public string? SelectedBranchName { get; init; }
+
     public ImmutableList<TagInfo> Tags { get; init; } = ImmutableList<TagInfo>.Empty;
 
     public ImmutableList<StashInfo> Stashes { get; init; } = ImmutableList<StashInfo>.Empty;

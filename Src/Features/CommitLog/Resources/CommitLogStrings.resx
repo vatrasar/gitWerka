@@ -589,4 +589,10 @@
   <data name="MaxVisibleBranchesPlaceholder" xml:space="preserve">
     <value>e.g., 5</value>
   </data>
+  <data name="AllBranchesOption" xml:space="preserve">
+    <value>All branches</value>
+  </data>
+  <data name="RecentlyModifiedBranchesFormat" xml:space="preserve">
+    <value>Recently modified ({0})</value>
+  </data>
 </root>
