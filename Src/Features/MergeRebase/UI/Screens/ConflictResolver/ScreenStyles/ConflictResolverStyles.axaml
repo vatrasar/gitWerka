@@ -1,5 +1,6 @@
 <Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:material="using:Material.Icons.Avalonia">
 
   <!-- Conflict Badges -->
   <Style Selector="Border.ConflictBadgeA">
@@ -20,15 +21,35 @@
     <Setter Property="Padding" Value="6,2" />
   </Style>
 
+  <Style Selector="Border.ConflictMiniBadgeA">
+    <Setter Property="Background" Value="{DynamicResource ConflictOursBadgeBrush}" />
+    <Setter Property="CornerRadius" Value="2" />
+    <Setter Property="Padding" Value="3,1" />
+  </Style>
+
+  <Style Selector="Border.ConflictMiniBadgeB">
+    <Setter Property="Background" Value="{DynamicResource ConflictTheirsBadgeBrush}" />
+    <Setter Property="CornerRadius" Value="2" />
+    <Setter Property="Padding" Value="3,1" />
+  </Style>
+
+  <!-- Conflict Hunk CheckBox in Gutter -->
+  <Style Selector="CheckBox.ConflictHunkCheckBox">
+    <Setter Property="MinWidth" Value="18" />
+    <Setter Property="MinHeight" Value="18" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Margin" Value="2,0,2,0" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
   <!-- Line Numbers -->
   <Style Selector="TextBlock.ConflictLineNumber">
     <Setter Property="Foreground" Value="{DynamicResource SubtleTextBrush}" />
     <Setter Property="FontSize" Value="11" />
     <Setter Property="FontFamily" Value="Consolas, Menlo, Cascadia Code, DejaVu Sans Mono, monospace" />
     <Setter Property="TextAlignment" Value="Right" />
-    <Setter Property="Width" Value="36" />
     <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="Margin" Value="0,0,8,0" />
   </Style>
 
   <!-- Monospace Code Text -->
@@ -39,7 +60,7 @@
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <!-- Conflict Highlight Rows -->
+  <!-- Conflict Highlight Rows (Untaken) -->
   <Style Selector="Border.ConflictRowOurs">
     <Setter Property="Background" Value="{DynamicResource ConflictOursBackgroundBrush}" />
     <Setter Property="BorderThickness" Value="2,0,0,0" />
@@ -50,6 +71,19 @@
     <Setter Property="Background" Value="{DynamicResource ConflictTheirsBackgroundBrush}" />
     <Setter Property="BorderThickness" Value="2,0,0,0" />
     <Setter Property="BorderBrush" Value="{DynamicResource ConflictTheirsForegroundColor}" />
+  </Style>
+
+  <!-- Conflict Highlight Rows (Taken - GitKraken style active green block highlight) -->
+  <Style Selector="Border.ConflictRowOurs.TakenRow">
+    <Setter Property="Background" Value="#143D24" />
+    <Setter Property="BorderThickness" Value="3,0,0,0" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SuccessBrush}" />
+  </Style>
+
+  <Style Selector="Border.ConflictRowTheirs.TakenRow">
+    <Setter Property="Background" Value="#143D24" />
+    <Setter Property="BorderThickness" Value="3,0,0,0" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SuccessBrush}" />
   </Style>
 
   <Style Selector="Border.ConflictRowOutput">
@@ -69,6 +103,87 @@
     <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
     <Setter Property="BorderThickness" Value="0,0,0,1" />
     <Setter Property="Padding" Value="10,6" />
+  </Style>
+
+  <!-- Conflict Line Action Button Base (GitKraken circular button) -->
+  <Style Selector="Button.ConflictLineButton">
+    <Setter Property="Width" Value="18" />
+    <Setter Property="Height" Value="18" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Margin" Value="2,0,4,0" />
+    <Setter Property="CornerRadius" Value="9" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+
+  <!-- Untaken state (invisible until pointerover, keeping code clean) -->
+  <Style Selector="Button.ConflictLineButton.Untaken">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Opacity" Value="0.0" />
+  </Style>
+  <Style Selector="Button.ConflictLineButton.Untaken material|MaterialIcon.TakeCheck">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+  <Style Selector="Button.ConflictLineButton.Untaken material|MaterialIcon.TakeMinus">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+  <Style Selector="Button.ConflictLineButton.Untaken material|MaterialIcon.TakePlus">
+    <Setter Property="IsVisible" Value="True" />
+    <Setter Property="Foreground" Value="White" />
+  </Style>
+
+  <!-- Untaken on pointerover (Green plus "Take this line") -->
+  <Style Selector="Button.ConflictLineButton.Untaken:pointerover">
+    <Setter Property="Background" Value="{DynamicResource SuccessColor}" />
+    <Setter Property="Opacity" Value="1.0" />
+  </Style>
+  <Style Selector="Button.ConflictLineButton.Untaken:pointerover material|MaterialIcon.TakePlus">
+    <Setter Property="Foreground" Value="White" />
+  </Style>
+
+  <!-- Taken state (Green checkmark) -->
+  <Style Selector="Button.ConflictLineButton.Taken">
+    <Setter Property="Background" Value="{DynamicResource SuccessColor}" />
+    <Setter Property="Opacity" Value="1.0" />
+  </Style>
+  <Style Selector="Button.ConflictLineButton.Taken material|MaterialIcon.TakeCheck">
+    <Setter Property="IsVisible" Value="True" />
+    <Setter Property="Foreground" Value="White" />
+  </Style>
+  <Style Selector="Button.ConflictLineButton.Taken material|MaterialIcon.TakeMinus">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+  <Style Selector="Button.ConflictLineButton.Taken material|MaterialIcon.TakePlus">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+
+  <!-- Taken on pointerover (Red minus "Don't take this line") -->
+  <Style Selector="Button.ConflictLineButton.Taken:pointerover">
+    <Setter Property="Background" Value="{DynamicResource ErrorColor}" />
+  </Style>
+  <Style Selector="Button.ConflictLineButton.Taken:pointerover material|MaterialIcon.TakeCheck">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+  <Style Selector="Button.ConflictLineButton.Taken:pointerover material|MaterialIcon.TakeMinus">
+    <Setter Property="IsVisible" Value="True" />
+    <Setter Property="Foreground" Value="White" />
+  </Style>
+
+  <!-- Output Editor TextBox -->
+  <Style Selector="TextBox.ConflictOutputEditor">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="FontFamily" Value="Consolas, Menlo, Cascadia Code, DejaVu Sans Mono, monospace" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    <Setter Property="CaretBrush" Value="{DynamicResource TextPrimaryBrush}" />
+  </Style>
+  <Style Selector="TextBox.ConflictOutputEditor:focus">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
   </Style>
 
 </Styles>

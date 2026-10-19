@@ -130,5 +130,41 @@ namespace GitWerka.Features.MergeRebase.Resources {
                 return ResourceManager.GetString("EditOutputToggle", resourceCulture);
             }
         }
+
+        public static string TakeLineTooltip {
+            get {
+                return ResourceManager.GetString("TakeLineTooltip", resourceCulture);
+            }
+        }
+
+        public static string DontTakeLineTooltip {
+            get {
+                return ResourceManager.GetString("DontTakeLineTooltip", resourceCulture);
+            }
+        }
+
+        public static string ResetOutputButton {
+            get {
+                return ResourceManager.GetString("ResetOutputButton", resourceCulture);
+            }
+        }
+
+        public static string ResetOutputTooltip {
+            get {
+                return ResourceManager.GetString("ResetOutputTooltip", resourceCulture);
+            }
+        }
+
+        public static string TakeHunkTooltip {
+            get {
+                return ResourceManager.GetString("TakeHunkTooltip", resourceCulture);
+            }
+        }
+
+        public static string DontTakeHunkTooltip {
+            get {
+                return ResourceManager.GetString("DontTakeHunkTooltip", resourceCulture);
+            }
+        }
     }
 }

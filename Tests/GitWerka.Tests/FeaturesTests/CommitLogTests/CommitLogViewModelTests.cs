@@ -14,6 +14,7 @@ using GitWerka.Features.CommitLog.Resources;
 using GitWerka.Features.CommitLog.UI.Screens.CommitLog;
 using GitWerka.Infrastructure.Services;
 using ReactiveUI;
+using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Linq;
@@ -1069,16 +1070,22 @@ public class CommitLogViewModelTests
     }
 
     [Fact]
-    public void ExecuteCommit_WhenAmendEnabled_PassesAmendFlagAndResetsState()
+    public async Task ExecuteCommit_WhenAmendEnabled_PassesAmendFlagAndResetsState()
     {
         MockScreen screen = new();
         MockGitService gitService = new();
         gitService.Commits.Add(new CommitSummary { Sha = "c1", Message = "Original commit" });
         CommitLogViewModel vm = new(screen, "/repo/path", gitService);
+        await vm.SelectProfileAsync(new GitProfile
+        {
+            Id = 1,
+            Name = "Default Profile",
+            Author = new GitAuthor { Name = "Tester", Email = "tester@example.com" }
+        });
 
         vm.ToggleAmendCommit(true);
         vm.UpdateCommitMessageInput("Amended commit message");
-        vm.ExecuteCommitCommand.Execute().Subscribe();
+        await vm.ExecuteCommitCommand.Execute().FirstAsync();
 
         Assert.True(gitService.LastCommitWasAmend);
         Assert.Equal("Amended commit message", gitService.LastCommitMessage);
@@ -1735,10 +1742,15 @@ public class CommitLogViewModelTests
         public string ProposalToReturn { get; set; } = "feat(core): add feature";
         public Exception? ExceptionToThrow { get; set; }
         public string? LastRepositoryPath { get; private set; }
+        public Action<IProgress<AiRetryAttempt>?>? OnGenerate { get; set; }
 
-        public Task<string> GenerateCommitMessageAsync(string repositoryPath, CancellationToken cancellationToken = default)
+        public Task<string> GenerateCommitMessageAsync(
+            string repositoryPath,
+            IProgress<AiRetryAttempt>? retryProgress,
+            CancellationToken cancellationToken = default)
         {
             LastRepositoryPath = repositoryPath;
+            OnGenerate?.Invoke(retryProgress);
             if (ExceptionToThrow != null)
             {
                 throw ExceptionToThrow;
@@ -1885,6 +1897,73 @@ public class CommitLogViewModelTests
 
         Assert.Null(vm.State.AiErrorMessage);
         Assert.False(vm.State.IsAiErrorSettingsActionVisible);
+    }
+
+    [Fact]
+    public async Task ExecuteGenerateAiCommitMessageCommand_WhenRetryProgressReported_UpdatesStateWithRetryNotification()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        MockAiCommitMessageService aiService = new()
+        {
+            OnGenerate = progress =>
+            {
+                progress?.Report(new AiRetryAttempt(1, 3, TimeSpan.FromSeconds(2), true, "429"));
+            }
+        };
+
+        CommitLogViewModel vm = new(screen, "/repo/test", gitService, aiCommitMessageService: aiService);
+
+        await vm.ExecuteGenerateAiCommitMessageCommand.Execute().FirstAsync();
+
+        Assert.True(vm.State.CommitMessageInput.Length > 0);
+        Assert.False(vm.State.IsAiRetrying);
+        Assert.Null(vm.State.AiErrorMessage);
+    }
+
+    [Fact]
+    public async Task HandleAiRetryProgress_UpdatesStateWithCountdownAndRetryFlag()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        List<string> errorMessages = new();
+        List<bool> retryFlags = new();
+
+        MockAiCommitMessageService aiService = new()
+        {
+            OnGenerate = progress =>
+            {
+                progress?.Report(new AiRetryAttempt(1, 3, TimeSpan.FromSeconds(2), true, "429"));
+            }
+        };
+
+        CommitLogViewModel vm = new(screen, "/repo/test", gitService, aiCommitMessageService: aiService);
+        vm.WhenAnyValue(x => x.State.AiErrorMessage).Subscribe(Observer.Create<string?>(msg =>
+        {
+            if (msg != null)
+            {
+                errorMessages.Add(msg);
+            }
+        }));
+        vm.WhenAnyValue(x => x.State.IsAiRetrying).Subscribe(Observer.Create<bool>(flag => retryFlags.Add(flag)));
+
+        await vm.ExecuteGenerateAiCommitMessageCommand.Execute().FirstAsync();
+
+        Assert.Contains(errorMessages, m => m.Contains("429") && m.Contains("2s"));
+        Assert.Contains(true, retryFlags);
+    }
+
+    [Fact]
+    public void DismissAiErrorCommand_WhenRetrying_ResetsRetryState()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        CommitLogViewModel vm = new(screen, "/repo/test", gitService);
+
+        vm.DismissAiErrorCommand.Execute().Subscribe();
+
+        Assert.False(vm.State.IsAiRetrying);
+        Assert.Null(vm.State.AiErrorMessage);
     }
 
     [Fact]
@@ -2114,6 +2193,12 @@ public class CommitLogViewModelTests
         List<AppStatus> recorded = new();
         statusService.Status.Subscribe(s => recorded.Add(s));
         CommitLogViewModel vm = new(screen, "/repo/path", gitService, appStatusService: statusService);
+        await vm.SelectProfileAsync(new GitProfile
+        {
+            Id = 1,
+            Name = "Dev",
+            Author = new GitAuthor { Name = "Dev", Email = "dev@example.com" }
+        });
 
         vm.UpdateCommitMessageInput("feat: test commit status");
         await vm.ExecuteCommitCommand.Execute().FirstAsync();
@@ -2132,12 +2217,66 @@ public class CommitLogViewModelTests
         List<AppStatus> recorded = new();
         statusService.Status.Subscribe(s => recorded.Add(s));
         CommitLogViewModel vm = new(screen, "/repo/path", gitService, appStatusService: statusService);
+        await vm.SelectProfileAsync(new GitProfile
+        {
+            Id = 1,
+            Name = "Dev",
+            Author = new GitAuthor { Name = "Dev", Email = "dev@example.com" }
+        });
 
         vm.UpdateCommitMessageInput("feat: failing commit");
         await vm.ExecuteCommitCommand.Execute().FirstAsync();
 
         Assert.Contains(recorded, s => s.Message == CommitLogStrings.CommittingChanges && s.Severity == AppStatusSeverity.InProgress);
         Assert.Contains(recorded, s => s.Message.StartsWith(CommitLogStrings.CommitFailed) && s.Severity == AppStatusSeverity.Error);
+    }
+
+    [Fact]
+    public void ExecuteCommit_WhenNoActiveProfile_CanCommitIsFalseAndExecutionIsBlocked()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        HistoricalScheduler scheduler = new();
+        using AppStatusService statusService = new(scheduler);
+        List<AppStatus> recorded = new();
+        statusService.Status.Subscribe(s => recorded.Add(s));
+        CommitLogViewModel vm = new(screen, "/repo/path", gitService, appStatusService: statusService);
+
+        bool? canCommitInitial = null;
+        vm.CanCommit.Subscribe(c => canCommitInitial = c);
+        Assert.False(canCommitInitial);
+
+        bool canExecute = false;
+        vm.ExecuteCommitCommand.CanExecute.Subscribe(c => canExecute = c);
+        Assert.False(canExecute);
+
+        Assert.Null(gitService.LastCommitMessage);
+    }
+
+    [Fact]
+    public async Task ExecuteCommit_WhenProfileSelected_CanCommitBecomesTrue()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        CommitLogViewModel vm = new(screen, "/repo/path", gitService);
+
+        List<bool> canCommitStates = new();
+        vm.CanCommit.Subscribe(canCommitStates.Add);
+
+        Assert.False(canCommitStates.Last());
+
+        await vm.SelectProfileAsync(new GitProfile
+        {
+            Id = 1,
+            Name = "Dev Profile",
+            Author = new GitAuthor { Name = "Dev", Email = "dev@example.com" }
+        });
+
+        Assert.True(canCommitStates.Last());
+
+        await vm.SelectProfileAsync(null);
+
+        Assert.False(canCommitStates.Last());
     }
 
     [Fact]

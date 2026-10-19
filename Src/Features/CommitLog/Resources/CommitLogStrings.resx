@@ -583,6 +583,18 @@
   <data name="PullFailed" xml:space="preserve">
     <value>Pull failed</value>
   </data>
+  <data name="AiRateLimitRetryingCountdown" xml:space="preserve">
+    <value>Rate limit exceeded (429). Retrying connection in {0}s (attempt {1} of {2})...</value>
+  </data>
+  <data name="AiRateLimitRetryingAttempt" xml:space="preserve">
+    <value>Connecting to AI model (attempt {0} of {1})...</value>
+  </data>
+  <data name="AiCommitMessageGeneratedSuccess" xml:space="preserve">
+    <value>AI commit message generated.</value>
+  </data>
+  <data name="AiServiceUnavailableError" xml:space="preserve">
+    <value>AI commit message service is not available.</value>
+  </data>
   <data name="MaxVisibleBranchesLabel" xml:space="preserve">
     <value>Max Visible Branches in Graph</value>
   </data>
@@ -594,5 +606,17 @@
   </data>
   <data name="RecentlyModifiedBranchesFormat" xml:space="preserve">
     <value>Recently modified ({0})</value>
+  </data>
+  <data name="ProfileRequiredToCommit" xml:space="preserve">
+    <value>An active Git profile is required to commit changes.</value>
+  </data>
+  <data name="NoActiveProfileCommitWarning" xml:space="preserve">
+    <value>No active Git profile selected. Set an active profile to commit.</value>
+  </data>
+  <data name="SelectProfileButton" xml:space="preserve">
+    <value>Select Profile</value>
+  </data>
+  <data name="CommitProfileRequiredToolTip" xml:space="preserve">
+    <value>Cannot commit without an active Git profile. Please select or configure a profile.</value>
   </data>
 </root>

@@ -23,6 +23,9 @@ public class OpenRouterAiCommitMessageService : IAiCommitMessageService
 {
     private readonly HttpClient _httpClient;
     private readonly IAiConfigurationRepository _configurationRepository;
+    private readonly Func<TimeSpan, CancellationToken, Task> _delayFunc;
+
+    private const int MaxRetryAttempts = 3;
 
     private static readonly HashSet<string> ExcludedExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -37,12 +40,32 @@ public class OpenRouterAiCommitMessageService : IAiCommitMessageService
         "packages.lock.json", "composer.lock", "Gemfile.lock", "poetry.lock"
     };
 
+    /// <summary>
+    /// Initializes a new instance of the OpenRouterAiCommitMessageService class with standard delay handling.
+    /// </summary>
+    /// <param name="httpClient">HTTP client used for API requests.</param>
+    /// <param name="configurationRepository">Repository for loading AI credentials and settings.</param>
     public OpenRouterAiCommitMessageService(
         HttpClient httpClient,
         IAiConfigurationRepository configurationRepository)
+        : this(httpClient, configurationRepository, null)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the OpenRouterAiCommitMessageService class with custom delay provider for testing.
+    /// </summary>
+    /// <param name="httpClient">HTTP client used for API requests.</param>
+    /// <param name="configurationRepository">Repository for loading AI credentials and settings.</param>
+    /// <param name="delayFunc">Optional custom delay delegate for testing retry backoff.</param>
+    public OpenRouterAiCommitMessageService(
+        HttpClient httpClient,
+        IAiConfigurationRepository configurationRepository,
+        Func<TimeSpan, CancellationToken, Task>? delayFunc)
     {
         _httpClient = httpClient;
         _configurationRepository = configurationRepository;
+        _delayFunc = delayFunc ?? Task.Delay;
     }
 
     /// <summary>
@@ -52,7 +75,23 @@ public class OpenRouterAiCommitMessageService : IAiCommitMessageService
     /// <param name="repositoryPath">Directory path of the Git repository.</param>
     /// <param name="cancellationToken">Cancellation token for async operation.</param>
     /// <returns>Suggested commit message text.</returns>
-    public async Task<string> GenerateCommitMessageAsync(string repositoryPath, CancellationToken cancellationToken = default)
+    public Task<string> GenerateCommitMessageAsync(string repositoryPath, CancellationToken cancellationToken = default)
+    {
+        return GenerateCommitMessageAsync(repositoryPath, null, cancellationToken);
+    }
+
+    /// <summary>
+    /// Generates a suggested commit message based on staged git changes and configured context, reporting retry attempts.
+    /// Usages: CommitLogViewModel.
+    /// </summary>
+    /// <param name="repositoryPath">Directory path of the Git repository.</param>
+    /// <param name="retryProgress">Optional progress sink for tracking automatic retry attempts.</param>
+    /// <param name="cancellationToken">Cancellation token for async operation.</param>
+    /// <returns>Suggested commit message text.</returns>
+    public async Task<string> GenerateCommitMessageAsync(
+        string repositoryPath,
+        IProgress<AiRetryAttempt>? retryProgress,
+        CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -63,7 +102,7 @@ public class OpenRouterAiCommitMessageService : IAiCommitMessageService
 
         string prompt = await Task.Run(() => BuildCommitPrompt(repositoryPath, configuration, projectDescription), cancellationToken);
 
-        return await RequestCommitProposalAsync(configuration, prompt, cancellationToken);
+        return await RequestCommitProposalWithRetryAsync(configuration, prompt, retryProgress, cancellationToken);
     }
 
     private static void ValidateApiKey(string? apiKey)
@@ -246,38 +285,171 @@ public class OpenRouterAiCommitMessageService : IAiCommitMessageService
         return builder.ToString();
     }
 
-    private async Task<string> RequestCommitProposalAsync(
+    private async Task<string> RequestCommitProposalWithRetryAsync(
+        AiConfiguration configuration,
+        string userPrompt,
+        IProgress<AiRetryAttempt>? retryProgress,
+        CancellationToken cancellationToken)
+    {
+        int attempt = 0;
+
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            ProposalAttemptOutcome outcome = await ExecuteSingleProposalAttemptAsync(configuration, userPrompt, cancellationToken);
+
+            if (outcome.Success)
+            {
+                return outcome.Proposal!;
+            }
+
+            if (!outcome.IsTransient || attempt >= MaxRetryAttempts)
+            {
+                throw outcome.Exception!;
+            }
+
+            attempt++;
+            await HandleRetryDelayAsync(attempt, outcome.RetryAfter, retryProgress, cancellationToken);
+        }
+    }
+
+    private async Task<ProposalAttemptOutcome> ExecuteSingleProposalAttemptAsync(
         AiConfiguration configuration,
         string userPrompt,
         CancellationToken cancellationToken)
     {
         using HttpRequestMessage request = CreateHttpRequest(configuration, userPrompt);
-        HttpResponseMessage response;
+        HttpResponseMessage? response = null;
 
         try
         {
             response = await _httpClient.SendAsync(request, cancellationToken);
+            return await EvaluateHttpResponseAsync(response, cancellationToken);
         }
         catch (HttpRequestException ex)
         {
-            throw new InvalidOperationException("Connection error: Unable to connect to OpenRouter endpoint. Please check your internet connection and endpoint URL.", ex);
+            return ProposalAttemptOutcome.TransientFailure(
+                new InvalidOperationException("Connection error: Unable to connect to OpenRouter endpoint. Please check your internet connection and endpoint URL.", ex),
+                null);
         }
         catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
-            throw new InvalidOperationException("Connection timed out waiting for OpenRouter response. Please check your network or try again.", ex);
+            return ProposalAttemptOutcome.TransientFailure(
+                new InvalidOperationException("Connection timed out waiting for OpenRouter response. Please check your network or try again.", ex),
+                null);
         }
-
-        using (response)
+        finally
         {
-            string responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                throw BuildApiErrorException(response.StatusCode, responseContent);
-            }
-
-            return ParseResponseContent(responseContent);
+            response?.Dispose();
         }
+    }
+
+    private static async Task<ProposalAttemptOutcome> EvaluateHttpResponseAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken)
+    {
+        string responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            string proposal = ParseResponseContent(responseContent);
+            return ProposalAttemptOutcome.Successful(proposal);
+        }
+
+        bool isTransient = IsTransientStatusCode(response.StatusCode);
+        TimeSpan? retryAfter = ExtractRetryAfter(response);
+        InvalidOperationException exception = BuildApiErrorException(response.StatusCode, responseContent);
+
+        return isTransient
+            ? ProposalAttemptOutcome.TransientFailure(exception, retryAfter)
+            : ProposalAttemptOutcome.FatalFailure(exception);
+    }
+
+    private static bool IsTransientStatusCode(System.Net.HttpStatusCode statusCode)
+    {
+        return statusCode == System.Net.HttpStatusCode.TooManyRequests
+            || statusCode == System.Net.HttpStatusCode.RequestTimeout
+            || statusCode == System.Net.HttpStatusCode.BadGateway
+            || statusCode == System.Net.HttpStatusCode.ServiceUnavailable
+            || statusCode == System.Net.HttpStatusCode.GatewayTimeout;
+    }
+
+    private static TimeSpan? ExtractRetryAfter(HttpResponseMessage response)
+    {
+        if (response.Headers.RetryAfter?.Delta is { } delta && delta > TimeSpan.Zero && delta <= TimeSpan.FromSeconds(30))
+        {
+            return delta;
+        }
+
+        if (response.Headers.RetryAfter?.Date is { } date)
+        {
+            TimeSpan calculated = date - DateTimeOffset.UtcNow;
+            if (calculated > TimeSpan.Zero && calculated <= TimeSpan.FromSeconds(30))
+            {
+                return calculated;
+            }
+        }
+
+        return null;
+    }
+
+    private async Task HandleRetryDelayAsync(
+        int attemptNumber,
+        TimeSpan? retryAfter,
+        IProgress<AiRetryAttempt>? retryProgress,
+        CancellationToken cancellationToken)
+    {
+        TimeSpan delay = ResolveRetryDelay(retryAfter, attemptNumber);
+        int totalSeconds = Math.Max(1, (int)Math.Ceiling(delay.TotalSeconds));
+
+        for (int secondsRemaining = totalSeconds; secondsRemaining >= 1; secondsRemaining--)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            ReportCountdownStep(attemptNumber, secondsRemaining, retryProgress);
+            await _delayFunc(TimeSpan.FromSeconds(1), cancellationToken);
+        }
+
+        ReportAttemptActiveStep(attemptNumber, retryProgress);
+    }
+
+    private static TimeSpan ResolveRetryDelay(TimeSpan? retryAfter, int attemptNumber)
+    {
+        if (retryAfter.HasValue)
+        {
+            return retryAfter.Value;
+        }
+
+        return attemptNumber switch
+        {
+            1 => TimeSpan.FromSeconds(2),
+            2 => TimeSpan.FromSeconds(3),
+            _ => TimeSpan.FromSeconds(5)
+        };
+    }
+
+    private static void ReportCountdownStep(
+        int attemptNumber,
+        int secondsRemaining,
+        IProgress<AiRetryAttempt>? retryProgress)
+    {
+        retryProgress?.Report(new AiRetryAttempt(
+            attemptNumber,
+            MaxRetryAttempts,
+            TimeSpan.FromSeconds(secondsRemaining),
+            true,
+            "429"));
+    }
+
+    private static void ReportAttemptActiveStep(
+        int attemptNumber,
+        IProgress<AiRetryAttempt>? retryProgress)
+    {
+        retryProgress?.Report(new AiRetryAttempt(
+            attemptNumber,
+            MaxRetryAttempts,
+            TimeSpan.Zero,
+            false,
+            "429"));
     }
 
     private static InvalidOperationException BuildApiErrorException(System.Net.HttpStatusCode statusCode, string responseContent)

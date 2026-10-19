@@ -371,4 +371,37 @@
     <Setter Property="Background" Value="{DynamicResource SurfaceCardHoverBrush}" />
   </Style>
 
+  <!-- AI Notification Banner -->
+  <Style Selector="Border.AiNotificationBanner">
+    <Setter Property="Background" Value="{DynamicResource ErrorBannerBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource ErrorBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="8,6" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.2" />
+        <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="Border.AiNotificationBanner.AiRetryState">
+    <Setter Property="Background" Value="{DynamicResource WarningBannerBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource WarningBrush}" />
+  </Style>
+
+  <Style Selector="material|MaterialIcon.AiBannerIcon">
+    <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Foreground" Duration="0:0:0.2" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="Border.AiNotificationBanner.AiRetryState material|MaterialIcon.AiBannerIcon">
+    <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+  </Style>
+
 </Styles>

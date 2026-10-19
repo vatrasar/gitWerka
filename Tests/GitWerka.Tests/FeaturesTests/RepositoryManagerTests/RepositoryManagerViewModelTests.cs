@@ -574,7 +574,10 @@ public class RepositoryManagerViewModelTests
 
     private class MockAiCommitMessageService : IAiCommitMessageService
     {
-        public Task<string> GenerateCommitMessageAsync(string repositoryPath, CancellationToken cancellationToken = default) =>
+        public Task<string> GenerateCommitMessageAsync(
+            string repositoryPath,
+            IProgress<AiRetryAttempt>? retryProgress = null,
+            CancellationToken cancellationToken = default) =>
             Task.FromResult("feat: test commit message");
     }
 
