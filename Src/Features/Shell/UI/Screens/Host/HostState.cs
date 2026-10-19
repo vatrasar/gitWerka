@@ -21,4 +21,10 @@ public record HostState
     public GitProfile? ActiveProfile { get; init; }
 
     public bool IsSettingsButtonVisible { get; init; } = true;
+
+    public string AppVersion { get; init; } = "v1.0.0";
+
+    public string FooterInfoText => IsRepositoryLoaded && !string.IsNullOrWhiteSpace(CurrentRepositoryPath)
+        ? CurrentRepositoryPath
+        : AppVersion;
 }

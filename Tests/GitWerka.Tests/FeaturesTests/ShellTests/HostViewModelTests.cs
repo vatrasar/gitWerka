@@ -496,4 +496,56 @@ public class HostViewModelTests
         hostVm.OpenSettingsCommand.Execute().Subscribe();
         Assert.True(repoManagerVm.State.IsSettingsModalVisible);
     }
+
+    [Fact]
+    public void InitialState_FooterInfoText_DisplaysAppVersion()
+    {
+        MockScreen screen = new();
+        HostViewModel vm = new(screen);
+
+        Assert.False(vm.State.IsRepositoryLoaded);
+        Assert.Equal(vm.State.AppVersion, vm.State.FooterInfoText);
+        Assert.StartsWith("v", vm.State.FooterInfoText);
+    }
+
+    [Fact]
+    public void SetActiveRepository_UpdatesFooterInfoText_ToRepositoryPath()
+    {
+        MockScreen screen = new();
+        HostViewModel vm = new(screen);
+
+        vm.SetActiveRepository("RepoTest", "/path/to/my-repo");
+
+        Assert.True(vm.State.IsRepositoryLoaded);
+        Assert.Equal("/path/to/my-repo", vm.State.FooterInfoText);
+
+        vm.SetActiveRepository(string.Empty, string.Empty);
+
+        Assert.False(vm.State.IsRepositoryLoaded);
+        Assert.Equal(vm.State.AppVersion, vm.State.FooterInfoText);
+    }
+
+    [Fact]
+    public void RouterCurrentViewModel_WhenCommitLogNavigated_UpdatesFooterInfoTextToRepositoryPath_AndRestoresVersionOnBack()
+    {
+        MockScreen screen = new();
+        HostViewModel hostVm = new(screen);
+        MockGitService gitService = new();
+
+        RepositoryManagerViewModel repoManagerVm = new(screen, new TestRecentRepositoriesRepository(), gitService);
+        screen.Router.Navigate.Execute(repoManagerVm).Subscribe();
+
+        Assert.Equal(hostVm.State.AppVersion, hostVm.State.FooterInfoText);
+
+        CommitLogViewModel commitLogVm = new(screen, "/tmp/sample-repo", gitService);
+        screen.Router.Navigate.Execute(commitLogVm).Subscribe();
+
+        Assert.True(hostVm.State.IsRepositoryLoaded);
+        Assert.Equal("/tmp/sample-repo", hostVm.State.FooterInfoText);
+
+        screen.Router.NavigateBack.Execute().Subscribe();
+
+        Assert.False(hostVm.State.IsRepositoryLoaded);
+        Assert.Equal(hostVm.State.AppVersion, hostVm.State.FooterInfoText);
+    }
 }

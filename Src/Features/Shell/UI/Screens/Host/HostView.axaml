@@ -158,10 +158,12 @@
                      VerticalAlignment="Center" />
         </StackPanel>
 
-        <TextBlock Grid.Column="2"
-                   Text="v1.0.0"
+        <TextBlock x:Name="FooterInfoTextBlock"
+                   Grid.Column="2"
                    Classes="SubtleCaption"
-                   VerticalAlignment="Center" />
+                   VerticalAlignment="Center"
+                   TextTrimming="CharacterEllipsis"
+                   MaxWidth="600" />
       </Grid>
     </Border>
   </Grid>
