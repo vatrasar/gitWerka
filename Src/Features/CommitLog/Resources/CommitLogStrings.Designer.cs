@@ -202,6 +202,7 @@ namespace GitWerka.Features.CommitLog.Resources {
         public static string ConflictedFilesHeader => ResourceManager.GetString("ConflictedFilesHeader", resourceCulture) ?? "Conflicted Files ({0})";
         public static string ResolvedFilesHeader => ResourceManager.GetString("ResolvedFilesHeader", resourceCulture) ?? "Resolved Files ({0})";
         public static string MarkAllResolvedButton => ResourceManager.GetString("MarkAllResolvedButton", resourceCulture) ?? "Mark All Resolved";
+        public static string MarkAllButton => ResourceManager.GetString("MarkAllButton", resourceCulture) ?? "Mark All";
         public static string MergeConflictsDetected => ResourceManager.GetString("MergeConflictsDetected", resourceCulture) ?? "Merge conflicts detected";
         public static string MergingBranchFormat => ResourceManager.GetString("MergingBranchFormat", resourceCulture) ?? "Merging {0} into {1}";
         public static string PushingChanges => ResourceManager.GetString("PushingChanges", resourceCulture) ?? "Pushing changes...";

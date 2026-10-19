@@ -541,6 +541,9 @@
   <data name="MarkAllResolvedButton" xml:space="preserve">
     <value>Mark All Resolved</value>
   </data>
+  <data name="MarkAllButton" xml:space="preserve">
+    <value>Mark All</value>
+  </data>
   <data name="MergeConflictsDetected" xml:space="preserve">
     <value>Merge conflicts detected</value>
   </data>

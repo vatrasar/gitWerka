@@ -422,12 +422,15 @@
                              x:Name="ConflictedFilesHeaderTextBlock"
                              Classes="SectionHeader"
                              Foreground="{DynamicResource WarningBrush}"
-                             VerticalAlignment="Center" />
+                             VerticalAlignment="Center"
+                             TextTrimming="CharacterEllipsis" />
                   <Button Grid.Column="1"
                           x:Name="MarkAllResolvedButton"
                           Classes="ToolbarAction"
-                          Padding="6,2">
-                    <TextBlock Text="{x:Static res:CommitLogStrings.MarkAllResolvedButton}" FontSize="10" />
+                          Padding="6,2"
+                          VerticalAlignment="Center"
+                          ToolTip.Tip="{x:Static res:CommitLogStrings.MarkAllResolvedButton}">
+                    <TextBlock Text="{x:Static res:CommitLogStrings.MarkAllButton}" FontSize="10" />
                   </Button>
                 </Grid>
 

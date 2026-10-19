@@ -112,6 +112,7 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
             .Subscribe(Observer.Create<int>(count =>
             {
                 ConflictedFilesHeaderTextBlock.Text = string.Format(CommitLogStrings.ConflictedFilesHeader, count);
+                MarkAllResolvedButton.IsVisible = count > 0;
             }))
             .DisposeWith(disposables);
 
