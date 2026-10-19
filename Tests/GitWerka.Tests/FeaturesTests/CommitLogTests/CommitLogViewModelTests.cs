@@ -1762,6 +1762,20 @@ public class CommitLogViewModelTests
         }
     }
 
+    private class MockApplicationSettingsRepository : IApplicationSettingsRepository
+    {
+        public ApplicationSettings Settings { get; set; } = new();
+
+        public Task<ApplicationSettings> GetSettingsAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(Settings);
+
+        public Task SaveSettingsAsync(ApplicationSettings settings, CancellationToken cancellationToken = default)
+        {
+            Settings = settings;
+            return Task.CompletedTask;
+        }
+    }
+
     [Fact]
     public async Task ExecuteGenerateAiCommitMessageCommand_WhenSuccessful_SetsCommitMessageInput()
     {
@@ -1916,6 +1930,41 @@ public class CommitLogViewModelTests
         Assert.NotNull(aiRepo.LastSavedDescription);
         Assert.Equal("/repo/test", aiRepo.LastSavedDescription.Value.Path);
         Assert.Equal("Updated description", aiRepo.LastSavedDescription.Value.Desc);
+    }
+
+    [Fact]
+    public async Task LoadApplicationSettings_PopulatesDefaultProjectsDirectoryInState()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        MockApplicationSettingsRepository settingsRepo = new()
+        {
+            Settings = new ApplicationSettings { DefaultProjectsDirectory = "/custom/projects/path" }
+        };
+
+        CommitLogViewModel vm = new(screen, "/repo/test", gitService, applicationSettingsRepository: settingsRepo);
+
+        await vm.LoadApplicationSettingsCommand.Execute().FirstAsync();
+
+        Assert.Equal("/custom/projects/path", vm.State.DefaultProjectsDirectory);
+        Assert.Equal("/custom/projects/path", vm.State.DefaultProjectsDirectoryInput);
+    }
+
+    [Fact]
+    public async Task ExecuteSaveSettings_UpdatesDefaultProjectsDirectoryInStateAndRepository()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        MockApplicationSettingsRepository settingsRepo = new();
+
+        CommitLogViewModel vm = new(screen, "/repo/test", gitService, applicationSettingsRepository: settingsRepo);
+
+        vm.UpdateDefaultProjectsDirectoryInput("/new/projects/path");
+
+        await vm.ExecuteSaveSettingsCommand.Execute().FirstAsync();
+
+        Assert.Equal("/new/projects/path", vm.State.DefaultProjectsDirectory);
+        Assert.Equal("/new/projects/path", settingsRepo.Settings.DefaultProjectsDirectory);
     }
 
     [Theory]

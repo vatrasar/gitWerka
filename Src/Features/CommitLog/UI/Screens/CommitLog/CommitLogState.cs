@@ -123,6 +123,8 @@ public record CommitLogState
 
     public string ConfigUserEmailInput { get; init; } = string.Empty;
 
+    public string DefaultProjectsDirectory { get; init; } = string.Empty;
+
     public string DefaultProjectsDirectoryInput { get; init; } = string.Empty;
 
     public string MaxVisibleBranchesInput { get; init; } = "5";
