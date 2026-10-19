@@ -63,9 +63,10 @@ public interface IGitService
     /// <param name="repositoryPath">Directory path of the repository.</param>
     /// <param name="maxCount">Maximum number of commits to retrieve.</param>
     /// <param name="maxBranches">Maximum number of visible branches to include in graph topology.</param>
+    /// <param name="branchName">Optional specific branch name to retrieve commits for. If null or empty, includes reachable commits from all visible branches.</param>
     /// <param name="cancellationToken">Cancellation token for async operation.</param>
     /// <returns>Read-only list of commit summary objects with graph topology.</returns>
-    Task<IReadOnlyList<CommitSummary>> GetCommitLogAsync(string repositoryPath, int maxCount = 300, int maxBranches = 5, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<CommitSummary>> GetCommitLogAsync(string repositoryPath, int maxCount = 300, int maxBranches = 5, string? branchName = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Retrieves full commit details and changed files for a specific commit SHA.

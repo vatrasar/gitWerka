@@ -19,6 +19,8 @@ public record ConflictFileChunk
 
     public ImmutableList<string> BaseLines { get; init; } = ImmutableList<string>.Empty;
 
+    public ImmutableList<ConflictSelectedLine> SelectedLines { get; init; } = ImmutableList<ConflictSelectedLine>.Empty;
+
     public bool IsOursSelected { get; init; }
 
     public bool IsTheirsSelected { get; init; }

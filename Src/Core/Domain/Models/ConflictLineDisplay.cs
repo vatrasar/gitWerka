@@ -16,10 +16,24 @@ public record ConflictLineDisplay
     public bool IsHunkFirstLine { get; init; }
 
     public int HunkIndex { get; init; }
+ 
+    public int LineIndex { get; init; }
 
     public bool IsSelected { get; init; }
 
     public bool IsOurs { get; init; }
 
+    public bool IsConflictOurs => IsConflict && IsOurs;
+
+    public bool IsConflictTheirs => IsConflict && !IsOurs;
+
+    public bool? IsHunkChecked { get; init; }
+
+    public string ActionTooltip { get; init; } = string.Empty;
+
+    public string HunkTooltip { get; init; } = string.Empty;
+
     public ICommand? ToggleCommand { get; init; }
+
+    public ICommand? ToggleHunkCommand { get; init; }
 }

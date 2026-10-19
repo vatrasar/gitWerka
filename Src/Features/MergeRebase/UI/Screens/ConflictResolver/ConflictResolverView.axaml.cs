@@ -3,34 +3,46 @@
 /// Purpose: 3-panel merge conflict resolver screen inspired by GitKraken.
 /// Available Functionalities:
 /// - Side-by-side inspection of conflicting changes: Panel A (Local/Ours) and Panel B (Remote/Theirs).
-/// - Conflict hunk selection using checkboxes to pick local, remote, or both changes into the merged output.
-/// - Live reactive Output panel showing the merged document with line numbers and highlighted conflict blocks.
+/// - Line-by-line selection to take or un-take individual lines into the merged output, with GitKraken checkmark, plus, and minus hover buttons.
+/// - Whole-hunk and whole-file toggles: Take All Ours, Take All Theirs, and panel header checkboxes.
+/// - Live interactive Output panel with editable text editor, line numbers gutter with source indicators (A/B), and Reset button.
 /// - Next/Previous conflict navigation.
-/// - Top action bar with "Take All Ours", "Take All Theirs", and "Save" (writes file to disk, stages it in Git index, and returns).
-/// - Cancel / Back navigation to return to the previous screen.
+/// - Save and resolve (writes file to disk, stages it in Git index, and returns) or Cancel.
 /// Key UI Elements:
 /// - BackButton, FilePathTextBlock, ConflictCountTextBlock, TakeAllOursButton, TakeAllTheirsButton, SaveButton.
 /// - OursAllCheckBox, OursTitleTextBlock, OursLinesItemsControl.
 /// - TheirsAllCheckBox, TheirsTitleTextBlock, TheirsLinesItemsControl.
-/// - ConflictStatusTextBlock, PreviousConflictButton, NextConflictButton, OutputLinesItemsControl.
+/// - ConflictStatusTextBlock, PreviousConflictButton, NextConflictButton, ResetOutputButton.
+/// - OutputGutterScrollViewer, OutputLineNumbersTextBlock, OutputCodeScrollViewer, OutputEditorTextBox.
 /// Navigation:
-/// - Navigate From: CommitLogView (clicking a file under Conflicted Files or Resolved Files).
+/// - Navigate From: CommitLogView (clicking a conflicted file).
 /// - Navigate To: Return to CommitLogView upon saving or canceling.
 /// </summary>
 namespace GitWerka.Features.MergeRebase.UI.Screens.ConflictResolver;
 
 using System;
+using System.Collections.Immutable;
 using System.Reactive;
 using System.Reactive.Disposables;
+using System.Text;
+using Avalonia;
+using Avalonia.Controls;
 using Avalonia.ReactiveUI;
+using GitWerka.Core.Domain.Models;
 using GitWerka.Features.MergeRebase.Resources;
 using ReactiveUI;
 
 public partial class ConflictResolverView : ReactiveUserControl<ConflictResolverViewModel>
 {
+    private bool _isUpdatingTextProgrammatically;
+
     public ConflictResolverView()
     {
         InitializeComponent();
+
+        OutputCodeScrollViewer.ScrollChanged += HandleOutputCodeScrollChanged;
+        OutputGutterScrollViewer.PointerWheelChanged += HandleOutputGutterPointerWheelChanged;
+        OutputEditorTextBox.PropertyChanged += HandleOutputEditorTextChanged;
 
         this.WhenActivated(disposables =>
         {
@@ -46,6 +58,9 @@ public partial class ConflictResolverView : ReactiveUserControl<ConflictResolver
 
             this.BindCommand(ViewModel, x => x.PreviousConflictCommand, x => x.PreviousConflictButton);
             this.BindCommand(ViewModel, x => x.NextConflictCommand, x => x.NextConflictButton);
+
+            ResetOutputButton.Click += HandleResetOutputClicked;
+            Disposable.Create(() => ResetOutputButton.Click -= HandleResetOutputClicked).DisposeWith(disposables);
 
             this.OneWayBind(ViewModel, x => x.State.FilePath, x => x.FilePathTextBlock.Text);
 
@@ -79,9 +94,79 @@ public partial class ConflictResolverView : ReactiveUserControl<ConflictResolver
                 }))
                 .DisposeWith(disposables);
 
+            this.WhenAnyValue(x => x.ViewModel!.State.MergedOutputText)
+                .Subscribe(Observer.Create<string>(text =>
+                {
+                    if (OutputEditorTextBox.Text != text)
+                    {
+                        _isUpdatingTextProgrammatically = true;
+                        OutputEditorTextBox.Text = text;
+                        _isUpdatingTextProgrammatically = false;
+                        UpdateOutputGutter(text, ViewModel?.State.OutputDisplayLines ?? ImmutableList<ConflictOutputLineDisplay>.Empty);
+                    }
+                }))
+                .DisposeWith(disposables);
+
             this.OneWayBind(ViewModel, x => x.State.OursDisplayLines, x => x.OursLinesItemsControl.ItemsSource);
             this.OneWayBind(ViewModel, x => x.State.TheirsDisplayLines, x => x.TheirsLinesItemsControl.ItemsSource);
-            this.OneWayBind(ViewModel, x => x.State.OutputDisplayLines, x => x.OutputLinesItemsControl.ItemsSource);
         });
+    }
+
+    private void HandleOutputCodeScrollChanged(object? sender, ScrollChangedEventArgs e)
+    {
+        OutputGutterScrollViewer.Offset = new Vector(0, OutputCodeScrollViewer.Offset.Y);
+    }
+
+    private void HandleOutputGutterPointerWheelChanged(object? sender, Avalonia.Input.PointerWheelEventArgs e)
+    {
+        double newY = Math.Max(0, OutputCodeScrollViewer.Offset.Y - (e.Delta.Y * 40));
+        OutputCodeScrollViewer.Offset = new Vector(OutputCodeScrollViewer.Offset.X, newY);
+        e.Handled = true;
+    }
+
+    private void HandleOutputEditorTextChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (e.Property != TextBox.TextProperty || _isUpdatingTextProgrammatically)
+        {
+            return;
+        }
+
+        string newText = OutputEditorTextBox.Text ?? string.Empty;
+        UpdateOutputGutter(newText, ViewModel?.State.OutputDisplayLines ?? ImmutableList<ConflictOutputLineDisplay>.Empty);
+
+        if (ViewModel != null && ViewModel.State.MergedOutputText != newText)
+        {
+            ViewModel.UpdateMergedOutputText(newText);
+        }
+    }
+
+    private void HandleResetOutputClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        ViewModel?.ResetOutputToSelection();
+    }
+
+    private void UpdateOutputGutter(string? text, ImmutableList<ConflictOutputLineDisplay> lines)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            OutputLineNumbersTextBlock.Text = "  1";
+            return;
+        }
+
+        string[] splitLines = text.Split('\n');
+        StringBuilder sb = new();
+        for (int i = 0; i < splitLines.Length; i++)
+        {
+            int lineNum = i + 1;
+            string prefix = "  ";
+            if (i < lines.Count && lines[i].IsConflict)
+            {
+                prefix = lines[i].IsFromOurs ? "A " : (lines[i].IsFromTheirs ? "B " : "  ");
+            }
+
+            sb.AppendLine($"{prefix}{lineNum}");
+        }
+
+        OutputLineNumbersTextBlock.Text = sb.ToString().TrimEnd('\r', '\n');
     }
 }

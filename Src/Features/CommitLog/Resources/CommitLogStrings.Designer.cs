@@ -223,5 +223,11 @@ namespace GitWerka.Features.CommitLog.Resources {
         public static string AiServiceUnavailableError => ResourceManager.GetString("AiServiceUnavailableError", resourceCulture) ?? "AI commit message service is not available.";
         public static string MaxVisibleBranchesLabel => ResourceManager.GetString("MaxVisibleBranchesLabel", resourceCulture) ?? "Max Visible Branches in Graph";
         public static string MaxVisibleBranchesPlaceholder => ResourceManager.GetString("MaxVisibleBranchesPlaceholder", resourceCulture) ?? "e.g., 5";
+        public static string AllBranchesOption => ResourceManager.GetString("AllBranchesOption", resourceCulture) ?? "All branches";
+        public static string RecentlyModifiedBranchesFormat => ResourceManager.GetString("RecentlyModifiedBranchesFormat", resourceCulture) ?? "Recently modified ({0})";
+        public static string ProfileRequiredToCommit => ResourceManager.GetString("ProfileRequiredToCommit", resourceCulture) ?? "An active Git profile is required to commit changes.";
+        public static string NoActiveProfileCommitWarning => ResourceManager.GetString("NoActiveProfileCommitWarning", resourceCulture) ?? "No active Git profile selected. Set an active profile to commit.";
+        public static string SelectProfileButton => ResourceManager.GetString("SelectProfileButton", resourceCulture) ?? "Select Profile";
+        public static string CommitProfileRequiredToolTip => ResourceManager.GetString("CommitProfileRequiredToolTip", resourceCulture) ?? "Cannot commit without an active Git profile. Please select or configure a profile.";
     }
 }
