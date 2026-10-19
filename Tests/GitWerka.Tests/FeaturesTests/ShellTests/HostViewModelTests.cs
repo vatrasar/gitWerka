@@ -10,10 +10,12 @@ using GitWerka.Core.Domain.Models;
 using GitWerka.Core.Domain.Services;
 using GitWerka.Features.CommitLog.UI.Screens.CommitLog;
 using GitWerka.Features.Shell.UI.Screens.Host;
+using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using GitWerka.Core.Domain.RepositoryContracts;
 using GitWerka.Features.ProfileManagement.UI.Screens.ProfileManagement;
 using GitWerka.Features.RepositoryManager.UI.Screens.RepositoryManager;
+using GitWerka.Infrastructure.Services;
 using ReactiveUI;
 using Xunit;
 
@@ -496,5 +498,111 @@ public class HostViewModelTests
 
         hostVm.OpenSettingsCommand.Execute().Subscribe();
         Assert.True(repoManagerVm.State.IsSettingsModalVisible);
+    }
+
+    [Fact]
+    public void InitialState_FooterInfoText_DisplaysAppVersion()
+    {
+        MockScreen screen = new();
+        HostViewModel vm = new(screen);
+
+        Assert.False(vm.State.IsRepositoryLoaded);
+        Assert.Equal(vm.State.AppVersion, vm.State.FooterInfoText);
+        Assert.StartsWith("v", vm.State.FooterInfoText);
+    }
+
+    [Fact]
+    public void SetActiveRepository_UpdatesFooterInfoText_ToRepositoryPath()
+    {
+        MockScreen screen = new();
+        HostViewModel vm = new(screen);
+
+        vm.SetActiveRepository("RepoTest", "/path/to/my-repo");
+
+        Assert.True(vm.State.IsRepositoryLoaded);
+        Assert.Equal("/path/to/my-repo", vm.State.FooterInfoText);
+
+        vm.SetActiveRepository(string.Empty, string.Empty);
+
+        Assert.False(vm.State.IsRepositoryLoaded);
+        Assert.Equal(vm.State.AppVersion, vm.State.FooterInfoText);
+    }
+
+    [Fact]
+    public void RouterCurrentViewModel_WhenCommitLogNavigated_UpdatesFooterInfoTextToRepositoryPath_AndRestoresVersionOnBack()
+    {
+        MockScreen screen = new();
+        HostViewModel hostVm = new(screen);
+        MockGitService gitService = new();
+
+        RepositoryManagerViewModel repoManagerVm = new(screen, new TestRecentRepositoriesRepository(), gitService);
+        screen.Router.Navigate.Execute(repoManagerVm).Subscribe();
+
+        Assert.Equal(hostVm.State.AppVersion, hostVm.State.FooterInfoText);
+
+        CommitLogViewModel commitLogVm = new(screen, "/tmp/sample-repo", gitService);
+        screen.Router.Navigate.Execute(commitLogVm).Subscribe();
+
+        Assert.True(hostVm.State.IsRepositoryLoaded);
+        Assert.Equal("/tmp/sample-repo", hostVm.State.FooterInfoText);
+
+        screen.Router.NavigateBack.Execute().Subscribe();
+
+        Assert.False(hostVm.State.IsRepositoryLoaded);
+        Assert.Equal(hostVm.State.AppVersion, hostVm.State.FooterInfoText);
+    }
+
+    [Fact]
+    public void HostViewModel_WhenStatusServicePublishesStatus_UpdatesHostStateAndFlags()
+    {
+        MockScreen screen = new();
+        HistoricalScheduler scheduler = new();
+        using AppStatusService statusService = new(scheduler);
+        HostViewModel hostVm = new(screen, appStatusService: statusService);
+
+        Assert.Equal("Ready", hostVm.State.StatusMessage);
+        Assert.True(hostVm.State.IsStatusReady);
+        Assert.False(hostVm.State.IsStatusInProgress);
+
+        statusService.SetInProgress("Pushing changes...");
+
+        Assert.Equal("Pushing changes...", hostVm.State.StatusMessage);
+        Assert.Equal(AppStatusSeverity.InProgress, hostVm.State.StatusSeverity);
+        Assert.True(hostVm.State.IsStatusInProgress);
+        Assert.False(hostVm.State.IsStatusReady);
+
+        statusService.SetSuccess("Push completed successfully.");
+
+        Assert.Equal("Push completed successfully.", hostVm.State.StatusMessage);
+        Assert.Equal(AppStatusSeverity.Success, hostVm.State.StatusSeverity);
+        Assert.True(hostVm.State.IsStatusSuccess);
+        Assert.False(hostVm.State.IsStatusInProgress);
+
+        statusService.SetError("Push failed: rejected");
+
+        Assert.Equal("Push failed: rejected", hostVm.State.StatusMessage);
+        Assert.Equal(AppStatusSeverity.Error, hostVm.State.StatusSeverity);
+        Assert.True(hostVm.State.IsStatusError);
+
+        statusService.SetReady();
+
+        Assert.Equal("Ready", hostVm.State.StatusMessage);
+        Assert.Equal(AppStatusSeverity.Ready, hostVm.State.StatusSeverity);
+        Assert.True(hostVm.State.IsStatusReady);
+    }
+
+    [Fact]
+    public void SetStatusMessage_WithAppStatusService_ForwardsToService()
+    {
+        MockScreen screen = new();
+        HistoricalScheduler scheduler = new();
+        using AppStatusService statusService = new(scheduler);
+        HostViewModel hostVm = new(screen, appStatusService: statusService);
+
+        hostVm.SetStatusMessage("Working...", AppStatusSeverity.InProgress);
+
+        Assert.Equal("Working...", statusService.CurrentStatus.Message);
+        Assert.Equal(AppStatusSeverity.InProgress, statusService.CurrentStatus.Severity);
+        Assert.True(hostVm.State.IsStatusInProgress);
     }
 }

@@ -8,10 +8,11 @@
 /// - Provides settings button in header to configure options (global settings on welcome screen, or repository options when loaded).
 /// - Provides profile selection dropdown and management shortcut in header on the right of settings button.
 /// - Displays application status messages in the footer bar.
+/// - Displays active repository path or application version info in the footer bar.
 /// Key UI Elements:
 /// - BackButton, ActiveRepositoryHeaderPanel, ActiveRepositoryNameTextBlock, SettingsButton.
 /// - ProfileMenuButton, ActiveProfileNameTextBlock, ProfilesFlyoutListBox, NoProfilesFlyoutTextBlock, ManageProfilesButton.
-/// - RoutedViewHostControl, StatusMessageTextBlock.
+/// - RoutedViewHostControl, StatusLoadingIcon, StatusSuccessIcon, StatusErrorIcon, StatusReadyIcon, StatusMessageTextBlock, FooterInfoTextBlock.
 /// Navigation:
 /// - Navigate From: MainWindow initialization.
 /// - Navigate To: Child screens (RepositoryManager, CommitLog, ProfileManagement) routed inside RoutedViewHostControl.
@@ -22,6 +23,7 @@ using System;
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using Avalonia.Controls;
 using Avalonia.ReactiveUI;
 using GitWerka.Core.Domain.Models;
 using GitWerka.Features.Shell.Resources;
@@ -39,6 +41,19 @@ public partial class HostView : ReactiveUserControl<HostViewModel>
             this.OneWayBind(ViewModel, x => x.State.CurrentRepositoryName, x => x.ActiveRepositoryNameTextBlock.Text);
             this.OneWayBind(ViewModel, x => x.State.IsRepositoryLoaded, x => x.ActiveRepositoryHeaderPanel.IsVisible);
             this.OneWayBind(ViewModel, x => x.State.StatusMessage, x => x.StatusMessageTextBlock.Text);
+            this.OneWayBind(ViewModel, x => x.State.IsStatusInProgress, x => x.StatusLoadingIcon.IsVisible);
+            this.OneWayBind(ViewModel, x => x.State.IsStatusSuccess, x => x.StatusSuccessIcon.IsVisible);
+            this.OneWayBind(ViewModel, x => x.State.IsStatusError, x => x.StatusErrorIcon.IsVisible);
+            this.OneWayBind(ViewModel, x => x.State.IsStatusReady, x => x.StatusReadyIcon.IsVisible);
+            this.OneWayBind(ViewModel, x => x.State.FooterInfoText, x => x.FooterInfoTextBlock.Text);
+
+            this.WhenAnyValue(x => x.ViewModel!.State.StatusMessage)
+                .Subscribe(Observer.Create<string>(msg => ToolTip.SetTip(StatusMessageTextBlock, msg)))
+                .DisposeWith(disposables);
+
+            this.WhenAnyValue(x => x.ViewModel!.State.FooterInfoText)
+                .Subscribe(Observer.Create<string>(text => ToolTip.SetTip(FooterInfoTextBlock, text)))
+                .DisposeWith(disposables);
 
             this.BindCommand(ViewModel, x => x.NavigateBackCommand, x => x.BackButton);
             this.BindCommand(ViewModel, x => x.OpenSettingsCommand, x => x.SettingsButton);

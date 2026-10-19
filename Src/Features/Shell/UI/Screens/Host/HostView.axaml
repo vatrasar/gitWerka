@@ -152,16 +152,42 @@
     <Border Grid.Row="2" Classes="ShellFooter">
       <Grid ColumnDefinitions="Auto, *, Auto">
         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-          <material:MaterialIcon Kind="CheckCircleOutline" Width="16" Height="16" Foreground="{DynamicResource SuccessBrush}" />
+          <material:MaterialIcon x:Name="StatusLoadingIcon"
+                                 Kind="Loading"
+                                 Classes="RotatingSpinner"
+                                 Width="16"
+                                 Height="16"
+                                 Foreground="{DynamicResource AccentPrimaryBrush}"
+                                 IsVisible="False" />
+          <material:MaterialIcon x:Name="StatusSuccessIcon"
+                                 Kind="CheckCircleOutline"
+                                 Width="16"
+                                 Height="16"
+                                 Foreground="{DynamicResource SuccessBrush}"
+                                 IsVisible="False" />
+          <material:MaterialIcon x:Name="StatusErrorIcon"
+                                 Kind="AlertCircleOutline"
+                                 Width="16"
+                                 Height="16"
+                                 Foreground="{DynamicResource ErrorBrush}"
+                                 IsVisible="False" />
+          <material:MaterialIcon x:Name="StatusReadyIcon"
+                                 Kind="CheckCircleOutline"
+                                 Width="16"
+                                 Height="16"
+                                 Foreground="{DynamicResource SuccessBrush}"
+                                 IsVisible="True" />
           <TextBlock x:Name="StatusMessageTextBlock"
                      Classes="SubtleCaption"
                      VerticalAlignment="Center" />
         </StackPanel>
 
-        <TextBlock Grid.Column="2"
-                   Text="v1.0.0"
+        <TextBlock x:Name="FooterInfoTextBlock"
+                   Grid.Column="2"
                    Classes="SubtleCaption"
-                   VerticalAlignment="Center" />
+                   VerticalAlignment="Center"
+                   TextTrimming="CharacterEllipsis"
+                   MaxWidth="600" />
       </Grid>
     </Border>
   </Grid>

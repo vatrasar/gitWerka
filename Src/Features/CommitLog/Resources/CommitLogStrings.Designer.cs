@@ -204,5 +204,17 @@ namespace GitWerka.Features.CommitLog.Resources {
         public static string MarkAllResolvedButton => ResourceManager.GetString("MarkAllResolvedButton", resourceCulture) ?? "Mark All Resolved";
         public static string MergeConflictsDetected => ResourceManager.GetString("MergeConflictsDetected", resourceCulture) ?? "Merge conflicts detected";
         public static string MergingBranchFormat => ResourceManager.GetString("MergingBranchFormat", resourceCulture) ?? "Merging {0} into {1}";
+        public static string PushingChanges => ResourceManager.GetString("PushingChanges", resourceCulture) ?? "Pushing changes...";
+        public static string PushSucceeded => ResourceManager.GetString("PushSucceeded", resourceCulture) ?? "Push completed successfully.";
+        public static string PushFailed => ResourceManager.GetString("PushFailed", resourceCulture) ?? "Push failed";
+        public static string CommittingChanges => ResourceManager.GetString("CommittingChanges", resourceCulture) ?? "Creating commit...";
+        public static string CommitSucceeded => ResourceManager.GetString("CommitSucceeded", resourceCulture) ?? "Commit created successfully.";
+        public static string CommitFailed => ResourceManager.GetString("CommitFailed", resourceCulture) ?? "Commit failed";
+        public static string FetchingRemotes => ResourceManager.GetString("FetchingRemotes", resourceCulture) ?? "Fetching remote changes...";
+        public static string FetchSucceeded => ResourceManager.GetString("FetchSucceeded", resourceCulture) ?? "Fetch completed successfully.";
+        public static string FetchFailed => ResourceManager.GetString("FetchFailed", resourceCulture) ?? "Fetch failed";
+        public static string PullingChanges => ResourceManager.GetString("PullingChanges", resourceCulture) ?? "Pulling changes...";
+        public static string PullSucceeded => ResourceManager.GetString("PullSucceeded", resourceCulture) ?? "Pull completed successfully.";
+        public static string PullFailed => ResourceManager.GetString("PullFailed", resourceCulture) ?? "Pull failed";
     }
 }

@@ -6,8 +6,10 @@ using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using GitWerka.Core.Domain.Enums;
 using GitWerka.Core.Domain.Models;
 using GitWerka.Core.Domain.RepositoryContracts;
+using GitWerka.Core.Domain.Services;
 using GitWerka.Core.Mvvm;
 using GitWerka.Features.CommitLog.UI.Screens.CommitLog;
 using GitWerka.Features.ProfileManagement.UI.Screens.ProfileManagement;
@@ -22,6 +24,7 @@ using Splat;
 public partial class HostViewModel : ViewModelBase<HostState>, IRoutableViewModel
 {
     private readonly IProfileRepository? _profileRepository;
+    private readonly IAppStatusService? _appStatusService;
     private IDisposable? _commitLogSubscription;
 
     public string? UrlPathSegment => "host";
@@ -30,32 +33,26 @@ public partial class HostViewModel : ViewModelBase<HostState>, IRoutableViewMode
 
     public RoutingState Router => HostScreen.Router;
 
-    public HostViewModel(IScreen hostScreen, IProfileRepository? profileRepository = null) : base(new HostState())
+    public HostViewModel(
+        IScreen hostScreen,
+        IProfileRepository? profileRepository = null,
+        IAppStatusService? appStatusService = null)
+        : base(new HostState { AppVersion = ResolveAppVersion() })
     {
         HostScreen = hostScreen;
         _profileRepository = profileRepository ?? Locator.Current.GetService<IProfileRepository>();
+        _appStatusService = appStatusService ?? Locator.Current.GetService<IAppStatusService>();
 
         Router.CurrentViewModel
-            .Subscribe(Observer.Create<IRoutableViewModel?>(vm =>
-            {
-                if (vm is CommitLogViewModel commitLogVm)
-                {
-                    SetActiveRepository(commitLogVm.State.RepositoryName, commitLogVm.State.RepositoryPath);
-                    SubscribeToCommitLog(commitLogVm);
-                    _ = commitLogVm.ReloadProfilesAsync();
-                    UpdateState(s => s with { IsSettingsButtonVisible = true });
-                    return;
-                }
+            .Subscribe(Observer.Create<IRoutableViewModel?>(OnCurrentViewModelChanged));
 
-                _commitLogSubscription?.Dispose();
-                _commitLogSubscription = null;
-                SetActiveRepository(string.Empty, string.Empty);
-                bool isSettingsVisible = vm is RepositoryManagerViewModel;
+        _appStatusService?.Status
+            .Subscribe(Observer.Create<AppStatus>(status =>
+            {
                 UpdateState(s => s with
                 {
-                    ActiveProfile = null,
-                    AvailableProfiles = ImmutableList<GitProfile>.Empty,
-                    IsSettingsButtonVisible = isSettingsVisible
+                    StatusMessage = status.Message,
+                    StatusSeverity = status.Severity
                 });
             }));
     }
@@ -81,9 +78,39 @@ public partial class HostViewModel : ViewModelBase<HostState>, IRoutableViewMode
     /// Usages: HostView / Global notifications.
     /// </summary>
     /// <param name="message">Status message text.</param>
-    public void SetStatusMessage(string message)
+    /// <param name="severity">Optional severity level.</param>
+    public void SetStatusMessage(string message, AppStatusSeverity severity = AppStatusSeverity.Ready)
     {
-        UpdateState(s => s with { StatusMessage = message ?? "Ready" });
+        if (_appStatusService != null)
+        {
+            ForwardStatusToService(message, severity);
+            return;
+        }
+
+        UpdateState(s => s with
+        {
+            StatusMessage = message ?? "Ready",
+            StatusSeverity = severity
+        });
+    }
+
+    private void ForwardStatusToService(string message, AppStatusSeverity severity)
+    {
+        switch (severity)
+        {
+            case AppStatusSeverity.InProgress:
+                _appStatusService?.SetInProgress(message);
+                break;
+            case AppStatusSeverity.Success:
+                _appStatusService?.SetSuccess(message);
+                break;
+            case AppStatusSeverity.Error:
+                _appStatusService?.SetError(message);
+                break;
+            default:
+                _appStatusService?.SetReady(message);
+                break;
+        }
     }
 
     /// <summary>
@@ -213,6 +240,37 @@ public partial class HostViewModel : ViewModelBase<HostState>, IRoutableViewMode
         NavigateToProfileManagement();
     }
 
+    private void OnCurrentViewModelChanged(IRoutableViewModel? vm)
+    {
+        if (vm is CommitLogViewModel commitLogVm)
+        {
+            SetActiveRepository(commitLogVm.State.RepositoryName, commitLogVm.State.RepositoryPath);
+            SubscribeToCommitLog(commitLogVm);
+            _ = commitLogVm.ReloadProfilesAsync();
+            UpdateState(s => s with { IsSettingsButtonVisible = true });
+            return;
+        }
+
+        CommitLogViewModel? activeCommitLogVm = Router.NavigationStack.OfType<CommitLogViewModel>().LastOrDefault();
+        if (activeCommitLogVm != null)
+        {
+            SetActiveRepository(activeCommitLogVm.State.RepositoryName, activeCommitLogVm.State.RepositoryPath);
+            UpdateState(s => s with { IsSettingsButtonVisible = false });
+            return;
+        }
+
+        _commitLogSubscription?.Dispose();
+        _commitLogSubscription = null;
+        SetActiveRepository(string.Empty, string.Empty);
+        bool isSettingsVisible = vm is RepositoryManagerViewModel;
+        UpdateState(s => s with
+        {
+            ActiveProfile = null,
+            AvailableProfiles = ImmutableList<GitProfile>.Empty,
+            IsSettingsButtonVisible = isSettingsVisible
+        });
+    }
+
     private void SubscribeToCommitLog(CommitLogViewModel commitLogVm)
     {
         _commitLogSubscription?.Dispose();
@@ -220,15 +278,31 @@ public partial class HostViewModel : ViewModelBase<HostState>, IRoutableViewMode
             commitLogVm.WhenAnyValue(x => x.State.ActiveProfile),
             commitLogVm.WhenAnyValue(x => x.State.AvailableProfiles),
             commitLogVm.WhenAnyValue(x => x.State.RepositoryName),
-            (active, profiles, repoName) => (active, profiles, repoName))
-            .Subscribe(Observer.Create<(GitProfile? Active, ImmutableList<GitProfile> Profiles, string RepoName)>(tuple =>
+            commitLogVm.WhenAnyValue(x => x.State.RepositoryPath),
+            (active, profiles, repoName, repoPath) => (active, profiles, repoName, repoPath))
+            .Subscribe(Observer.Create<(GitProfile? Active, ImmutableList<GitProfile> Profiles, string RepoName, string RepoPath)>(tuple =>
             {
                 UpdateState(s => s with
                 {
                     ActiveProfile = tuple.Active,
                     AvailableProfiles = tuple.Profiles,
-                    CurrentRepositoryName = tuple.RepoName
+                    CurrentRepositoryName = tuple.RepoName,
+                    CurrentRepositoryPath = tuple.RepoPath,
+                    IsRepositoryLoaded = !string.IsNullOrWhiteSpace(tuple.RepoPath)
                 });
             }));
+    }
+
+    private static string ResolveAppVersion()
+    {
+        Version? version = typeof(HostViewModel).Assembly.GetName().Version;
+        if (version == null)
+        {
+            return "v1.0.0";
+        }
+
+        return version.Build >= 0
+            ? $"v{version.Major}.{version.Minor}.{version.Build}"
+            : $"v{version.Major}.{version.Minor}";
     }
 }

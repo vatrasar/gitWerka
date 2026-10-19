@@ -10,8 +10,11 @@ using GitWerka.Core.Domain.Models;
 using GitWerka.Core.Domain.RepositoryContracts;
 using GitWerka.Core.Domain.Services;
 using GitWerka.Features.CommitLog.Domain.Enums;
+using GitWerka.Features.CommitLog.Resources;
 using GitWerka.Features.CommitLog.UI.Screens.CommitLog;
+using GitWerka.Infrastructure.Services;
 using ReactiveUI;
+using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Linq;
 using Xunit;
@@ -130,8 +133,15 @@ public class CommitLogViewModelTests
         public string? LastCommitAuthorName { get; private set; }
         public string? LastCommitAuthorEmail { get; private set; }
 
+        public Exception? CreateCommitException { get; set; }
+
         public Task<string> CreateCommitAsync(string repositoryPath, string message, string authorName, string authorEmail, bool amendPreviousCommit = false, CancellationToken cancellationToken = default)
         {
+            if (CreateCommitException != null)
+            {
+                throw CreateCommitException;
+            }
+
             LastCommitMessage = message;
             LastCommitWasAmend = amendPreviousCommit;
             LastCommitAuthorName = authorName;
@@ -218,6 +228,7 @@ public class CommitLogViewModelTests
         public GitCredentials? LastCredentialsUsed { get; private set; }
         public bool ShouldThrowAuthOnRemote { get; set; }
         public bool AlwaysThrowAuthOnRemote { get; set; }
+        public Exception? PushException { get; set; }
 
         public Task FetchAsync(string repositoryPath, string? remoteName = null, GitCredentials? credentials = null, CancellationToken cancellationToken = default)
         {
@@ -246,6 +257,11 @@ public class CommitLogViewModelTests
 
         public Task PushAsync(string repositoryPath, string? remoteName = null, string? branchName = null, GitCredentials? credentials = null, CancellationToken cancellationToken = default)
         {
+            if (PushException != null)
+            {
+                throw PushException;
+            }
+
             if (ShouldThrowAuthOnRemote && credentials == null)
             {
                 throw new Exception("Permission denied (publickey)");
@@ -2025,6 +2041,76 @@ public class CommitLogViewModelTests
 
         Assert.Single(screen.Router.NavigationStack);
         Assert.IsType<GitWerka.Features.MergeRebase.UI.Screens.ConflictResolver.ConflictResolverViewModel>(screen.Router.NavigationStack[0]);
+    }
+
+    [Fact]
+    public async Task ExecuteCommit_UpdatesAppStatus_ToInProgress_AndThenSuccess()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        HistoricalScheduler scheduler = new();
+        using AppStatusService statusService = new(scheduler);
+        List<AppStatus> recorded = new();
+        statusService.Status.Subscribe(s => recorded.Add(s));
+        CommitLogViewModel vm = new(screen, "/repo/path", gitService, appStatusService: statusService);
+
+        vm.UpdateCommitMessageInput("feat: test commit status");
+        await vm.ExecuteCommitCommand.Execute().FirstAsync();
+
+        Assert.Contains(recorded, s => s.Message == CommitLogStrings.CommittingChanges && s.Severity == AppStatusSeverity.InProgress);
+        Assert.Contains(recorded, s => s.Message == CommitLogStrings.CommitSucceeded && s.Severity == AppStatusSeverity.Success);
+    }
+
+    [Fact]
+    public async Task ExecuteCommit_WhenGitServiceThrows_UpdatesAppStatusToError()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new() { CreateCommitException = new InvalidOperationException("Failed to write tree") };
+        HistoricalScheduler scheduler = new();
+        using AppStatusService statusService = new(scheduler);
+        List<AppStatus> recorded = new();
+        statusService.Status.Subscribe(s => recorded.Add(s));
+        CommitLogViewModel vm = new(screen, "/repo/path", gitService, appStatusService: statusService);
+
+        vm.UpdateCommitMessageInput("feat: failing commit");
+        await vm.ExecuteCommitCommand.Execute().FirstAsync();
+
+        Assert.Contains(recorded, s => s.Message == CommitLogStrings.CommittingChanges && s.Severity == AppStatusSeverity.InProgress);
+        Assert.Contains(recorded, s => s.Message.StartsWith(CommitLogStrings.CommitFailed) && s.Severity == AppStatusSeverity.Error);
+    }
+
+    [Fact]
+    public async Task PushCommand_UpdatesAppStatus_ToInProgress_AndThenSuccess()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        HistoricalScheduler scheduler = new();
+        using AppStatusService statusService = new(scheduler);
+        List<AppStatus> recorded = new();
+        statusService.Status.Subscribe(s => recorded.Add(s));
+        CommitLogViewModel vm = new(screen, "/repo/path", gitService, appStatusService: statusService);
+
+        await vm.PushCommand.Execute().FirstAsync();
+
+        Assert.Contains(recorded, s => s.Message == CommitLogStrings.PushingChanges && s.Severity == AppStatusSeverity.InProgress);
+        Assert.Contains(recorded, s => s.Message == CommitLogStrings.PushSucceeded && s.Severity == AppStatusSeverity.Success);
+    }
+
+    [Fact]
+    public async Task PushCommand_WhenGitServiceThrows_UpdatesAppStatusToError()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new() { PushException = new InvalidOperationException("Remote rejected branch") };
+        HistoricalScheduler scheduler = new();
+        using AppStatusService statusService = new(scheduler);
+        List<AppStatus> recorded = new();
+        statusService.Status.Subscribe(s => recorded.Add(s));
+        CommitLogViewModel vm = new(screen, "/repo/path", gitService, appStatusService: statusService);
+
+        await vm.PushCommand.Execute().FirstAsync();
+
+        Assert.Contains(recorded, s => s.Message == CommitLogStrings.PushingChanges && s.Severity == AppStatusSeverity.InProgress);
+        Assert.Contains(recorded, s => s.Message.StartsWith(CommitLogStrings.PushFailed) && s.Severity == AppStatusSeverity.Error);
     }
 }
 

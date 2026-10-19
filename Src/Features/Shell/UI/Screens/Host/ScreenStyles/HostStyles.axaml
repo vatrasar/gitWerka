@@ -1,5 +1,20 @@
 <Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:material="using:Material.Icons.Avalonia">
+
+  <!-- Status Spinner Animation -->
+  <Style Selector="material|MaterialIcon.RotatingSpinner">
+    <Style.Animations>
+      <Animation Duration="0:0:1" IterationCount="Infinite">
+        <KeyFrame Cue="0%">
+          <Setter Property="RotateTransform.Angle" Value="0.0" />
+        </KeyFrame>
+        <KeyFrame Cue="100%">
+          <Setter Property="RotateTransform.Angle" Value="360.0" />
+        </KeyFrame>
+      </Animation>
+    </Style.Animations>
+  </Style>
 
   <!-- Shell Header Bar -->
   <Style Selector="Border.ShellHeader">

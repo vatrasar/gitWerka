@@ -134,6 +134,7 @@ public partial class App : Application
         Locator.CurrentMutable.Register(() => serviceProvider.GetService<IApplicationSettingsRepository>(), typeof(IApplicationSettingsRepository));
         Locator.CurrentMutable.Register(() => serviceProvider.GetService<IGitService>(), typeof(IGitService));
         Locator.CurrentMutable.Register(() => serviceProvider.GetService<ISystemLauncherService>(), typeof(ISystemLauncherService));
+        Locator.CurrentMutable.Register(() => serviceProvider.GetService<IAppStatusService>(), typeof(IAppStatusService));
     }
 
     private static IConfiguration BuildConfiguration()

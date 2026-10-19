@@ -38,6 +38,7 @@ public static class DependencyInjection
         services.AddScoped<IApplicationSettingsRepository, ApplicationSettingsRepository>();
         services.AddSingleton<IGitService, GitService>();
         services.AddSingleton<ISystemLauncherService, SystemLauncherService>();
+        services.AddSingleton<IAppStatusService, AppStatusService>();
         services.AddSingleton<System.Net.Http.HttpClient>();
         services.AddScoped<IAiCommitMessageService, OpenRouterAiCommitMessageService>();
 
