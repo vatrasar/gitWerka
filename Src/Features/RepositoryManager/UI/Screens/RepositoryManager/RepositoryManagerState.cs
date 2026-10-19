@@ -1,6 +1,8 @@
 namespace GitWerka.Features.RepositoryManager.UI.Screens.RepositoryManager;
 
+using System;
 using System.Collections.Immutable;
+using System.Linq;
 using GitWerka.Core.Domain.Models;
 using GitWerka.Features.RepositoryManager.Domain.Enums;
 
@@ -24,6 +26,20 @@ public record RepositoryManagerState
     public ImmutableList<RecentRepository> FilteredFavoriteRepositories { get; init; } = ImmutableList<RecentRepository>.Empty;
 
     public ImmutableList<RecentRepository> DisplayedRepositories { get; init; } = ImmutableList<RecentRepository>.Empty;
+
+    public ImmutableHashSet<string> CollapsedFavoriteGroupNames { get; init; } = ImmutableHashSet<string>.Empty;
+
+    public ImmutableList<FavoriteRepositoryGroup> FavoriteGroups { get; init; } = ImmutableList<FavoriteRepositoryGroup>.Empty;
+
+    public ImmutableList<RecentRepository> UngroupedFavoriteRepositories { get; init; } = ImmutableList<RecentRepository>.Empty;
+
+    public bool IsEditFavoriteModalVisible { get; init; }
+
+    public string TargetFavoritePath { get; init; } = string.Empty;
+
+    public string EditFavoriteNameInput { get; init; } = string.Empty;
+
+    public string EditFavoriteGroupInput { get; init; } = string.Empty;
 
     public bool IsCloneModalVisible { get; init; }
 
@@ -52,4 +68,6 @@ public record RepositoryManagerState
     public string AiCommitStyleInput { get; init; } = "Conventional Commits: <type>(<scope>): <subject>";
 
     public string AiTokenLimitInput { get; init; } = "4000";
+
+    public ImmutableList<string> ExistingGroupNames { get; init; } = ImmutableList<string>.Empty;
 }

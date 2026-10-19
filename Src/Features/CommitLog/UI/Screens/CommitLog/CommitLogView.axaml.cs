@@ -24,12 +24,12 @@
 /// - Commit file changes and structured diff inspection.
 /// - Git configuration modal for user name and email settings, default projects directory, AI API key, model, commit style, token limit, and per-repository project description.
 /// - Commit context actions: Cherry-pick, Revert, Reset current branch (Soft, Mixed, Hard), Create branch or tag from commit, Interactive rebase onto commit.
-/// - Favorites drawer dock: shows recently opened repository not in favorites, list of favorite repositories sorted by last opened, add to favorites with custom name modal, remove from favorites button, switch repository on item selection.
+/// - Favorites drawer dock: shows recently opened repository not in favorites, grouped and ungrouped favorite repositories with expandable categories, add and edit favorite with custom name and group modal, remove from favorites button, switch repository on item selection.
 /// Key UI Elements:
 /// - FavoritesToggleButton, FavoritesDockBackdrop, FavoritesDockPanel, CloseFavoritesDockButton, OpenFolderFromDockButton.
 /// - RecentNonFavoriteSectionPanel, RecentNonFavoriteNameTextBlock, RecentNonFavoritePathTextBlock, OpenRecentNonFavoriteRepoButton, AddRecentToFavoritesButton.
-/// - FavoritesDividerRectangle, EmptyFavoritesTextBlock, FavoritesListBox, DeleteFavoriteItemButton.
-/// - AddFavoriteModalBackdrop, FavoriteNameTextBox, TargetFavoritePathTextBlock, CancelAddFavoriteButton, ConfirmAddFavoriteButton.
+/// - FavoritesDividerRectangle, EmptyFavoritesTextBlock, FavoritesScrollViewer, FavoritesContainerPanel, FavoriteGroupsItemsControl, UngroupedFavoritesSectionHeaderTextBlock, UngroupedFavoritesItemsControl.
+/// - AddFavoriteModalBackdrop, FavoriteModalTitleTextBlock, FavoriteNameTextBox, FavoriteGroupAutoCompleteBox, TargetFavoritePathTextBlock, CancelAddFavoriteButton, ConfirmAddFavoriteButton.
 /// - CurrentBranchTextBlock, FetchButton, PullButton, PushButton, MergeButton.
 /// - SeparateOpenActionsPanel, OpenFileManagerButton, OpenTerminalButton, OpenEditorButton.
 /// - OpenInMenuButton, OpenInFileManagerMenuItem, OpenInTerminalMenuItem, OpenInEditorMenuItem.
@@ -147,9 +147,31 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
         this.OneWayBind(ViewModel, x => x.State.IsCredentialsModalVisible, x => x.CredentialsModalBackdrop.IsVisible);
 
         this.OneWayBind(ViewModel, x => x.State.IsFavoritesDockOpen, x => x.FavoritesDockBackdrop.IsVisible);
-        this.OneWayBind(ViewModel, x => x.State.FavoriteRepositories, x => x.FavoritesListBox.ItemsSource);
+        this.OneWayBind(ViewModel, x => x.State.FavoriteGroups, x => x.FavoriteGroupsItemsControl.ItemsSource);
+        this.OneWayBind(ViewModel, x => x.State.UngroupedFavoriteRepositories, x => x.UngroupedFavoritesItemsControl.ItemsSource);
         this.OneWayBind(ViewModel, x => x.State.IsAddFavoriteModalVisible, x => x.AddFavoriteModalBackdrop.IsVisible);
         this.OneWayBind(ViewModel, x => x.State.TargetFavoritePath, x => x.TargetFavoritePathTextBlock.Text);
+
+        this.WhenAnyValue(x => x.ViewModel!.State.IsEditingExistingFavorite)
+            .Subscribe(Observer.Create<bool>(isEditing =>
+            {
+                FavoriteModalTitleTextBlock.Text = isEditing
+                    ? CommitLogStrings.EditFavoriteModalTitle
+                    : CommitLogStrings.AddFavoriteModalTitle;
+                ConfirmAddFavoriteButton.Content = isEditing
+                    ? Shared.Resources.GlobalStrings.SaveButton
+                    : CommitLogStrings.ConfirmAddFavoriteButton;
+            }))
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(
+            x => x.ViewModel!.State.FavoriteGroups.Count,
+            x => x.ViewModel!.State.UngroupedFavoriteRepositories.Count)
+            .Subscribe(Observer.Create<(int Groups, int Ungrouped)>(counts =>
+            {
+                UngroupedFavoritesSectionHeaderTextBlock.IsVisible = counts.Groups > 0 && counts.Ungrouped > 0;
+            }))
+            .DisposeWith(disposables);
 
         this.WhenAnyValue(x => x.ViewModel!.State.RecentNonFavoriteRepository)
             .Subscribe(Observer.Create<RecentRepository?>(repo =>
@@ -690,6 +712,52 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
                 ViewModel?.ConfirmAddFavoriteCommand.Execute().Subscribe();
             }
         };
+
+        this.WhenAnyValue(x => x.FavoriteGroupAutoCompleteBox.Text)
+            .Subscribe(Observer.Create<string?>(group => ViewModel?.UpdateNewFavoriteGroupInput(group ?? string.Empty)))
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(x => x.ViewModel!.State.NewFavoriteGroupInput)
+            .Subscribe(Observer.Create<string>(group =>
+            {
+                if (FavoriteGroupAutoCompleteBox.Text != group)
+                {
+                    FavoriteGroupAutoCompleteBox.Text = group;
+                }
+            }))
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(x => x.ViewModel!.State.ExistingGroupNames)
+            .DistinctUntilChanged()
+            .Subscribe(Observer.Create<ImmutableList<string>>(groups =>
+            {
+                if (!ReferenceEquals(FavoriteGroupAutoCompleteBox.ItemsSource, groups))
+                {
+                    FavoriteGroupAutoCompleteBox.ItemsSource = groups;
+                }
+            }))
+            .DisposeWith(disposables);
+
+        FavoriteGroupAutoCompleteBox.GotFocus += (s, e) =>
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                if (string.IsNullOrWhiteSpace(FavoriteGroupAutoCompleteBox.Text) &&
+                    FavoriteGroupAutoCompleteBox.ItemsSource is IEnumerable<string> items &&
+                    items.Any())
+                {
+                    FavoriteGroupAutoCompleteBox.IsDropDownOpen = true;
+                }
+            });
+        };
+
+        FavoriteGroupAutoCompleteBox.KeyUp += (s, e) =>
+        {
+            if (e.Key == Key.Enter && !FavoriteGroupAutoCompleteBox.IsDropDownOpen)
+            {
+                ViewModel?.ConfirmAddFavoriteCommand.Execute().Subscribe();
+            }
+        };
     }
 
     private void SetupSelectionHandlers(CompositeDisposable disposables)
@@ -811,25 +879,45 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
 
     private void SetupFavoritesList(CompositeDisposable disposables)
     {
-        FavoritesListBox.SelectionChanged += (sender, e) =>
+        FavoritesScrollViewer.AddHandler(Button.ClickEvent, (sender, e) =>
         {
-            if (FavoritesListBox.SelectedItem is RecentRepository repo && ViewModel != null)
+            if (e.Source is not Visual source || ViewModel == null)
             {
-                ViewModel.OpenRepositoryFromDockCommand.Execute(repo.Path).Subscribe();
-                FavoritesListBox.SelectedItem = null;
+                return;
             }
-        };
 
-        FavoritesListBox.AddHandler(Button.ClickEvent, (sender, e) =>
-        {
-            if (e.Source is Visual source)
+            Button? button = source as Button ?? source.FindAncestorOfType<Button>(true);
+            if (button == null)
             {
-                Button? button = source as Button ?? source.FindAncestorOfType<Button>(true);
-                if (button != null && button.Classes.Contains("DeleteFavoriteButton") && button.DataContext is RecentRepository repo && ViewModel != null)
-                {
-                    ViewModel.RemoveFromFavoritesCommand.Execute(repo.Path).Subscribe();
-                    e.Handled = true;
-                }
+                return;
+            }
+
+            if (button.Classes.Contains("GroupHeaderButton") && button.DataContext is FavoriteRepositoryGroup group)
+            {
+                ViewModel.ToggleFavoriteGroupCommand.Execute(group.Name).Subscribe();
+                e.Handled = true;
+                return;
+            }
+
+            if (button.Classes.Contains("RepoSelectButton") && button.DataContext is RecentRepository repoToOpen)
+            {
+                ViewModel.OpenRepositoryFromDockCommand.Execute(repoToOpen.Path).Subscribe();
+                e.Handled = true;
+                return;
+            }
+
+            if (button.Classes.Contains("EditFavoriteButton") && button.DataContext is RecentRepository repoToEdit)
+            {
+                ViewModel.ShowEditFavoriteModalCommand.Execute(repoToEdit.Path).Subscribe();
+                e.Handled = true;
+                return;
+            }
+
+            if (button.Classes.Contains("DeleteFavoriteButton") && button.DataContext is RecentRepository repoToDelete)
+            {
+                ViewModel.RemoveFromFavoritesCommand.Execute(repoToDelete.Path).Subscribe();
+                e.Handled = true;
+                return;
             }
         });
     }

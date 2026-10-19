@@ -1709,48 +1709,187 @@
                        Margin="16"
                        IsVisible="False" />
 
-            <!-- Favorites ListBox -->
-            <ListBox Grid.Row="1"
-                     x:Name="FavoritesListBox"
-                     Classes="FavoritesList"
-                     Background="Transparent"
-                     BorderThickness="0">
-              <ListBox.ItemTemplate>
-                <DataTemplate x:DataType="models:RecentRepository">
-                  <Border Classes="FavoritesRepoCard">
-                    <Grid ColumnDefinitions="Auto, *, Auto">
-                      <material:MaterialIcon Grid.Column="0"
-                                             Kind="Star"
-                                             Width="18"
-                                             Height="18"
-                                             Foreground="{DynamicResource WarningBrush}"
-                                             VerticalAlignment="Center"
-                                             Margin="0,0,10,0" />
+            <!-- Favorites ScrollViewer -->
+            <ScrollViewer Grid.Row="1"
+                          x:Name="FavoritesScrollViewer"
+                          Classes="FavoritesScrollViewer"
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto">
+              <StackPanel x:Name="FavoritesContainerPanel" Spacing="6" Margin="12,0,12,12">
+                <!-- Grouped Favorites ItemsControl -->
+                <ItemsControl x:Name="FavoriteGroupsItemsControl">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:FavoriteRepositoryGroup">
+                      <StackPanel Spacing="4" Margin="0,0,0,8">
+                        <!-- Group Header Button -->
+                        <Button x:Name="ToggleFavoriteGroupButton"
+                                Classes="GroupHeaderButton"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch">
+                          <Grid ColumnDefinitions="Auto, Auto, *, Auto">
+                            <Panel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,6,0">
+                              <material:MaterialIcon Kind="ChevronDown"
+                                                     Width="16"
+                                                     Height="16"
+                                                     Foreground="{DynamicResource SubtleTextBrush}"
+                                                     IsVisible="{Binding IsExpanded}" />
+                              <material:MaterialIcon Kind="ChevronRight"
+                                                     Width="16"
+                                                     Height="16"
+                                                     Foreground="{DynamicResource SubtleTextBrush}"
+                                                     IsVisible="{Binding !IsExpanded}" />
+                            </Panel>
 
-                      <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding DisplayName}"
-                                   FontWeight="SemiBold"
-                                   FontSize="13"
-                                   TextTrimming="CharacterEllipsis" />
-                        <TextBlock Text="{Binding Path}"
-                                   Classes="SubtleCaption"
-                                   FontSize="11"
-                                   TextTrimming="CharacterEllipsis" />
+                            <material:MaterialIcon Grid.Column="1"
+                                                   Kind="FolderMultipleOutline"
+                                                   Width="16"
+                                                   Height="16"
+                                                   Foreground="{DynamicResource GitGraphBranch1Brush}"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,8,0" />
+
+                            <TextBlock Grid.Column="2"
+                                       Text="{Binding Name}"
+                                       FontWeight="SemiBold"
+                                       FontSize="13"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis" />
+
+                            <Border Grid.Column="3"
+                                    Classes="GroupCountBadge"
+                                    VerticalAlignment="Center">
+                              <TextBlock Text="{Binding Count}"
+                                         FontSize="10"
+                                         FontWeight="SemiBold"
+                                         Foreground="{DynamicResource SubtleTextBrush}" />
+                            </Border>
+                          </Grid>
+                        </Button>
+
+                        <!-- Repositories within the Group -->
+                        <ItemsControl x:Name="GroupRepositoriesItemsControl"
+                                      ItemsSource="{Binding Repositories}"
+                                      IsVisible="{Binding IsExpanded}">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:RecentRepository">
+                              <Border Classes="FavoritesRepoCard GroupItemCard">
+                                <Grid ColumnDefinitions="Auto, *, Auto, Auto">
+                                  <material:MaterialIcon Grid.Column="0"
+                                                         Kind="SourceRepository"
+                                                         Width="16"
+                                                         Height="16"
+                                                         Foreground="{DynamicResource GitGraphBranch2Brush}"
+                                                         VerticalAlignment="Center"
+                                                         Margin="0,0,8,0" />
+
+                                  <Button Grid.Column="1"
+                                          x:Name="OpenFavoriteRepoButton"
+                                          Classes="RepoSelectButton"
+                                          HorizontalAlignment="Stretch"
+                                          HorizontalContentAlignment="Left">
+                                    <StackPanel Spacing="2">
+                                      <TextBlock Text="{Binding DisplayName}"
+                                                 FontWeight="SemiBold"
+                                                 FontSize="12"
+                                                 TextTrimming="CharacterEllipsis" />
+                                      <TextBlock Text="{Binding Path}"
+                                                 Classes="SubtleCaption"
+                                                 FontSize="10"
+                                                 TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                  </Button>
+
+                                  <Button Grid.Column="2"
+                                          x:Name="EditFavoriteItemButton"
+                                          Classes="EditFavoriteButton"
+                                          ToolTip.Tip="{x:Static res:CommitLogStrings.EditFavoriteTooltip}"
+                                          VerticalAlignment="Center"
+                                          Margin="4,0,0,0">
+                                    <material:MaterialIcon Kind="Pencil" Width="15" Height="15" Foreground="{DynamicResource SubtleTextBrush}" />
+                                  </Button>
+
+                                  <Button Grid.Column="3"
+                                          x:Name="DeleteFavoriteItemButton"
+                                          Classes="DeleteFavoriteButton"
+                                          ToolTip.Tip="{x:Static res:CommitLogStrings.RemoveFromFavoritesTooltip}"
+                                          VerticalAlignment="Center"
+                                          Margin="2,0,0,0">
+                                    <material:MaterialIcon Kind="DeleteOutline" Width="16" Height="16" Foreground="{DynamicResource SubtleTextBrush}" />
+                                  </Button>
+                                </Grid>
+                              </Border>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                       </StackPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
 
-                      <Button Grid.Column="2"
-                              x:Name="DeleteFavoriteItemButton"
-                              Classes="DeleteFavoriteButton"
-                              ToolTip.Tip="{x:Static res:CommitLogStrings.RemoveFromFavoritesTooltip}"
-                              VerticalAlignment="Center"
-                              Margin="6,0,0,0">
-                        <material:MaterialIcon Kind="DeleteOutline" Width="18" Height="18" Foreground="{DynamicResource SubtleTextBrush}" />
-                      </Button>
-                    </Grid>
-                  </Border>
-                </DataTemplate>
-              </ListBox.ItemTemplate>
-            </ListBox>
+                <!-- Ungrouped Section Header -->
+                <TextBlock x:Name="UngroupedFavoritesSectionHeaderTextBlock"
+                           Text="{x:Static res:CommitLogStrings.UngroupedFavoritesSectionHeader}"
+                           Classes="SubtleCaption"
+                           FontWeight="SemiBold"
+                           FontSize="11"
+                           Margin="0,4,0,2"
+                           IsVisible="False" />
+
+                <!-- Ungrouped Favorites ItemsControl -->
+                <ItemsControl x:Name="UngroupedFavoritesItemsControl">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:RecentRepository">
+                      <Border Classes="FavoritesRepoCard">
+                        <Grid ColumnDefinitions="Auto, *, Auto, Auto">
+                          <material:MaterialIcon Grid.Column="0"
+                                                 Kind="Star"
+                                                 Width="18"
+                                                 Height="18"
+                                                 Foreground="{DynamicResource WarningBrush}"
+                                                 VerticalAlignment="Center"
+                                                 Margin="0,0,8,0" />
+
+                          <Button Grid.Column="1"
+                                  x:Name="OpenUngroupedFavoriteRepoButton"
+                                  Classes="RepoSelectButton"
+                                  HorizontalAlignment="Stretch"
+                                  HorizontalContentAlignment="Left">
+                            <StackPanel Spacing="2">
+                              <TextBlock Text="{Binding DisplayName}"
+                                         FontWeight="SemiBold"
+                                         FontSize="13"
+                                         TextTrimming="CharacterEllipsis" />
+                              <TextBlock Text="{Binding Path}"
+                                         Classes="SubtleCaption"
+                                         FontSize="11"
+                                         TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                          </Button>
+
+                          <Button Grid.Column="2"
+                                  x:Name="EditUngroupedFavoriteItemButton"
+                                  Classes="EditFavoriteButton"
+                                  ToolTip.Tip="{x:Static res:CommitLogStrings.EditFavoriteTooltip}"
+                                  VerticalAlignment="Center"
+                                  Margin="4,0,0,0">
+                            <material:MaterialIcon Kind="Pencil" Width="15" Height="15" Foreground="{DynamicResource SubtleTextBrush}" />
+                          </Button>
+
+                          <Button Grid.Column="3"
+                                  x:Name="DeleteUngroupedFavoriteItemButton"
+                                  Classes="DeleteFavoriteButton"
+                                  ToolTip.Tip="{x:Static res:CommitLogStrings.RemoveFromFavoritesTooltip}"
+                                  VerticalAlignment="Center"
+                                  Margin="2,0,0,0">
+                            <material:MaterialIcon Kind="DeleteOutline" Width="16" Height="16" Foreground="{DynamicResource SubtleTextBrush}" />
+                          </Button>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </ScrollViewer>
           </Grid>
         </Grid>
       </Border>
@@ -1770,7 +1909,8 @@
                                    Width="24"
                                    Height="24"
                                    Foreground="{DynamicResource WarningBrush}" />
-            <TextBlock Text="{x:Static res:CommitLogStrings.AddFavoriteModalTitle}"
+            <TextBlock x:Name="FavoriteModalTitleTextBlock"
+                       Text="{x:Static res:CommitLogStrings.AddFavoriteModalTitle}"
                        FontSize="16"
                        FontWeight="SemiBold"
                        VerticalAlignment="Center" />
@@ -1780,6 +1920,14 @@
             <TextBlock Text="{x:Static res:CommitLogStrings.FavoriteNameLabel}" FontSize="12" />
             <TextBox x:Name="FavoriteNameTextBox"
                      Watermark="{x:Static res:CommitLogStrings.FavoriteNamePlaceholder}" />
+          </StackPanel>
+
+          <StackPanel Spacing="4">
+            <TextBlock Text="{x:Static res:CommitLogStrings.FavoriteGroupLabel}" FontSize="12" />
+            <AutoCompleteBox x:Name="FavoriteGroupAutoCompleteBox"
+                             FilterMode="Contains"
+                             MinimumPrefixLength="0"
+                             Watermark="{x:Static res:CommitLogStrings.FavoriteGroupPlaceholder}" />
           </StackPanel>
 
           <StackPanel Spacing="2">

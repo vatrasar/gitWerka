@@ -69,6 +69,7 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
         string trimmed = query?.Trim() ?? string.Empty;
         var filteredAll = FilterRepositories(State.AllRepositories, trimmed);
         var filteredFav = FilterRepositories(State.FavoriteRepositories, trimmed);
+        var (groups, ungrouped) = BuildFavoriteGroupsAndUngrouped(State.FavoriteRepositories, State.CollapsedFavoriteGroupNames, trimmed);
         var displayed = State.SelectedTab == RepositoryManagerTab.Favorites
             ? filteredFav
             : filteredAll;
@@ -78,8 +79,30 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
             SearchQuery = trimmed,
             FilteredRepositories = filteredAll,
             FilteredFavoriteRepositories = filteredFav,
+            FavoriteGroups = groups,
+            UngroupedFavoriteRepositories = ungrouped,
             DisplayedRepositories = displayed
         });
+    }
+
+    /// <summary>
+    /// Updates the custom name input in the Edit Favorite modal.
+    /// Usages: RepositoryManagerView edit favorite modal.
+    /// </summary>
+    /// <param name="name">New custom repository name input.</param>
+    public void SetEditFavoriteNameInput(string name)
+    {
+        UpdateState(s => s with { EditFavoriteNameInput = name ?? string.Empty });
+    }
+
+    /// <summary>
+    /// Updates the group name input in the Edit Favorite modal.
+    /// Usages: RepositoryManagerView edit favorite modal.
+    /// </summary>
+    /// <param name="group">New group name input.</param>
+    public void SetEditFavoriteGroupInput(string group)
+    {
+        UpdateState(s => s with { EditFavoriteGroupInput = group ?? string.Empty });
     }
 
     /// <summary>
@@ -196,6 +219,8 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
 
             var filteredAll = FilterRepositories(allList, State.SearchQuery);
             var filteredFav = FilterRepositories(favList, State.SearchQuery);
+            var (groups, ungrouped) = BuildFavoriteGroupsAndUngrouped(favList, State.CollapsedFavoriteGroupNames, State.SearchQuery);
+            var groupNames = ExtractDistinctGroupNames(favList);
 
             var displayed = State.SelectedTab == RepositoryManagerTab.Favorites
                 ? filteredFav
@@ -208,6 +233,9 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
                 FilteredRepositories = filteredAll,
                 FavoriteRepositories = favList,
                 FilteredFavoriteRepositories = filteredFav,
+                FavoriteGroups = groups,
+                UngroupedFavoriteRepositories = ungrouped,
+                ExistingGroupNames = groupNames,
                 DisplayedRepositories = displayed
             });
         }
@@ -381,6 +409,8 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
 
         var filteredAll = FilterRepositories(allList, State.SearchQuery);
         var filteredFav = FilterRepositories(favList, State.SearchQuery);
+        var (groups, ungrouped) = BuildFavoriteGroupsAndUngrouped(favList, State.CollapsedFavoriteGroupNames, State.SearchQuery);
+        var groupNames = ExtractDistinctGroupNames(favList);
 
         var displayed = State.SelectedTab == RepositoryManagerTab.Favorites
             ? filteredFav
@@ -392,8 +422,138 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
             FilteredRepositories = filteredAll,
             FavoriteRepositories = favList,
             FilteredFavoriteRepositories = filteredFav,
+            FavoriteGroups = groups,
+            UngroupedFavoriteRepositories = ungrouped,
+            ExistingGroupNames = groupNames,
             DisplayedRepositories = displayed
         });
+    }
+
+    private static ImmutableList<string> ExtractDistinctGroupNames(ImmutableList<RecentRepository> favorites)
+    {
+        return favorites
+            .Where(r => !string.IsNullOrWhiteSpace(r.GroupName))
+            .Select(r => r.GroupName!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+            .ToImmutableList();
+    }
+
+    [ReactiveCommand]
+    private void ToggleFavoriteGroup(string groupName)
+    {
+        if (string.IsNullOrWhiteSpace(groupName))
+        {
+            return;
+        }
+
+        var collapsed = State.CollapsedFavoriteGroupNames.Contains(groupName)
+            ? State.CollapsedFavoriteGroupNames.Remove(groupName)
+            : State.CollapsedFavoriteGroupNames.Add(groupName);
+
+        var (groups, ungrouped) = BuildFavoriteGroupsAndUngrouped(State.FavoriteRepositories, collapsed, State.SearchQuery);
+        UpdateState(s => s with
+        {
+            CollapsedFavoriteGroupNames = collapsed,
+            FavoriteGroups = groups,
+            UngroupedFavoriteRepositories = ungrouped
+        });
+    }
+
+    [ReactiveCommand]
+    private void ShowEditFavoriteModal(string path)
+    {
+        RecentRepository? repo = State.FavoriteRepositories.FirstOrDefault(r => string.Equals(r.Path, path, StringComparison.OrdinalIgnoreCase))
+            ?? State.AllRepositories.FirstOrDefault(r => string.Equals(r.Path, path, StringComparison.OrdinalIgnoreCase));
+
+        string name = repo?.CustomName ?? repo?.Name ?? string.Empty;
+        string group = repo?.GroupName ?? string.Empty;
+
+        UpdateState(s => s with
+        {
+            IsEditFavoriteModalVisible = true,
+            TargetFavoritePath = path,
+            EditFavoriteNameInput = name,
+            EditFavoriteGroupInput = group
+        });
+    }
+
+    [ReactiveCommand]
+    private void HideEditFavoriteModal()
+    {
+        UpdateState(s => s with { IsEditFavoriteModalVisible = false });
+    }
+
+    [ReactiveCommand]
+    private async Task ConfirmEditFavorite()
+    {
+        if (string.IsNullOrWhiteSpace(State.TargetFavoritePath))
+        {
+            UpdateState(s => s with { IsEditFavoriteModalVisible = false });
+            return;
+        }
+
+        string rawName = State.EditFavoriteNameInput?.Trim() ?? string.Empty;
+        string nameToUse = string.IsNullOrWhiteSpace(rawName)
+            ? new DirectoryInfo(State.TargetFavoritePath).Name
+            : rawName;
+        string? groupToUse = string.IsNullOrWhiteSpace(State.EditFavoriteGroupInput)
+            ? null
+            : State.EditFavoriteGroupInput.Trim();
+
+        await _recentRepositoriesRepository.SetFavoriteAsync(State.TargetFavoritePath, true, nameToUse, groupToUse);
+        await ReloadRepositoriesAsync();
+        UpdateState(s => s with { IsEditFavoriteModalVisible = false });
+    }
+
+    [ReactiveCommand]
+    private async Task RemoveFromFavorites(string path)
+    {
+        await _recentRepositoriesRepository.SetFavoriteAsync(path, false, null, null);
+        await ReloadRepositoriesAsync();
+    }
+
+    private static (ImmutableList<FavoriteRepositoryGroup> Groups, ImmutableList<RecentRepository> Ungrouped) BuildFavoriteGroupsAndUngrouped(
+        ImmutableList<RecentRepository> favorites,
+        ImmutableHashSet<string> collapsedGroups,
+        string searchQuery)
+    {
+        bool hasSearch = !string.IsNullOrWhiteSpace(searchQuery);
+
+        var groups = favorites
+            .Where(r => !string.IsNullOrWhiteSpace(r.GroupName))
+            .GroupBy(r => r.GroupName!.Trim())
+            .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
+            .Where(g => !hasSearch || g.Key.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) || g.Any(r => MatchesSearch(r, searchQuery)))
+            .Select(g =>
+            {
+                var repos = hasSearch && !g.Key.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)
+                    ? g.Where(r => MatchesSearch(r, searchQuery)).ToImmutableList()
+                    : g.ToImmutableList();
+
+                return new FavoriteRepositoryGroup
+                {
+                    Name = g.Key,
+                    Repositories = repos,
+                    IsExpanded = hasSearch || !collapsedGroups.Contains(g.Key)
+                };
+            })
+            .Where(g => g.Repositories.Count > 0)
+            .ToImmutableList();
+
+        var ungrouped = favorites
+            .Where(r => string.IsNullOrWhiteSpace(r.GroupName))
+            .Where(r => !hasSearch || MatchesSearch(r, searchQuery))
+            .ToImmutableList();
+
+        return (groups, ungrouped);
+    }
+
+    private static bool MatchesSearch(RecentRepository repo, string query)
+    {
+        return repo.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+               repo.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+               repo.Path.Contains(query, StringComparison.OrdinalIgnoreCase);
     }
 
     private static ImmutableList<RecentRepository> FilterRepositories(ImmutableList<RecentRepository> repos, string query)
@@ -404,9 +564,7 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
         }
 
         return repos
-            .Where(r => r.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                        r.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                        r.Path.Contains(query, StringComparison.OrdinalIgnoreCase))
+            .Where(r => MatchesSearch(r, query))
             .ToImmutableList();
     }
 

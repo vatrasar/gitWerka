@@ -402,13 +402,13 @@ public class HostViewModelTests
             return Task.FromResult(Items.FirstOrDefault(x => x.Path == repositoryPath));
         }
 
-        public Task SetFavoriteAsync(string repositoryPath, bool isFavorite, string? customName = null, CancellationToken cancellationToken = default)
+        public Task SetFavoriteAsync(string repositoryPath, bool isFavorite, string? customName = null, string? groupName = null, CancellationToken cancellationToken = default)
         {
             var existing = Items.FirstOrDefault(x => x.Path == repositoryPath);
             if (existing != null)
             {
                 Items.Remove(existing);
-                Items.Add(existing with { IsFavorite = isFavorite, CustomName = isFavorite ? customName : null });
+                Items.Add(existing with { IsFavorite = isFavorite, CustomName = isFavorite ? customName : null, GroupName = isFavorite ? groupName : null });
             }
             else
             {
@@ -418,6 +418,7 @@ public class HostViewModelTests
                     Name = new System.IO.DirectoryInfo(repositoryPath).Name,
                     IsFavorite = isFavorite,
                     CustomName = isFavorite ? customName : null,
+                    GroupName = isFavorite ? groupName : null,
                     LastOpenedAtUtc = DateTime.UtcNow
                 });
             }

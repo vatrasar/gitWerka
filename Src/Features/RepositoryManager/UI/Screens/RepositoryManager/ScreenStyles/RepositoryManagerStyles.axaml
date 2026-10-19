@@ -1,5 +1,6 @@
 <Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:material="using:Material.Icons.Avalonia">
 
   <!-- Action Card Tile in Left Panel -->
   <Style Selector="Border.ActionTile">
@@ -90,6 +91,93 @@
   <Style Selector="Button.RepoManagerTab.active">
     <Setter Property="Foreground" Value="{DynamicResource AccentPrimaryBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}" />
+  </Style>
+
+  <!-- Group Header Button -->
+  <Style Selector="Button.GroupHeaderButton">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="10,8" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.1" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="Button.GroupHeaderButton:pointerover">
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardHoverBrush}" />
+  </Style>
+
+  <!-- Group Count Badge -->
+  <Style Selector="Border.GroupCountBadge">
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardHoverBrush}" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="6,2" />
+  </Style>
+
+  <!-- Group Item Card -->
+  <Style Selector="Border.GroupItemCard">
+    <Setter Property="Margin" Value="14,2,0,2" />
+  </Style>
+
+  <!-- Repo Select Button inside Card -->
+  <Style Selector="Button.RepoSelectButton">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+
+  <!-- Edit Favorite Button -->
+  <Style Selector="Button.EditFavoriteButton">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="6" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.1" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="Button.EditFavoriteButton:pointerover">
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardHoverBrush}" />
+  </Style>
+
+  <Style Selector="Button.EditFavoriteButton:pointerover material|MaterialIcon">
+    <Setter Property="Foreground" Value="{DynamicResource GitGraphBranch1Brush}" />
+  </Style>
+
+  <!-- Delete Favorite Button -->
+  <Style Selector="Button.DeleteFavoriteButton">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="6" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.1" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="Button.DeleteFavoriteButton:pointerover">
+    <Setter Property="Background" Value="{DynamicResource ErrorBannerBackgroundBrush}" />
+  </Style>
+
+  <Style Selector="Button.DeleteFavoriteButton:pointerover material|MaterialIcon">
+    <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}" />
+  </Style>
+
+  <!-- Favorites ScrollViewer -->
+  <Style Selector="ScrollViewer.FavoritesScrollViewer">
+    <Setter Property="ClipToBounds" Value="False" />
   </Style>
 
 </Styles>

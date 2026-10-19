@@ -418,6 +418,21 @@
   <data name="ConfirmAddFavoriteButton" xml:space="preserve">
     <value>Add to Favorites</value>
   </data>
+  <data name="FavoriteGroupLabel" xml:space="preserve">
+    <value>Group (optional)</value>
+  </data>
+  <data name="FavoriteGroupPlaceholder" xml:space="preserve">
+    <value>e.g. Project Name...</value>
+  </data>
+  <data name="EditFavoriteModalTitle" xml:space="preserve">
+    <value>Edit Favorite Repository</value>
+  </data>
+  <data name="EditFavoriteTooltip" xml:space="preserve">
+    <value>Edit favorite name and group</value>
+  </data>
+  <data name="UngroupedFavoritesSectionHeader" xml:space="preserve">
+    <value>Ungrouped</value>
+  </data>
   <data name="OpenFolderButton" xml:space="preserve">
     <value>Open Folder...</value>
   </data>

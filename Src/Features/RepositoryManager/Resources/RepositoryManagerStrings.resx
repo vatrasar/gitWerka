@@ -127,6 +127,30 @@
   <data name="NoFavoriteRepositories" xml:space="preserve">
     <value>No favorite repositories yet. You can star repositories in the workspace to pin them here.</value>
   </data>
+  <data name="EditFavoriteModalTitle" xml:space="preserve">
+    <value>Edit Favorite Repository</value>
+  </data>
+  <data name="EditFavoriteTooltip" xml:space="preserve">
+    <value>Edit favorite name and group</value>
+  </data>
+  <data name="FavoriteNameLabel" xml:space="preserve">
+    <value>Repository Name</value>
+  </data>
+  <data name="FavoriteNamePlaceholder" xml:space="preserve">
+    <value>Enter custom name...</value>
+  </data>
+  <data name="FavoriteGroupLabel" xml:space="preserve">
+    <value>Group (optional)</value>
+  </data>
+  <data name="FavoriteGroupPlaceholder" xml:space="preserve">
+    <value>e.g. Project Name...</value>
+  </data>
+  <data name="RemoveFromFavoritesTooltip" xml:space="preserve">
+    <value>Remove from favorites</value>
+  </data>
+  <data name="UngroupedFavoritesSectionHeader" xml:space="preserve">
+    <value>Ungrouped</value>
+  </data>
   <data name="SettingsButton" xml:space="preserve">
     <value>Settings</value>
   </data>

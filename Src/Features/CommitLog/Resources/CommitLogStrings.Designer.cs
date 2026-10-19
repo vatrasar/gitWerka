@@ -161,6 +161,11 @@ namespace GitWerka.Features.CommitLog.Resources {
         public static string FavoriteNameLabel => ResourceManager.GetString("FavoriteNameLabel", resourceCulture) ?? "Repository Name";
         public static string FavoriteNamePlaceholder => ResourceManager.GetString("FavoriteNamePlaceholder", resourceCulture) ?? "Enter custom name...";
         public static string ConfirmAddFavoriteButton => ResourceManager.GetString("ConfirmAddFavoriteButton", resourceCulture) ?? "Add to Favorites";
+        public static string FavoriteGroupLabel => ResourceManager.GetString("FavoriteGroupLabel", resourceCulture) ?? "Group (optional)";
+        public static string FavoriteGroupPlaceholder => ResourceManager.GetString("FavoriteGroupPlaceholder", resourceCulture) ?? "e.g. Project Name...";
+        public static string EditFavoriteModalTitle => ResourceManager.GetString("EditFavoriteModalTitle", resourceCulture) ?? "Edit Favorite Repository";
+        public static string EditFavoriteTooltip => ResourceManager.GetString("EditFavoriteTooltip", resourceCulture) ?? "Edit favorite name and group";
+        public static string UngroupedFavoritesSectionHeader => ResourceManager.GetString("UngroupedFavoritesSectionHeader", resourceCulture) ?? "Ungrouped";
         public static string OpenFolderButton => ResourceManager.GetString("OpenFolderButton", resourceCulture) ?? "Open Folder...";
         public static string OpenFolderTooltip => ResourceManager.GetString("OpenFolderTooltip", resourceCulture) ?? "Open a Git repository from local folder";
         public static string GenerateAiCommitButton => ResourceManager.GetString("GenerateAiCommitButton", resourceCulture) ?? "AI Suggest";

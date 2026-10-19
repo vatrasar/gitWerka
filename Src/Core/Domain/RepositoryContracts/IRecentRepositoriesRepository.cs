@@ -52,14 +52,15 @@ public interface IRecentRepositoriesRepository
     Task<RecentRepository?> GetRepositoryByPathAsync(string repositoryPath, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Sets or clears favorite status and optional custom display name for a repository.
-    /// Usages: CommitLogViewModel.
+    /// Sets or clears favorite status, optional custom display name, and optional group name for a repository.
+    /// Usages: CommitLogViewModel, RepositoryManagerViewModel.
     /// </summary>
     /// <param name="repositoryPath">The file system path of the repository.</param>
     /// <param name="isFavorite">True to add to favorites, false to remove.</param>
     /// <param name="customName">Optional custom display name when adding to favorites.</param>
+    /// <param name="groupName">Optional group name for categorizing favorite repositories.</param>
     /// <param name="cancellationToken">Cancellation token for async operation.</param>
-    Task SetFavoriteAsync(string repositoryPath, bool isFavorite, string? customName = null, CancellationToken cancellationToken = default);
+    Task SetFavoriteAsync(string repositoryPath, bool isFavorite, string? customName = null, string? groupName = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Retrieves all favorite repositories ordered by last opened timestamp.

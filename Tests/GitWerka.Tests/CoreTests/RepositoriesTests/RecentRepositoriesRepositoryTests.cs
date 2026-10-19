@@ -208,6 +208,33 @@ public class RecentRepositoriesRepositoryTests : IDisposable
         Assert.False(result.IsFavorite);
     }
 
+    [Fact]
+    public async Task SetFavoriteAsync_WithGroupNameProvided_PersistsGroupAndCustomName()
+    {
+        await _repository.SetFavoriteAsync("/dummy/grouped-repo", true, "Repo Agent 1", "Project Alpha");
+
+        RecentRepository? repo = await _repository.GetRepositoryByPathAsync("/dummy/grouped-repo");
+
+        Assert.NotNull(repo);
+        Assert.True(repo.IsFavorite);
+        Assert.Equal("Repo Agent 1", repo.CustomName);
+        Assert.Equal("Project Alpha", repo.GroupName);
+    }
+
+    [Fact]
+    public async Task SetFavoriteAsync_WhenFavoriteIsFalse_ClearsGroupAndCustomName()
+    {
+        await _repository.SetFavoriteAsync("/dummy/grouped-repo-2", true, "Repo Agent 2", "Project Beta");
+        await _repository.SetFavoriteAsync("/dummy/grouped-repo-2", false);
+
+        RecentRepository? repo = await _repository.GetRepositoryByPathAsync("/dummy/grouped-repo-2");
+
+        Assert.NotNull(repo);
+        Assert.False(repo.IsFavorite);
+        Assert.Null(repo.CustomName);
+        Assert.Null(repo.GroupName);
+    }
+
     public void Dispose()
     {
         _dbContext.Dispose();

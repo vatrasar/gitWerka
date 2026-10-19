@@ -64,6 +64,14 @@ namespace GitWerka.Features.RepositoryManager.Resources {
         public static string FavoritesTabTitle => ResourceManager.GetString("FavoritesTabTitle", resourceCulture) ?? "Favorites";
         public static string RecentTabTitle => ResourceManager.GetString("RecentTabTitle", resourceCulture) ?? "Recent";
         public static string NoFavoriteRepositories => ResourceManager.GetString("NoFavoriteRepositories", resourceCulture) ?? "No favorite repositories yet. You can star repositories in the workspace to pin them here.";
+        public static string EditFavoriteModalTitle => ResourceManager.GetString("EditFavoriteModalTitle", resourceCulture) ?? "Edit Favorite Repository";
+        public static string EditFavoriteTooltip => ResourceManager.GetString("EditFavoriteTooltip", resourceCulture) ?? "Edit favorite name and group";
+        public static string FavoriteNameLabel => ResourceManager.GetString("FavoriteNameLabel", resourceCulture) ?? "Repository Name";
+        public static string FavoriteNamePlaceholder => ResourceManager.GetString("FavoriteNamePlaceholder", resourceCulture) ?? "Enter custom name...";
+        public static string FavoriteGroupLabel => ResourceManager.GetString("FavoriteGroupLabel", resourceCulture) ?? "Group (optional)";
+        public static string FavoriteGroupPlaceholder => ResourceManager.GetString("FavoriteGroupPlaceholder", resourceCulture) ?? "e.g. Project Name...";
+        public static string RemoveFromFavoritesTooltip => ResourceManager.GetString("RemoveFromFavoritesTooltip", resourceCulture) ?? "Remove from favorites";
+        public static string UngroupedFavoritesSectionHeader => ResourceManager.GetString("UngroupedFavoritesSectionHeader", resourceCulture) ?? "Ungrouped";
         public static string SettingsButton => ResourceManager.GetString("SettingsButton", resourceCulture) ?? "Settings";
         public static string SettingsDescription => ResourceManager.GetString("SettingsDescription", resourceCulture) ?? "Configure application preferences and AI assistant";
         public static string SettingsModalTitle => ResourceManager.GetString("SettingsModalTitle", resourceCulture) ?? "Global Settings";

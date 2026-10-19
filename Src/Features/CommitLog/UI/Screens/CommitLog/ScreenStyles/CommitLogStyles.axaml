@@ -235,6 +235,63 @@
     <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
   </Style>
 
+  <!-- Edit Favorite Button -->
+  <Style Selector="Button.EditFavoriteButton">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="5" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.1" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="Button.EditFavoriteButton:pointerover">
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardHoverBrush}" />
+  </Style>
+
+  <Style Selector="Button.EditFavoriteButton:pointerover material|MaterialIcon">
+    <Setter Property="Foreground" Value="{DynamicResource GitGraphBranch1Brush}" />
+  </Style>
+
+  <!-- Group Header Button -->
+  <Style Selector="Button.GroupHeaderButton">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="8,6" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.1" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="Button.GroupHeaderButton:pointerover">
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardHoverBrush}" />
+  </Style>
+
+  <!-- Group Count Badge -->
+  <Style Selector="Border.GroupCountBadge">
+    <Setter Property="Background" Value="{DynamicResource SurfaceCardHoverBrush}" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="6,2" />
+  </Style>
+
+  <!-- Group Item Card -->
+  <Style Selector="Border.GroupItemCard">
+    <Setter Property="Margin" Value="14,2,0,2" />
+  </Style>
+
+  <!-- Favorites ScrollViewer -->
+  <Style Selector="ScrollViewer.FavoritesScrollViewer">
+    <Setter Property="ClipToBounds" Value="False" />
+  </Style>
+
   <!-- Favorites ListBox -->
   <Style Selector="ListBox.FavoritesList">
     <Setter Property="ClipToBounds" Value="False" />

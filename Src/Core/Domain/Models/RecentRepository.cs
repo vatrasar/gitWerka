@@ -18,6 +18,8 @@ public record RecentRepository
     public bool IsFavorite { get; init; }
 
     public string? CustomName { get; init; }
+    
+    public string? GroupName { get; init; }
 
     public string DisplayName => !string.IsNullOrWhiteSpace(CustomName) ? CustomName : Name;
 }

@@ -201,6 +201,7 @@ public partial class App : Application
     {
         TryExecuteMigrationSql(dbContext, "ALTER TABLE RecentRepositories ADD COLUMN IsFavorite INTEGER NOT NULL DEFAULT 0;");
         TryExecuteMigrationSql(dbContext, "ALTER TABLE RecentRepositories ADD COLUMN CustomName TEXT NULL;");
+        TryExecuteMigrationSql(dbContext, "ALTER TABLE RecentRepositories ADD COLUMN GroupName TEXT NULL;");
     }
 
     private static void TryExecuteMigrationSql(GitWerkaDbContext dbContext, string sql)

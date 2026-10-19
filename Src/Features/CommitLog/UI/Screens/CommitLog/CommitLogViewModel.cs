@@ -102,6 +102,16 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
     }
 
     /// <summary>
+    /// Updates the target group name for the repository being added or edited in favorites.
+    /// Usages: CommitLogView favorite group text box.
+    /// </summary>
+    /// <param name="group">New group name input.</param>
+    public void UpdateNewFavoriteGroupInput(string group)
+    {
+        UpdateState(s => s with { NewFavoriteGroupInput = group ?? string.Empty });
+    }
+
+    /// <summary>
     /// Toggles the amend previous commit option. Pre-populates the commit message with HEAD commit's message if currently empty.
     /// Usages: CommitLogView amend checkbox.
     /// </summary>
@@ -1938,10 +1948,16 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
         {
             var favorites = await _recentRepositoriesRepository.GetFavoriteRepositoriesAsync();
             var recentNonFav = await _recentRepositoriesRepository.GetMostRecentNonFavoriteRepositoryAsync();
+            var favList = favorites.ToImmutableList();
+            var (groups, ungrouped) = BuildFavoriteGroupsAndUngrouped(favList, State.CollapsedFavoriteGroupNames);
+            var groupNames = ExtractDistinctGroupNames(favList);
 
             UpdateState(s => s with
             {
-                FavoriteRepositories = favorites.ToImmutableList(),
+                FavoriteRepositories = favList,
+                FavoriteGroups = groups,
+                UngroupedFavoriteRepositories = ungrouped,
+                ExistingGroupNames = groupNames,
                 RecentNonFavoriteRepository = recentNonFav
             });
         }
@@ -1949,6 +1965,39 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
         {
             UpdateState(s => s with { ErrorMessage = ex.Message });
         }
+    }
+
+    private static ImmutableList<string> ExtractDistinctGroupNames(ImmutableList<RecentRepository> favorites)
+    {
+        return favorites
+            .Where(r => !string.IsNullOrWhiteSpace(r.GroupName))
+            .Select(r => r.GroupName!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+            .ToImmutableList();
+    }
+
+    private static (ImmutableList<FavoriteRepositoryGroup> Groups, ImmutableList<RecentRepository> Ungrouped) BuildFavoriteGroupsAndUngrouped(
+        ImmutableList<RecentRepository> favorites,
+        ImmutableHashSet<string> collapsedGroups)
+    {
+        var groups = favorites
+            .Where(r => !string.IsNullOrWhiteSpace(r.GroupName))
+            .GroupBy(r => r.GroupName!.Trim())
+            .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(g => new FavoriteRepositoryGroup
+            {
+                Name = g.Key,
+                Repositories = g.ToImmutableList(),
+                IsExpanded = !collapsedGroups.Contains(g.Key)
+            })
+            .ToImmutableList();
+
+        var ungrouped = favorites
+            .Where(r => string.IsNullOrWhiteSpace(r.GroupName))
+            .ToImmutableList();
+
+        return (groups, ungrouped);
     }
 
     private async Task InitializeFavoriteAndRecentStateAsync()
@@ -1974,7 +2023,8 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
                 Name = folderName,
                 LastOpenedAtUtc = DateTime.UtcNow,
                 IsFavorite = isFavorite,
-                CustomName = customName
+                CustomName = customName,
+                GroupName = existing?.GroupName
             });
 
             await RefreshFavoritesDockDataAsync();
@@ -2014,17 +2064,48 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
     }
 
     [ReactiveCommand]
+    private void ToggleFavoriteGroup(string groupName)
+    {
+        if (string.IsNullOrWhiteSpace(groupName))
+        {
+            return;
+        }
+
+        var collapsed = State.CollapsedFavoriteGroupNames.Contains(groupName)
+            ? State.CollapsedFavoriteGroupNames.Remove(groupName)
+            : State.CollapsedFavoriteGroupNames.Add(groupName);
+
+        var (groups, ungrouped) = BuildFavoriteGroupsAndUngrouped(State.FavoriteRepositories, collapsed);
+        UpdateState(s => s with
+        {
+            CollapsedFavoriteGroupNames = collapsed,
+            FavoriteGroups = groups,
+            UngroupedFavoriteRepositories = ungrouped
+        });
+    }
+
+    [ReactiveCommand]
     private void ShowAddFavoriteModal(string? path = null)
     {
         string targetPath = string.IsNullOrWhiteSpace(path) ? State.RepositoryPath : path;
-        string defaultName = new DirectoryInfo(targetPath).Name;
+        RecentRepository? existing = State.FavoriteRepositories.FirstOrDefault(r => string.Equals(r.Path, targetPath, StringComparison.OrdinalIgnoreCase));
+        string defaultName = existing?.CustomName ?? (!string.IsNullOrWhiteSpace(existing?.Name) ? existing.Name : new DirectoryInfo(targetPath).Name);
+        string defaultGroup = existing?.GroupName ?? string.Empty;
 
         UpdateState(s => s with
         {
             IsAddFavoriteModalVisible = true,
+            IsEditingExistingFavorite = existing != null,
             TargetFavoritePath = targetPath,
-            NewFavoriteNameInput = defaultName
+            NewFavoriteNameInput = defaultName,
+            NewFavoriteGroupInput = defaultGroup
         });
+    }
+
+    [ReactiveCommand]
+    private void ShowEditFavoriteModal(string path)
+    {
+        ShowAddFavoriteModal(path);
     }
 
     [ReactiveCommand]
@@ -2046,8 +2127,11 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
         string nameToUse = string.IsNullOrWhiteSpace(rawName)
             ? new DirectoryInfo(State.TargetFavoritePath).Name
             : rawName;
+        string? groupToUse = string.IsNullOrWhiteSpace(State.NewFavoriteGroupInput)
+            ? null
+            : State.NewFavoriteGroupInput.Trim();
 
-        await _recentRepositoriesRepository.SetFavoriteAsync(State.TargetFavoritePath, true, nameToUse);
+        await _recentRepositoriesRepository.SetFavoriteAsync(State.TargetFavoritePath, true, nameToUse, groupToUse);
 
         if (string.Equals(State.TargetFavoritePath, State.RepositoryPath, StringComparison.OrdinalIgnoreCase))
         {
@@ -2066,7 +2150,7 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
             return;
         }
 
-        await _recentRepositoriesRepository.SetFavoriteAsync(path, false, null);
+        await _recentRepositoriesRepository.SetFavoriteAsync(path, false, null, null);
 
         if (string.Equals(path, State.RepositoryPath, StringComparison.OrdinalIgnoreCase))
         {

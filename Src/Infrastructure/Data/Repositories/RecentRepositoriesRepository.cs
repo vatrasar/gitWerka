@@ -119,25 +119,26 @@ public class RecentRepositoriesRepository : IRecentRepositoriesRepository
     }
 
     /// <summary>
-    /// Sets or clears favorite status and optional custom display name for a repository.
-    /// Usages: CommitLogViewModel.
+    /// Sets or clears favorite status, optional custom display name, and optional group name for a repository.
+    /// Usages: CommitLogViewModel, RepositoryManagerViewModel.
     /// </summary>
     /// <param name="repositoryPath">The file system path of the repository.</param>
     /// <param name="isFavorite">True to add to favorites, false to remove.</param>
     /// <param name="customName">Optional custom display name when adding to favorites.</param>
+    /// <param name="groupName">Optional group name for categorizing favorite repositories.</param>
     /// <param name="cancellationToken">Cancellation token for async operation.</param>
-    public async Task SetFavoriteAsync(string repositoryPath, bool isFavorite, string? customName = null, CancellationToken cancellationToken = default)
+    public async Task SetFavoriteAsync(string repositoryPath, bool isFavorite, string? customName = null, string? groupName = null, CancellationToken cancellationToken = default)
     {
         RecentRepositoryEntity? entity = await _dbContext.RecentRepositories
             .FirstOrDefaultAsync(r => r.Path == repositoryPath, cancellationToken);
 
         if (entity == null)
         {
-            await CreateAndAddFavoriteEntityAsync(repositoryPath, isFavorite, customName, cancellationToken);
+            await CreateAndAddFavoriteEntityAsync(repositoryPath, isFavorite, customName, groupName, cancellationToken);
         }
         else
         {
-            UpdateFavoriteProperties(entity, isFavorite, customName);
+            UpdateFavoriteProperties(entity, isFavorite, customName, groupName);
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -145,7 +146,7 @@ public class RecentRepositoriesRepository : IRecentRepositoriesRepository
 
     /// <summary>
     /// Retrieves all favorite repositories ordered by last opened timestamp.
-    /// Usages: CommitLogViewModel.
+    /// Usages: CommitLogViewModel, RepositoryManagerViewModel.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token for async operation.</param>
     /// <returns>Read-only list of favorite repository domain models.</returns>
@@ -186,7 +187,8 @@ public class RecentRepositoriesRepository : IRecentRepositoriesRepository
             LastOpenedAtUtc = entity.LastOpenedAtUtc,
             IsPinned = entity.IsPinned,
             IsFavorite = entity.IsFavorite,
-            CustomName = entity.CustomName
+            CustomName = entity.CustomName,
+            GroupName = entity.GroupName
         };
     }
 
@@ -201,6 +203,10 @@ public class RecentRepositoriesRepository : IRecentRepositoriesRepository
             {
                 entity.CustomName = model.CustomName;
             }
+            if (!string.IsNullOrWhiteSpace(model.GroupName))
+            {
+                entity.GroupName = model.GroupName;
+            }
         }
     }
 
@@ -213,19 +219,21 @@ public class RecentRepositoriesRepository : IRecentRepositoriesRepository
             LastOpenedAtUtc = model.LastOpenedAtUtc,
             IsPinned = model.IsPinned,
             IsFavorite = model.IsFavorite,
-            CustomName = model.CustomName
+            CustomName = model.CustomName,
+            GroupName = model.GroupName
         };
 
         await _dbContext.RecentRepositories.AddAsync(entity, cancellationToken);
     }
 
-    private static void UpdateFavoriteProperties(RecentRepositoryEntity entity, bool isFavorite, string? customName)
+    private static void UpdateFavoriteProperties(RecentRepositoryEntity entity, bool isFavorite, string? customName, string? groupName)
     {
         entity.IsFavorite = isFavorite;
         entity.CustomName = isFavorite ? customName : null;
+        entity.GroupName = isFavorite ? groupName : null;
     }
 
-    private async Task CreateAndAddFavoriteEntityAsync(string path, bool isFavorite, string? customName, CancellationToken cancellationToken)
+    private async Task CreateAndAddFavoriteEntityAsync(string path, bool isFavorite, string? customName, string? groupName, CancellationToken cancellationToken)
     {
         string dirName = System.IO.Path.GetFileName(path.TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar));
         RecentRepositoryEntity entity = new()
@@ -234,7 +242,8 @@ public class RecentRepositoriesRepository : IRecentRepositoriesRepository
             Name = dirName,
             LastOpenedAtUtc = DateTime.UtcNow,
             IsFavorite = isFavorite,
-            CustomName = isFavorite ? customName : null
+            CustomName = isFavorite ? customName : null,
+            GroupName = isFavorite ? groupName : null
         };
 
         await _dbContext.RecentRepositories.AddAsync(entity, cancellationToken);

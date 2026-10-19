@@ -1,6 +1,8 @@
 namespace GitWerka.Features.CommitLog.UI.Screens.CommitLog;
 
+using System;
 using System.Collections.Immutable;
+using System.Linq;
 using GitWerka.Core.Domain.Enums;
 using GitWerka.Core.Domain.Models;
 using GitWerka.Core.Domain.Services;
@@ -186,4 +188,16 @@ public record CommitLogState
     public string TargetFavoritePath { get; init; } = string.Empty;
 
     public string NewFavoriteNameInput { get; init; } = string.Empty;
+
+    public string NewFavoriteGroupInput { get; init; } = string.Empty;
+
+    public bool IsEditingExistingFavorite { get; init; }
+
+    public ImmutableHashSet<string> CollapsedFavoriteGroupNames { get; init; } = ImmutableHashSet<string>.Empty;
+
+    public ImmutableList<FavoriteRepositoryGroup> FavoriteGroups { get; init; } = ImmutableList<FavoriteRepositoryGroup>.Empty;
+
+    public ImmutableList<RecentRepository> UngroupedFavoriteRepositories { get; init; } = ImmutableList<RecentRepository>.Empty;
+
+    public ImmutableList<string> ExistingGroupNames { get; init; } = ImmutableList<string>.Empty;
 }

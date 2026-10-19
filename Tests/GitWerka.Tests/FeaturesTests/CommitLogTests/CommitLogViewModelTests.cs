@@ -1345,13 +1345,13 @@ public class CommitLogViewModelTests
             return Task.FromResult(Items.FirstOrDefault(x => x.Path == repositoryPath));
         }
 
-        public Task SetFavoriteAsync(string repositoryPath, bool isFavorite, string? customName = null, CancellationToken cancellationToken = default)
+        public Task SetFavoriteAsync(string repositoryPath, bool isFavorite, string? customName = null, string? groupName = null, CancellationToken cancellationToken = default)
         {
             var existing = Items.FirstOrDefault(x => x.Path == repositoryPath);
             if (existing != null)
             {
                 Items.Remove(existing);
-                Items.Add(existing with { IsFavorite = isFavorite, CustomName = isFavorite ? customName : null });
+                Items.Add(existing with { IsFavorite = isFavorite, CustomName = isFavorite ? customName : null, GroupName = isFavorite ? groupName : null });
             }
             else
             {
@@ -1361,6 +1361,7 @@ public class CommitLogViewModelTests
                     Name = new System.IO.DirectoryInfo(repositoryPath).Name,
                     IsFavorite = isFavorite,
                     CustomName = isFavorite ? customName : null,
+                    GroupName = isFavorite ? groupName : null,
                     LastOpenedAtUtc = DateTime.UtcNow
                 });
             }
@@ -1473,6 +1474,185 @@ public class CommitLogViewModelTests
         Assert.Single(vm.State.FavoriteRepositories);
         Assert.Equal("My Super Project", vm.State.FavoriteRepositories[0].DisplayName);
         Assert.True(vm.State.FavoriteRepositories[0].IsFavorite);
+    }
+
+    [Fact]
+    public async Task RefreshFavoritesDockData_WhenFavoritesContainGroups_BuildsFavoriteGroupsAndUngroupedLists()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        TestRecentRepositoriesRepository repo = new();
+        repo.Items.Add(new RecentRepository
+        {
+            Path = "/repo/agent1",
+            Name = "agent1",
+            CustomName = "Agent 1",
+            IsFavorite = true,
+            GroupName = "Project Fleet",
+            LastOpenedAtUtc = DateTime.UtcNow
+        });
+        repo.Items.Add(new RecentRepository
+        {
+            Path = "/repo/agent2",
+            Name = "agent2",
+            CustomName = "Agent 2",
+            IsFavorite = true,
+            GroupName = "Project Fleet",
+            LastOpenedAtUtc = DateTime.UtcNow
+        });
+        repo.Items.Add(new RecentRepository
+        {
+            Path = "/repo/solo",
+            Name = "solo",
+            CustomName = "Solo Project",
+            IsFavorite = true,
+            GroupName = null,
+            LastOpenedAtUtc = DateTime.UtcNow
+        });
+
+        CommitLogViewModel vm = new(screen, "/repo/current", gitService, recentRepositoriesRepository: repo);
+        await vm.RefreshFavoritesDockDataAsync();
+
+        Assert.Single(vm.State.FavoriteGroups);
+        Assert.Equal("Project Fleet", vm.State.FavoriteGroups[0].Name);
+        Assert.Equal(2, vm.State.FavoriteGroups[0].Repositories.Count);
+        Assert.Single(vm.State.UngroupedFavoriteRepositories);
+        Assert.Equal("Solo Project", vm.State.UngroupedFavoriteRepositories[0].DisplayName);
+    }
+
+    [Fact]
+    public async Task ExistingGroupNames_WhenFavoritesContainDistinctGroups_ReturnsSortedUniqueGroupNames()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        TestRecentRepositoriesRepository repo = new();
+        repo.Items.Add(new RecentRepository
+        {
+            Path = "/repo/r1",
+            Name = "r1",
+            IsFavorite = true,
+            GroupName = "Zeta Project"
+        });
+        repo.Items.Add(new RecentRepository
+        {
+            Path = "/repo/r2",
+            Name = "r2",
+            IsFavorite = true,
+            GroupName = "alpha project"
+        });
+        repo.Items.Add(new RecentRepository
+        {
+            Path = "/repo/r3",
+            Name = "r3",
+            IsFavorite = true,
+            GroupName = "Alpha Project"
+        });
+        repo.Items.Add(new RecentRepository
+        {
+            Path = "/repo/r4",
+            Name = "r4",
+            IsFavorite = true,
+            GroupName = "   "
+        });
+
+        CommitLogViewModel vm = new(screen, "/repo/current", gitService, recentRepositoriesRepository: repo);
+        await vm.RefreshFavoritesDockDataAsync();
+
+        Assert.Equal(2, vm.State.ExistingGroupNames.Count);
+        Assert.Equal("alpha project", vm.State.ExistingGroupNames[0]);
+        Assert.Equal("Zeta Project", vm.State.ExistingGroupNames[1]);
+    }
+
+    [Fact]
+    public async Task ToggleFavoriteGroupCommand_WhenGroupIsExpanded_TogglesIsExpandedState()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        TestRecentRepositoriesRepository repo = new();
+        repo.Items.Add(new RecentRepository
+        {
+            Path = "/repo/sub1",
+            Name = "sub1",
+            IsFavorite = true,
+            GroupName = "Backend Team",
+            LastOpenedAtUtc = DateTime.UtcNow
+        });
+
+        CommitLogViewModel vm = new(screen, "/repo/current", gitService, recentRepositoriesRepository: repo);
+        await vm.RefreshFavoritesDockDataAsync();
+
+        Assert.True(vm.State.FavoriteGroups[0].IsExpanded);
+
+        vm.ToggleFavoriteGroupCommand.Execute("Backend Team").Subscribe();
+
+        Assert.False(vm.State.FavoriteGroups[0].IsExpanded);
+        Assert.Contains("Backend Team", vm.State.CollapsedFavoriteGroupNames);
+
+        vm.ToggleFavoriteGroupCommand.Execute("Backend Team").Subscribe();
+
+        Assert.True(vm.State.FavoriteGroups[0].IsExpanded);
+        Assert.DoesNotContain("Backend Team", vm.State.CollapsedFavoriteGroupNames);
+    }
+
+    [Fact]
+    public async Task ShowEditFavoriteModalCommand_WhenExistingFavoriteSelected_PopulatesModalInputsWithGroup()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        TestRecentRepositoriesRepository repo = new();
+        repo.Items.Add(new RecentRepository
+        {
+            Path = "/repo/existing",
+            Name = "existing",
+            CustomName = "Custom Existing",
+            IsFavorite = true,
+            GroupName = "Core Group",
+            LastOpenedAtUtc = DateTime.UtcNow
+        });
+
+        CommitLogViewModel vm = new(screen, "/repo/current", gitService, recentRepositoriesRepository: repo);
+        await vm.RefreshFavoritesDockDataAsync();
+
+        vm.ShowEditFavoriteModalCommand.Execute("/repo/existing").Subscribe();
+
+        Assert.True(vm.State.IsAddFavoriteModalVisible);
+        Assert.True(vm.State.IsEditingExistingFavorite);
+        Assert.Equal("/repo/existing", vm.State.TargetFavoritePath);
+        Assert.Equal("Custom Existing", vm.State.NewFavoriteNameInput);
+        Assert.Equal("Core Group", vm.State.NewFavoriteGroupInput);
+    }
+
+    [Fact]
+    public async Task ConfirmAddFavoriteCommand_WithGroupNameProvided_PersistsGroupAndCustomName()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        TestRecentRepositoriesRepository repo = new();
+        repo.Items.Add(new RecentRepository
+        {
+            Path = "/repo/agent-repo",
+            Name = "agent-repo",
+            IsFavorite = false,
+            LastOpenedAtUtc = DateTime.UtcNow
+        });
+
+        CommitLogViewModel vm = new(screen, "/repo/agent-repo", gitService, recentRepositoriesRepository: repo);
+        await vm.LoadRepositoryDataCommand.Execute().FirstAsync();
+
+        vm.ShowAddFavoriteModalCommand.Execute().Subscribe();
+        vm.UpdateNewFavoriteNameInput("Agent Worker A");
+        vm.UpdateNewFavoriteGroupInput("Cluster X");
+
+        await vm.ConfirmAddFavoriteCommand.Execute().FirstAsync();
+
+        Assert.False(vm.State.IsAddFavoriteModalVisible);
+        RecentRepository? updated = repo.Items.FirstOrDefault(x => x.Path == "/repo/agent-repo");
+        Assert.NotNull(updated);
+        Assert.True(updated.IsFavorite);
+        Assert.Equal("Agent Worker A", updated.CustomName);
+        Assert.Equal("Cluster X", updated.GroupName);
+        Assert.Single(vm.State.FavoriteGroups);
+        Assert.Equal("Cluster X", vm.State.FavoriteGroups[0].Name);
     }
 
     [Fact]
