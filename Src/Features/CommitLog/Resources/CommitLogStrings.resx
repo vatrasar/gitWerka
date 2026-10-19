@@ -583,4 +583,16 @@
   <data name="PullFailed" xml:space="preserve">
     <value>Pull failed</value>
   </data>
+  <data name="AiRateLimitRetryingCountdown" xml:space="preserve">
+    <value>Rate limit exceeded (429). Retrying connection in {0}s (attempt {1} of {2})...</value>
+  </data>
+  <data name="AiRateLimitRetryingAttempt" xml:space="preserve">
+    <value>Connecting to AI model (attempt {0} of {1})...</value>
+  </data>
+  <data name="AiCommitMessageGeneratedSuccess" xml:space="preserve">
+    <value>AI commit message generated.</value>
+  </data>
+  <data name="AiServiceUnavailableError" xml:space="preserve">
+    <value>AI commit message service is not available.</value>
+  </data>
 </root>

@@ -20,7 +20,7 @@
 /// - Working tree changes tracking (staged / unstaged) with bulk staging and commit composition.
 /// - GitKraken-style merge conflict resolution: replaces staged/unstaged changes with Conflicted Files and Resolved Files when conflicts are detected, provides Mark All Resolved action, and opens 3-panel ConflictResolverView on file selection.
 /// - Amend previous commit toggle in commit composer.
-/// - AI-assisted commit message generation from staged changes via OpenRouter integration.
+/// - AI-assisted commit message generation from staged changes via OpenRouter integration with automatic retry mechanism on rate limits (429) and status notifications.
 /// - Commit file changes and structured diff inspection.
 /// - Git configuration modal for user name and email settings, default projects directory, AI API key, model, commit style, token limit, and per-repository project description.
 /// - Commit context actions: Cherry-pick, Revert, Reset current branch (Soft, Mixed, Hard), Create branch or tag from commit, Interactive rebase onto commit.
@@ -40,7 +40,7 @@
 /// - CreateRemoteModalBackdrop, NewRemoteNameTextBox, NewRemoteUrlTextBox, CancelCreateRemoteButton, ConfirmCreateRemoteButton.
 /// - StagedChangesListBox, UnstagedChangesListBox, StashesListBox, StashesContextMenu, StashPopMenuItem, StashDropMenuItem, ItemPopStashButton, ItemDropStashButton, NewStashActionButton.
 /// - NormalWorkingTreePanel, ConflictWorkingTreePanel, ConflictedFilesHeaderTextBlock, MarkAllResolvedButton, ConflictedFilesListBox, ResolvedFilesHeaderTextBlock, ResolvedFilesListBox, ConflictMergingDetailsTextBlock.
-/// - CommitMessageTextBox, AmendCommitCheckBox, CommitMessageRemainingCountTextBlock, CommitButton, GenerateAiCommitButton, GenerateAiCommitNormalIcon, GenerateAiCommitLoadingIcon, GenerateAiCommitButtonText, AiGeneratingProgressBar, AiErrorBanner, AiErrorTextBlock, AiErrorSettingsButton, AiErrorDismissButton, StageAllButton, UnstageAllButton.
+/// - CommitMessageTextBox, AmendCommitCheckBox, CommitMessageRemainingCountTextBlock, CommitButton, GenerateAiCommitButton, GenerateAiCommitNormalIcon, GenerateAiCommitLoadingIcon, GenerateAiCommitButtonText, AiGeneratingProgressBar, AiErrorBanner, AiErrorIcon, AiErrorTextBlock, AiErrorSettingsButton, AiErrorDismissButton, StageAllButton, UnstageAllButton.
 /// - CommitsListBox, CommitsContextMenu, ContextCherryPickMenuItem, ContextRevertMenuItem, ContextResetMenuItem, ContextResetSoftMenuItem, ContextResetMixedMenuItem, ContextResetHardMenuItem, ContextCreateBranchMenuItem, ContextCreateTagMenuItem, ContextInteractiveRebaseMenuItem.
 /// - ChangedFilesListBox, DiffLinesItemsControl.
 /// - CreateBranchModalBackdrop, MergeModalBackdrop, MergeBranchesComboBox, MergeFastForwardRadioButton, MergeNoFastForwardRadioButton, CancelMergeButton, ConfirmMergeButton.
@@ -220,6 +220,16 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
             {
                 AiErrorBanner.IsVisible = !string.IsNullOrWhiteSpace(err);
                 AiErrorTextBlock.Text = err ?? string.Empty;
+            }))
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(x => x.ViewModel!.State.IsAiRetrying)
+            .Subscribe(Observer.Create<bool>(isRetrying =>
+            {
+                AiErrorBanner.Classes.Set("AiRetryState", isRetrying);
+                AiErrorIcon.Kind = isRetrying
+                    ? Material.Icons.MaterialIconKind.ClockOutline
+                    : Material.Icons.MaterialIconKind.AlertCircleOutline;
             }))
             .DisposeWith(disposables);
 

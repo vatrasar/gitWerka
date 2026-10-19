@@ -216,5 +216,9 @@ namespace GitWerka.Features.CommitLog.Resources {
         public static string PullingChanges => ResourceManager.GetString("PullingChanges", resourceCulture) ?? "Pulling changes...";
         public static string PullSucceeded => ResourceManager.GetString("PullSucceeded", resourceCulture) ?? "Pull completed successfully.";
         public static string PullFailed => ResourceManager.GetString("PullFailed", resourceCulture) ?? "Pull failed";
+        public static string AiRateLimitRetryingCountdown => ResourceManager.GetString("AiRateLimitRetryingCountdown", resourceCulture) ?? "Rate limit exceeded (429). Retrying connection in {0}s (attempt {1} of {2})...";
+        public static string AiRateLimitRetryingAttempt => ResourceManager.GetString("AiRateLimitRetryingAttempt", resourceCulture) ?? "Connecting to AI model (attempt {0} of {1})...";
+        public static string AiCommitMessageGeneratedSuccess => ResourceManager.GetString("AiCommitMessageGeneratedSuccess", resourceCulture) ?? "AI commit message generated.";
+        public static string AiServiceUnavailableError => ResourceManager.GetString("AiServiceUnavailableError", resourceCulture) ?? "AI commit message service is not available.";
     }
 }

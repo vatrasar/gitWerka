@@ -14,6 +14,7 @@ using GitWerka.Features.CommitLog.Resources;
 using GitWerka.Features.CommitLog.UI.Screens.CommitLog;
 using GitWerka.Infrastructure.Services;
 using ReactiveUI;
+using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Linq;
@@ -1723,10 +1724,15 @@ public class CommitLogViewModelTests
         public string ProposalToReturn { get; set; } = "feat(core): add feature";
         public Exception? ExceptionToThrow { get; set; }
         public string? LastRepositoryPath { get; private set; }
+        public Action<IProgress<AiRetryAttempt>?>? OnGenerate { get; set; }
 
-        public Task<string> GenerateCommitMessageAsync(string repositoryPath, CancellationToken cancellationToken = default)
+        public Task<string> GenerateCommitMessageAsync(
+            string repositoryPath,
+            IProgress<AiRetryAttempt>? retryProgress,
+            CancellationToken cancellationToken = default)
         {
             LastRepositoryPath = repositoryPath;
+            OnGenerate?.Invoke(retryProgress);
             if (ExceptionToThrow != null)
             {
                 throw ExceptionToThrow;
@@ -1859,6 +1865,73 @@ public class CommitLogViewModelTests
 
         Assert.Null(vm.State.AiErrorMessage);
         Assert.False(vm.State.IsAiErrorSettingsActionVisible);
+    }
+
+    [Fact]
+    public async Task ExecuteGenerateAiCommitMessageCommand_WhenRetryProgressReported_UpdatesStateWithRetryNotification()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        MockAiCommitMessageService aiService = new()
+        {
+            OnGenerate = progress =>
+            {
+                progress?.Report(new AiRetryAttempt(1, 3, TimeSpan.FromSeconds(2), true, "429"));
+            }
+        };
+
+        CommitLogViewModel vm = new(screen, "/repo/test", gitService, aiCommitMessageService: aiService);
+
+        await vm.ExecuteGenerateAiCommitMessageCommand.Execute().FirstAsync();
+
+        Assert.True(vm.State.CommitMessageInput.Length > 0);
+        Assert.False(vm.State.IsAiRetrying);
+        Assert.Null(vm.State.AiErrorMessage);
+    }
+
+    [Fact]
+    public async Task HandleAiRetryProgress_UpdatesStateWithCountdownAndRetryFlag()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        List<string> errorMessages = new();
+        List<bool> retryFlags = new();
+
+        MockAiCommitMessageService aiService = new()
+        {
+            OnGenerate = progress =>
+            {
+                progress?.Report(new AiRetryAttempt(1, 3, TimeSpan.FromSeconds(2), true, "429"));
+            }
+        };
+
+        CommitLogViewModel vm = new(screen, "/repo/test", gitService, aiCommitMessageService: aiService);
+        vm.WhenAnyValue(x => x.State.AiErrorMessage).Subscribe(Observer.Create<string?>(msg =>
+        {
+            if (msg != null)
+            {
+                errorMessages.Add(msg);
+            }
+        }));
+        vm.WhenAnyValue(x => x.State.IsAiRetrying).Subscribe(Observer.Create<bool>(flag => retryFlags.Add(flag)));
+
+        await vm.ExecuteGenerateAiCommitMessageCommand.Execute().FirstAsync();
+
+        Assert.Contains(errorMessages, m => m.Contains("429") && m.Contains("2s"));
+        Assert.Contains(true, retryFlags);
+    }
+
+    [Fact]
+    public void DismissAiErrorCommand_WhenRetrying_ResetsRetryState()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        CommitLogViewModel vm = new(screen, "/repo/test", gitService);
+
+        vm.DismissAiErrorCommand.Execute().Subscribe();
+
+        Assert.False(vm.State.IsAiRetrying);
+        Assert.Null(vm.State.AiErrorMessage);
     }
 
     [Fact]

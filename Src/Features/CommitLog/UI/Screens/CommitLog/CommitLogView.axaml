@@ -542,18 +542,15 @@
 
                   <!-- AI Notification / Error Banner -->
                   <Border x:Name="AiErrorBanner"
-                          Background="{DynamicResource ErrorBannerBackgroundBrush}"
-                          BorderBrush="{DynamicResource ErrorBrush}"
-                          BorderThickness="1"
-                          CornerRadius="6"
-                          Padding="8,6"
+                          Classes="AiNotificationBanner"
                           IsVisible="False">
                     <Grid ColumnDefinitions="Auto, *, Auto, Auto">
-                      <material:MaterialIcon Grid.Column="0"
+                      <material:MaterialIcon x:Name="AiErrorIcon"
+                                            Grid.Column="0"
+                                            Classes="AiBannerIcon"
                                             Kind="AlertCircleOutline"
                                             Width="16"
                                             Height="16"
-                                            Foreground="{DynamicResource ErrorBrush}"
                                             VerticalAlignment="Center"
                                             Margin="0,0,6,0" />
                       <TextBlock x:Name="AiErrorTextBlock"

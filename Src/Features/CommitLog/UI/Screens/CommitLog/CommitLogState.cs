@@ -91,6 +91,8 @@ public record CommitLogState
 
     public bool IsAiErrorSettingsActionVisible { get; init; }
 
+    public bool IsAiRetrying { get; init; }
+
     public string? ErrorMessage { get; init; }
 
     public bool IsCreateBranchModalVisible { get; init; }
