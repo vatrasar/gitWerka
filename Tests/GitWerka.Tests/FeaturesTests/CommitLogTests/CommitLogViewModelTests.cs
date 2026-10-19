@@ -81,7 +81,7 @@ public class CommitLogViewModelTests
                 CurrentBranch = "main"
             });
 
-        public Task<IReadOnlyList<CommitSummary>> GetCommitLogAsync(string repositoryPath, int maxCount = 300, CancellationToken cancellationToken = default) =>
+        public Task<IReadOnlyList<CommitSummary>> GetCommitLogAsync(string repositoryPath, int maxCount = 300, int maxBranches = 5, CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<CommitSummary>>(Commits);
 
         public Task<CommitDetail?> GetCommitDetailAsync(string repositoryPath, string commitSha, CancellationToken cancellationToken = default)
@@ -1768,6 +1768,20 @@ public class CommitLogViewModelTests
         }
     }
 
+    private class MockApplicationSettingsRepository : IApplicationSettingsRepository
+    {
+        public ApplicationSettings Settings { get; set; } = new();
+
+        public Task<ApplicationSettings> GetSettingsAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(Settings);
+
+        public Task SaveSettingsAsync(ApplicationSettings settings, CancellationToken cancellationToken = default)
+        {
+            Settings = settings;
+            return Task.CompletedTask;
+        }
+    }
+
     [Fact]
     public async Task ExecuteGenerateAiCommitMessageCommand_WhenSuccessful_SetsCommitMessageInput()
     {
@@ -1991,6 +2005,41 @@ public class CommitLogViewModelTests
         Assert.Equal("Updated description", aiRepo.LastSavedDescription.Value.Desc);
     }
 
+    [Fact]
+    public async Task LoadApplicationSettings_PopulatesDefaultProjectsDirectoryInState()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        MockApplicationSettingsRepository settingsRepo = new()
+        {
+            Settings = new ApplicationSettings { DefaultProjectsDirectory = "/custom/projects/path" }
+        };
+
+        CommitLogViewModel vm = new(screen, "/repo/test", gitService, applicationSettingsRepository: settingsRepo);
+
+        await vm.LoadApplicationSettingsCommand.Execute().FirstAsync();
+
+        Assert.Equal("/custom/projects/path", vm.State.DefaultProjectsDirectory);
+        Assert.Equal("/custom/projects/path", vm.State.DefaultProjectsDirectoryInput);
+    }
+
+    [Fact]
+    public async Task ExecuteSaveSettings_UpdatesDefaultProjectsDirectoryInStateAndRepository()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        MockApplicationSettingsRepository settingsRepo = new();
+
+        CommitLogViewModel vm = new(screen, "/repo/test", gitService, applicationSettingsRepository: settingsRepo);
+
+        vm.UpdateDefaultProjectsDirectoryInput("/new/projects/path");
+
+        await vm.ExecuteSaveSettingsCommand.Execute().FirstAsync();
+
+        Assert.Equal("/new/projects/path", vm.State.DefaultProjectsDirectory);
+        Assert.Equal("/new/projects/path", settingsRepo.Settings.DefaultProjectsDirectory);
+    }
+
     [Theory]
     [InlineData("", 72)]
     [InlineData("feat: short title", 55)]
@@ -2185,5 +2234,46 @@ public class CommitLogViewModelTests
         Assert.Contains(recorded, s => s.Message == CommitLogStrings.PushingChanges && s.Severity == AppStatusSeverity.InProgress);
         Assert.Contains(recorded, s => s.Message.StartsWith(CommitLogStrings.PushFailed) && s.Severity == AppStatusSeverity.Error);
     }
+
+    [Fact]
+    public async Task ShowSettingsModal_LoadsMaxVisibleBranchesFromApplicationSettings()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        MockApplicationSettingsRepository appSettingsRepo = new()
+        {
+            Settings = new ApplicationSettings { MaxVisibleBranches = 7, DefaultProjectsDirectory = "/test/projects" }
+        };
+
+        CommitLogViewModel vm = new(screen, "/repo/test", gitService, applicationSettingsRepository: appSettingsRepo);
+
+        await vm.ShowSettingsModalCommand.Execute().FirstAsync();
+
+        Assert.True(vm.State.IsSettingsModalVisible);
+        Assert.Equal("7", vm.State.MaxVisibleBranchesInput);
+        Assert.Equal("/test/projects", vm.State.DefaultProjectsDirectoryInput);
+    }
+
+    [Fact]
+    public async Task ExecuteSaveSettings_SavesMaxVisibleBranchesToApplicationSettings()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        MockApplicationSettingsRepository appSettingsRepo = new()
+        {
+            Settings = new ApplicationSettings { MaxVisibleBranches = 5 }
+        };
+
+        CommitLogViewModel vm = new(screen, "/repo/test", gitService, applicationSettingsRepository: appSettingsRepo);
+
+        vm.UpdateMaxVisibleBranchesInput("9");
+        vm.UpdateDefaultProjectsDirectoryInput("/new/projects");
+
+        await vm.ExecuteSaveSettingsCommand.Execute().FirstAsync();
+
+        Assert.Equal(9, appSettingsRepo.Settings.MaxVisibleBranches);
+        Assert.Equal("/new/projects", appSettingsRepo.Settings.DefaultProjectsDirectory);
+    }
 }
+
 

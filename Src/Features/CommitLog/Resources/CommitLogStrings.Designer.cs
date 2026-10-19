@@ -220,5 +220,7 @@ namespace GitWerka.Features.CommitLog.Resources {
         public static string AiRateLimitRetryingAttempt => ResourceManager.GetString("AiRateLimitRetryingAttempt", resourceCulture) ?? "Connecting to AI model (attempt {0} of {1})...";
         public static string AiCommitMessageGeneratedSuccess => ResourceManager.GetString("AiCommitMessageGeneratedSuccess", resourceCulture) ?? "AI commit message generated.";
         public static string AiServiceUnavailableError => ResourceManager.GetString("AiServiceUnavailableError", resourceCulture) ?? "AI commit message service is not available.";
+        public static string MaxVisibleBranchesLabel => ResourceManager.GetString("MaxVisibleBranchesLabel", resourceCulture) ?? "Max Visible Branches in Graph";
+        public static string MaxVisibleBranchesPlaceholder => ResourceManager.GetString("MaxVisibleBranchesPlaceholder", resourceCulture) ?? "e.g., 5";
     }
 }

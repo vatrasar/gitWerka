@@ -2,7 +2,7 @@
 /// Component: CommitGraphCanvas
 /// Purpose: High-performance visual renderer for Git commit graph topology lines, lanes, and node dots.
 /// Usage:
-/// - Bound to CommitSummary.Lane, PassingLanes, MergingLanes, and ForkingOffLanes.
+/// - Bound to CommitSummary.Lane, GraphWidth, PassingLanes, MergingLanes, and ForkingOffLanes.
 /// Key UI Elements:
 /// - Custom hardware-accelerated vector drawing context.
 /// Used In:
@@ -34,6 +34,9 @@ public class CommitGraphCanvas : Control
     public static readonly StyledProperty<int> LaneProperty =
         AvaloniaProperty.Register<CommitGraphCanvas, int>(nameof(Lane), 0);
 
+    public static readonly StyledProperty<double> GraphWidthProperty =
+        AvaloniaProperty.Register<CommitGraphCanvas, double>(nameof(GraphWidth), 80.0);
+
     public static readonly StyledProperty<IReadOnlyList<int>?> PassingLanesProperty =
         AvaloniaProperty.Register<CommitGraphCanvas, IReadOnlyList<int>?>(nameof(PassingLanes));
 
@@ -50,6 +53,12 @@ public class CommitGraphCanvas : Control
     {
         get => GetValue(LaneProperty);
         set => SetValue(LaneProperty, value);
+    }
+
+    public double GraphWidth
+    {
+        get => GetValue(GraphWidthProperty);
+        set => SetValue(GraphWidthProperty, value);
     }
 
     public bool IsWip
@@ -78,12 +87,18 @@ public class CommitGraphCanvas : Control
 
     static CommitGraphCanvas()
     {
-        AffectsRender<CommitGraphCanvas>(LaneProperty, PassingLanesProperty, MergingLanesProperty, ForkingOffLanesProperty, IsWipProperty);
+        AffectsMeasure<CommitGraphCanvas>(GraphWidthProperty);
+        AffectsRender<CommitGraphCanvas>(LaneProperty, GraphWidthProperty, PassingLanesProperty, MergingLanesProperty, ForkingOffLanesProperty, IsWipProperty);
+    }
+
+    public CommitGraphCanvas()
+    {
+        ClipToBounds = true;
     }
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        double width = double.IsNaN(Width) ? 80.0 : Width;
+        double width = !double.IsNaN(Width) ? Width : (GraphWidth > 0 ? GraphWidth : 80.0);
         double height = double.IsNaN(Height) ? 28.0 : Height;
         return new Size(width, height);
     }

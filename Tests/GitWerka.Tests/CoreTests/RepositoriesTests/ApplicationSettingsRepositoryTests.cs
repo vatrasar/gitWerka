@@ -35,6 +35,7 @@ public class ApplicationSettingsRepositoryTests : IDisposable
 
         Assert.NotNull(settings);
         Assert.Equal(string.Empty, settings.DefaultProjectsDirectory);
+        Assert.Equal(5, settings.MaxVisibleBranches);
     }
 
     [Fact]
@@ -42,24 +43,36 @@ public class ApplicationSettingsRepositoryTests : IDisposable
     {
         ApplicationSettings initialSettings = new()
         {
-            DefaultProjectsDirectory = "/home/user/my-projects"
+            DefaultProjectsDirectory = "/home/user/my-projects",
+            MaxVisibleBranches = 7
         };
 
         await _repository.SaveSettingsAsync(initialSettings);
         ApplicationSettings retrieved = await _repository.GetSettingsAsync();
 
         Assert.Equal("/home/user/my-projects", retrieved.DefaultProjectsDirectory);
+        Assert.Equal(7, retrieved.MaxVisibleBranches);
     }
 
     [Fact]
     public async Task SaveSettingsAsync_WhenUpdated_OverwritesExistingSettings()
     {
-        await _repository.SaveSettingsAsync(new ApplicationSettings { DefaultProjectsDirectory = "/initial/path" });
-        await _repository.SaveSettingsAsync(new ApplicationSettings { DefaultProjectsDirectory = "/updated/path" });
+        await _repository.SaveSettingsAsync(new ApplicationSettings { DefaultProjectsDirectory = "/initial/path", MaxVisibleBranches = 3 });
+        await _repository.SaveSettingsAsync(new ApplicationSettings { DefaultProjectsDirectory = "/updated/path", MaxVisibleBranches = 8 });
 
         ApplicationSettings retrieved = await _repository.GetSettingsAsync();
 
         Assert.Equal("/updated/path", retrieved.DefaultProjectsDirectory);
+        Assert.Equal(8, retrieved.MaxVisibleBranches);
+    }
+
+    [Fact]
+    public async Task SaveSettingsAsync_WithInvalidMaxVisibleBranches_DefaultsToFive()
+    {
+        await _repository.SaveSettingsAsync(new ApplicationSettings { DefaultProjectsDirectory = "/path", MaxVisibleBranches = -1 });
+        ApplicationSettings retrieved = await _repository.GetSettingsAsync();
+
+        Assert.Equal(5, retrieved.MaxVisibleBranches);
     }
 
     public void Dispose()

@@ -148,9 +148,10 @@ public class GitService : IGitService
     /// </summary>
     /// <param name="repositoryPath">Directory path of the repository.</param>
     /// <param name="maxCount">Maximum number of commits to retrieve.</param>
+    /// <param name="maxBranches">Maximum number of visible branches to include in graph topology.</param>
     /// <param name="cancellationToken">Cancellation token for async operation.</param>
     /// <returns>Read-only list of commit summary objects with graph topology.</returns>
-    public Task<IReadOnlyList<CommitSummary>> GetCommitLogAsync(string repositoryPath, int maxCount = 300, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<CommitSummary>> GetCommitLogAsync(string repositoryPath, int maxCount = 300, int maxBranches = 5, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -160,7 +161,8 @@ public class GitService : IGitService
             var branchMap = BuildReferenceMap(repository.Branches);
             var tagMap = BuildReferenceMap(repository.Tags);
 
-            var reachableCommits = BuildReachableCommitList(repository);
+            int effectiveMaxBranches = maxBranches > 0 ? maxBranches : 5;
+            var reachableCommits = BuildReachableCommitList(repository, effectiveMaxBranches);
             CommitFilter filter = new()
             {
                 SortBy = CommitSortStrategies.Topological | CommitSortStrategies.Time,
@@ -191,6 +193,8 @@ public class GitService : IGitService
                 CommitSummary node = ProcessCommitNode(commit, reservedLanes, branchMap, tagMap);
                 summaries.Add(node);
             }
+
+            ApplyGraphWidth(summaries);
 
             return (IReadOnlyList<CommitSummary>)summaries;
         }, cancellationToken);
@@ -1798,33 +1802,133 @@ public class GitService : IGitService
         return FileChangeStatus.Modified;
     }
 
-    private static List<Commit> BuildReachableCommitList(Repository repository)
+    private static void ApplyGraphWidth(List<CommitSummary> summaries)
     {
-        HashSet<Commit> commits = new();
-
-        if (repository.Head.Tip != null)
+        int maxLane = 0;
+        foreach (CommitSummary summary in summaries)
         {
-            commits.Add(repository.Head.Tip);
+            maxLane = Math.Max(maxLane, summary.Lane);
+            maxLane = UpdateMaxLaneFromCollection(maxLane, summary.PassingLanes);
+            maxLane = UpdateMaxLaneFromCollection(maxLane, summary.MergingLanes);
+            maxLane = UpdateMaxLaneFromCollection(maxLane, summary.ForkingOffLanes);
         }
 
-        foreach (Branch branch in repository.Branches)
+        double graphWidth = CalculateGraphWidth(maxLane);
+        for (int i = 0; i < summaries.Count; i++)
         {
-            if (branch.Tip != null)
+            summaries[i] = summaries[i] with { GraphWidth = graphWidth };
+        }
+    }
+
+    private static int UpdateMaxLaneFromCollection(int currentMax, IReadOnlyList<int>? lanes)
+    {
+        if (lanes == null)
+        {
+            return currentMax;
+        }
+
+        int max = currentMax;
+        foreach (int lane in lanes)
+        {
+            if (lane > max)
             {
-                commits.Add(branch.Tip);
+                max = lane;
             }
+        }
+
+        return max;
+    }
+
+    private static double CalculateGraphWidth(int maxLane)
+    {
+        return Math.Max(80.0, 10.0 + ((maxLane + 1) * 16.0) + 12.0);
+    }
+
+    private static List<Commit> BuildReachableCommitList(Repository repository, int maxBranches)
+    {
+        HashSet<string> includedShas = new(StringComparer.OrdinalIgnoreCase);
+        List<Commit> commits = new();
+
+        AddHeadCommitIfPresent(repository, commits, includedShas);
+        AddRecentBranchTips(repository, commits, includedShas, maxBranches);
+        AddFallbackTagCommitsIfEmpty(repository, commits, includedShas, maxBranches);
+
+        return commits;
+    }
+
+    private static void AddHeadCommitIfPresent(Repository repository, List<Commit> commits, HashSet<string> includedShas)
+    {
+        Commit? headTip = repository.Head?.Tip;
+        if (headTip != null && includedShas.Add(headTip.Sha))
+        {
+            commits.Add(headTip);
+        }
+    }
+
+    private static void AddRecentBranchTips(
+        Repository repository,
+        List<Commit> commits,
+        HashSet<string> includedShas,
+        int maxBranches)
+    {
+        var sortedBranches = repository.Branches
+            .Where(b => b.Tip != null)
+            .OrderByDescending(GetBranchActivityDate);
+
+        foreach (Branch branch in sortedBranches)
+        {
+            if (commits.Count >= maxBranches)
+            {
+                break;
+            }
+
+            TryAddBranchTip(branch, commits, includedShas);
+        }
+    }
+
+    private static void TryAddBranchTip(Branch branch, List<Commit> commits, HashSet<string> includedShas)
+    {
+        Commit? tip = branch.Tip;
+        if (tip != null && includedShas.Add(tip.Sha))
+        {
+            commits.Add(tip);
+        }
+    }
+
+    private static DateTimeOffset GetBranchActivityDate(Branch branch)
+    {
+        if (branch.Tip == null)
+        {
+            return DateTimeOffset.MinValue;
+        }
+
+        return branch.Tip.Committer?.When ?? branch.Tip.Author?.When ?? DateTimeOffset.MinValue;
+    }
+
+    private static void AddFallbackTagCommitsIfEmpty(
+        Repository repository,
+        List<Commit> commits,
+        HashSet<string> includedShas,
+        int maxBranches)
+    {
+        if (commits.Count > 0)
+        {
+            return;
         }
 
         foreach (Tag tag in repository.Tags)
         {
+            if (commits.Count >= maxBranches)
+            {
+                break;
+            }
+
             Commit? targetCommit = ResolveTagCommit(tag);
-            if (targetCommit != null)
+            if (targetCommit != null && includedShas.Add(targetCommit.Sha))
             {
                 commits.Add(targetCommit);
             }
         }
-
-        return commits.ToList();
     }
 
     private static Commit? ResolveTagCommit(Tag tag)

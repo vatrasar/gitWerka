@@ -40,6 +40,8 @@ public record CommitSummary
 
     public int UncommittedFilesCount { get; init; }
 
+    public double GraphWidth { get; init; } = 80.0;
+
     public bool HasBranches => BranchNames.Count > 0;
 
     public bool HasTags => TagNames.Count > 0;

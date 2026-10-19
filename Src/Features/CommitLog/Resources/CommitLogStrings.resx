@@ -595,4 +595,10 @@
   <data name="AiServiceUnavailableError" xml:space="preserve">
     <value>AI commit message service is not available.</value>
   </data>
+  <data name="MaxVisibleBranchesLabel" xml:space="preserve">
+    <value>Max Visible Branches in Graph</value>
+  </data>
+  <data name="MaxVisibleBranchesPlaceholder" xml:space="preserve">
+    <value>e.g., 5</value>
+  </data>
 </root>
