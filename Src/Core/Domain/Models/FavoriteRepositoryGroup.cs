@@ -11,7 +11,7 @@ public record FavoriteRepositoryGroup
 
     public ImmutableList<RecentRepository> Repositories { get; init; } = ImmutableList<RecentRepository>.Empty;
 
-    public bool IsExpanded { get; init; } = true;
+    public bool IsExpanded { get; init; } = false;
 
     public int Count => Repositories.Count;
 }

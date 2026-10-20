@@ -229,6 +229,61 @@ public class HostViewModelNavigationAndStatusTests
     }
 
     [Fact]
+    public void NavigateBackCommand_WhenMultipleScreensOnStack_NavigatesDirectlyToWelcomeScreen()
+    {
+        MockScreen screen = new();
+        HostViewModel hostVm = new(screen);
+        MockGitService gitService = new();
+        TestRecentRepositoriesRepository recentRepo = new();
+
+        RepositoryManagerViewModel welcomeVm = new(screen, recentRepo, gitService);
+        screen.Router.Navigate.Execute(welcomeVm).Subscribe();
+
+        CommitLogViewModel commitLogVm1 = new(screen, "/tmp/sample-repo-1", gitService);
+        screen.Router.Navigate.Execute(commitLogVm1).Subscribe();
+
+        CommitLogViewModel commitLogVm2 = new(screen, "/tmp/sample-repo-2", gitService);
+        screen.Router.Navigate.Execute(commitLogVm2).Subscribe();
+
+        Assert.Equal(3, screen.Router.NavigationStack.Count);
+        Assert.True(hostVm.State.IsRepositoryLoaded);
+        Assert.Equal("/tmp/sample-repo-2", hostVm.State.FooterInfoText);
+
+        hostVm.NavigateBackCommand.Execute().Subscribe();
+
+        Assert.Single(screen.Router.NavigationStack);
+        Assert.Same(welcomeVm, screen.Router.NavigationStack[0]);
+        Assert.False(hostVm.State.IsRepositoryLoaded);
+        Assert.Empty(hostVm.State.CurrentRepositoryName);
+        Assert.Empty(hostVm.State.CurrentRepositoryPath);
+        Assert.Equal(hostVm.State.AppVersion, hostVm.State.FooterInfoText);
+    }
+
+    [Fact]
+    public void NavigateBackCommand_WhenSingleRepositoryOnStack_NavigatesDirectlyToWelcomeScreen()
+    {
+        MockScreen screen = new();
+        HostViewModel hostVm = new(screen);
+        MockGitService gitService = new();
+        TestRecentRepositoriesRepository recentRepo = new();
+
+        RepositoryManagerViewModel welcomeVm = new(screen, recentRepo, gitService);
+        screen.Router.Navigate.Execute(welcomeVm).Subscribe();
+
+        CommitLogViewModel commitLogVm = new(screen, "/tmp/sample-repo", gitService);
+        screen.Router.Navigate.Execute(commitLogVm).Subscribe();
+
+        Assert.Equal(2, screen.Router.NavigationStack.Count);
+        Assert.True(hostVm.State.IsRepositoryLoaded);
+
+        hostVm.NavigateBackCommand.Execute().Subscribe();
+
+        Assert.Single(screen.Router.NavigationStack);
+        Assert.Same(welcomeVm, screen.Router.NavigationStack[0]);
+        Assert.False(hostVm.State.IsRepositoryLoaded);
+    }
+
+    [Fact]
     public void HostViewModel_WhenStatusServicePublishesStatus_UpdatesHostStateAndFlags()
     {
         MockScreen screen = new();

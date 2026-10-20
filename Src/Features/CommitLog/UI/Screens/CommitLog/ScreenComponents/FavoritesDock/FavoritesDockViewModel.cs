@@ -92,7 +92,7 @@ public partial class FavoritesDockViewModel : ViewModelBase<FavoritesDockState>
             var favorites = await _recentRepositoriesRepository.GetFavoriteRepositoriesAsync();
             var recentNonFav = await _recentRepositoriesRepository.GetMostRecentNonFavoriteRepositoryAsync();
             var favList = favorites.ToImmutableList();
-            var (groups, ungrouped) = BuildFavoriteGroupsAndUngrouped(favList, State.CollapsedFavoriteGroupNames);
+            var (groups, ungrouped) = BuildFavoriteGroupsAndUngrouped(favList, State.ExpandedFavoriteGroupNames);
             var groupNames = ExtractDistinctGroupNames(favList);
 
             UpdateState(s => s with
@@ -136,14 +136,14 @@ public partial class FavoritesDockViewModel : ViewModelBase<FavoritesDockState>
             return;
         }
 
-        var collapsed = State.CollapsedFavoriteGroupNames.Contains(groupName)
-            ? State.CollapsedFavoriteGroupNames.Remove(groupName)
-            : State.CollapsedFavoriteGroupNames.Add(groupName);
+        var expanded = State.ExpandedFavoriteGroupNames.Contains(groupName)
+            ? State.ExpandedFavoriteGroupNames.Remove(groupName)
+            : State.ExpandedFavoriteGroupNames.Add(groupName);
 
-        var (groups, ungrouped) = BuildFavoriteGroupsAndUngrouped(State.FavoriteRepositories, collapsed);
+        var (groups, ungrouped) = BuildFavoriteGroupsAndUngrouped(State.FavoriteRepositories, expanded);
         UpdateState(s => s with
         {
-            CollapsedFavoriteGroupNames = collapsed,
+            ExpandedFavoriteGroupNames = expanded,
             FavoriteGroups = groups,
             UngroupedFavoriteRepositories = ungrouped
         });
@@ -243,7 +243,7 @@ public partial class FavoritesDockViewModel : ViewModelBase<FavoritesDockState>
 
     private static (ImmutableList<FavoriteRepositoryGroup> Groups, ImmutableList<RecentRepository> Ungrouped) BuildFavoriteGroupsAndUngrouped(
         ImmutableList<RecentRepository> favorites,
-        ImmutableHashSet<string> collapsedGroups)
+        ImmutableHashSet<string> expandedGroups)
     {
         var groups = favorites
             .Where(r => !string.IsNullOrWhiteSpace(r.GroupName))
@@ -253,7 +253,7 @@ public partial class FavoritesDockViewModel : ViewModelBase<FavoritesDockState>
             {
                 Name = g.Key,
                 Repositories = g.ToImmutableList(),
-                IsExpanded = !collapsedGroups.Contains(g.Key)
+                IsExpanded = expandedGroups.Contains(g.Key)
             })
             .ToImmutableList();
 

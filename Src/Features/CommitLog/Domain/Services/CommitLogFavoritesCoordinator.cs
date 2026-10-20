@@ -50,7 +50,7 @@ public class CommitLogFavoritesCoordinator
             var favorites = await _recentRepositoriesRepository.GetFavoriteRepositoriesAsync();
             var recentNonFav = await _recentRepositoriesRepository.GetMostRecentNonFavoriteRepositoryAsync();
             var favList = favorites.ToImmutableList();
-            var (groups, ungrouped) = BuildFavoriteGroupsAndUngrouped(favList, _getState().CollapsedFavoriteGroupNames);
+            var (groups, ungrouped) = BuildFavoriteGroupsAndUngrouped(favList, _getState().ExpandedFavoriteGroupNames);
             var groupNames = ExtractDistinctGroupNames(favList);
 
             _updateState(s => s with
@@ -132,14 +132,14 @@ public class CommitLogFavoritesCoordinator
         }
 
         var state = _getState();
-        var collapsed = state.CollapsedFavoriteGroupNames.Contains(groupName)
-            ? state.CollapsedFavoriteGroupNames.Remove(groupName)
-            : state.CollapsedFavoriteGroupNames.Add(groupName);
+        var expanded = state.ExpandedFavoriteGroupNames.Contains(groupName)
+            ? state.ExpandedFavoriteGroupNames.Remove(groupName)
+            : state.ExpandedFavoriteGroupNames.Add(groupName);
 
-        var (groups, ungrouped) = BuildFavoriteGroupsAndUngrouped(state.FavoriteRepositories, collapsed);
+        var (groups, ungrouped) = BuildFavoriteGroupsAndUngrouped(state.FavoriteRepositories, expanded);
         _updateState(s => s with
         {
-            CollapsedFavoriteGroupNames = collapsed,
+            ExpandedFavoriteGroupNames = expanded,
             FavoriteGroups = groups,
             UngroupedFavoriteRepositories = ungrouped
         });
@@ -253,7 +253,7 @@ public class CommitLogFavoritesCoordinator
 
     private static (ImmutableList<FavoriteRepositoryGroup> Groups, ImmutableList<RecentRepository> Ungrouped) BuildFavoriteGroupsAndUngrouped(
         ImmutableList<RecentRepository> favorites,
-        ImmutableHashSet<string> collapsedGroups)
+        ImmutableHashSet<string> expandedGroups)
     {
         var groups = favorites
             .Where(r => !string.IsNullOrWhiteSpace(r.GroupName))
@@ -263,7 +263,7 @@ public class CommitLogFavoritesCoordinator
             {
                 Name = g.Key,
                 Repositories = g.ToImmutableList(),
-                IsExpanded = !collapsedGroups.Contains(g.Key)
+                IsExpanded = expandedGroups.Contains(g.Key)
             })
             .ToImmutableList();
 
