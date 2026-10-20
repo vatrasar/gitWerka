@@ -86,6 +86,16 @@ public partial class SettingsModalViewModel : ViewModelBase<SettingsModalState>
     }
 
     /// <summary>
+    /// Updates automatic background fetch interval input in settings modal.
+    /// Usages: SettingsModalView auto-fetch interval text box.
+    /// </summary>
+    /// <param name="text">Auto-fetch interval in seconds string.</param>
+    public void UpdateAutoFetchIntervalInput(string text)
+    {
+        UpdateState(s => s with { AutoFetchIntervalInput = text ?? string.Empty });
+    }
+
+    /// <summary>
     /// Updates OpenRouter API key configuration input in settings modal.
     /// Usages: SettingsModalView API key text box.
     /// </summary>
@@ -174,6 +184,7 @@ public partial class SettingsModalViewModel : ViewModelBase<SettingsModalState>
                 DefaultProjectsDirectory = appSettings.DefaultProjectsDirectory,
                 DefaultProjectsDirectoryInput = appSettings.DefaultProjectsDirectory,
                 MaxVisibleBranchesInput = (appSettings.MaxVisibleBranches > 0 ? appSettings.MaxVisibleBranches : 5).ToString(),
+                AutoFetchIntervalInput = (appSettings.AutoFetchIntervalSeconds >= 0 ? appSettings.AutoFetchIntervalSeconds : 60).ToString(),
                 AiApiKeyInput = aiConfig.ApiKey ?? string.Empty,
                 AiModelInput = aiConfig.Model,
                 AiCommitStyleInput = aiConfig.CommitStyle,
@@ -213,10 +224,17 @@ public partial class SettingsModalViewModel : ViewModelBase<SettingsModalState>
                     maxBranches = parsedBranches;
                 }
 
+                int fetchInterval = 60;
+                if (int.TryParse(State.AutoFetchIntervalInput, out int parsedInterval) && parsedInterval >= 0)
+                {
+                    fetchInterval = parsedInterval;
+                }
+
                 await _applicationSettingsRepository.SaveSettingsAsync(new ApplicationSettings
                 {
                     MaxVisibleBranches = maxBranches,
-                    DefaultProjectsDirectory = trimmedDir
+                    DefaultProjectsDirectory = trimmedDir,
+                    AutoFetchIntervalSeconds = fetchInterval
                 });
             }
 

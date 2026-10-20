@@ -121,6 +121,7 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
             return;
         }
 
+        CancelAutoFetch();
         FavoritesDock.CloseFavoritesDockCommand.Execute().Subscribe();
         UpdateState(s => s with { IsFavoritesDockOpen = false });
 
@@ -131,6 +132,7 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
         )).Subscribe();
     }
 
+    public void CancelAutoFetch() => _remoteCoordinator.CancelAutoFetch();
     public void UpdateAiApiKeyInput(string text) => _settingsCoordinator.UpdateAiApiKeyInput(text);
     public void UpdateAiModelInput(string text) => _settingsCoordinator.UpdateAiModelInput(text);
     public void UpdateAiCommitStyleInput(string text) => _settingsCoordinator.UpdateAiCommitStyleInput(text);
@@ -138,6 +140,7 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
     public void UpdateAiProjectDescriptionInput(string text) => _settingsCoordinator.UpdateAiProjectDescriptionInput(text);
     public void UpdateDefaultProjectsDirectoryInput(string text) => _settingsCoordinator.UpdateDefaultProjectsDirectoryInput(text);
     public void UpdateMaxVisibleBranchesInput(string text) => _settingsCoordinator.UpdateMaxVisibleBranchesInput(text);
+    public void UpdateAutoFetchIntervalInput(string text) => _settingsCoordinator.UpdateAutoFetchIntervalInput(text);
 
     public void UpdateSearchQuery(string query)
     {

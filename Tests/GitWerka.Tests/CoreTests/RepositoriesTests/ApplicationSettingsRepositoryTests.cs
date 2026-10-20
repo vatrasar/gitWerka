@@ -36,6 +36,7 @@ public class ApplicationSettingsRepositoryTests : IDisposable
         Assert.NotNull(settings);
         Assert.Equal(string.Empty, settings.DefaultProjectsDirectory);
         Assert.Equal(5, settings.MaxVisibleBranches);
+        Assert.Equal(60, settings.AutoFetchIntervalSeconds);
     }
 
     [Fact]
@@ -44,7 +45,8 @@ public class ApplicationSettingsRepositoryTests : IDisposable
         ApplicationSettings initialSettings = new()
         {
             DefaultProjectsDirectory = "/home/user/my-projects",
-            MaxVisibleBranches = 7
+            MaxVisibleBranches = 7,
+            AutoFetchIntervalSeconds = 45
         };
 
         await _repository.SaveSettingsAsync(initialSettings);
@@ -52,27 +54,30 @@ public class ApplicationSettingsRepositoryTests : IDisposable
 
         Assert.Equal("/home/user/my-projects", retrieved.DefaultProjectsDirectory);
         Assert.Equal(7, retrieved.MaxVisibleBranches);
+        Assert.Equal(45, retrieved.AutoFetchIntervalSeconds);
     }
 
     [Fact]
     public async Task SaveSettingsAsync_WhenUpdated_OverwritesExistingSettings()
     {
-        await _repository.SaveSettingsAsync(new ApplicationSettings { DefaultProjectsDirectory = "/initial/path", MaxVisibleBranches = 3 });
-        await _repository.SaveSettingsAsync(new ApplicationSettings { DefaultProjectsDirectory = "/updated/path", MaxVisibleBranches = 8 });
+        await _repository.SaveSettingsAsync(new ApplicationSettings { DefaultProjectsDirectory = "/initial/path", MaxVisibleBranches = 3, AutoFetchIntervalSeconds = 30 });
+        await _repository.SaveSettingsAsync(new ApplicationSettings { DefaultProjectsDirectory = "/updated/path", MaxVisibleBranches = 8, AutoFetchIntervalSeconds = 120 });
 
         ApplicationSettings retrieved = await _repository.GetSettingsAsync();
 
         Assert.Equal("/updated/path", retrieved.DefaultProjectsDirectory);
         Assert.Equal(8, retrieved.MaxVisibleBranches);
+        Assert.Equal(120, retrieved.AutoFetchIntervalSeconds);
     }
 
     [Fact]
     public async Task SaveSettingsAsync_WithInvalidMaxVisibleBranches_DefaultsToFive()
     {
-        await _repository.SaveSettingsAsync(new ApplicationSettings { DefaultProjectsDirectory = "/path", MaxVisibleBranches = -1 });
+        await _repository.SaveSettingsAsync(new ApplicationSettings { DefaultProjectsDirectory = "/path", MaxVisibleBranches = -1, AutoFetchIntervalSeconds = -5 });
         ApplicationSettings retrieved = await _repository.GetSettingsAsync();
 
         Assert.Equal(5, retrieved.MaxVisibleBranches);
+        Assert.Equal(60, retrieved.AutoFetchIntervalSeconds);
     }
 
     public void Dispose()

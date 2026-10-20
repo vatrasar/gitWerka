@@ -28,7 +28,7 @@ public record FavoritesDockState
 
     public bool IsEditingExistingFavorite { get; init; }
 
-    public ImmutableHashSet<string> CollapsedFavoriteGroupNames { get; init; } = ImmutableHashSet<string>.Empty;
+    public ImmutableHashSet<string> ExpandedFavoriteGroupNames { get; init; } = ImmutableHashSet<string>.Empty;
 
     public ImmutableList<FavoriteRepositoryGroup> FavoriteGroups { get; init; } = ImmutableList<FavoriteRepositoryGroup>.Empty;
 

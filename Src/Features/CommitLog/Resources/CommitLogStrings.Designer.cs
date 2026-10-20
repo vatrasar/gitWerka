@@ -230,5 +230,7 @@ namespace GitWerka.Features.CommitLog.Resources {
         public static string NoActiveProfileCommitWarning => ResourceManager.GetString("NoActiveProfileCommitWarning", resourceCulture) ?? "No active Git profile selected. Set an active profile to commit.";
         public static string SelectProfileButton => ResourceManager.GetString("SelectProfileButton", resourceCulture) ?? "Select Profile";
         public static string CommitProfileRequiredToolTip => ResourceManager.GetString("CommitProfileRequiredToolTip", resourceCulture) ?? "Cannot commit without an active Git profile. Please select or configure a profile.";
+        public static string AutoFetchIntervalLabel => ResourceManager.GetString("AutoFetchIntervalLabel", resourceCulture) ?? "Auto-Fetch Interval (seconds, 0 to disable)";
+        public static string AutoFetchIntervalPlaceholder => ResourceManager.GetString("AutoFetchIntervalPlaceholder", resourceCulture) ?? "60";
     }
 }

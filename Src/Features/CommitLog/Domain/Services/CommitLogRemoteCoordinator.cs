@@ -2,6 +2,7 @@ namespace GitWerka.Features.CommitLog.Domain.Services;
 
 using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using GitWerka.Core.Domain.Enums;
 using GitWerka.Core.Domain.Models;
@@ -21,6 +22,8 @@ public sealed class CommitLogRemoteCoordinator
     private readonly Func<CommitLogState> _getState;
     private readonly Action<Func<CommitLogState, CommitLogState>> _updateState;
     private readonly Func<Task> _loadRepositoryData;
+    private CancellationTokenSource? _autoFetchCts;
+    private bool _isAutoFetching;
 
     public CommitLogRemoteCoordinator(
         IGitService gitService,
@@ -119,17 +122,24 @@ public sealed class CommitLogRemoteCoordinator
     }
 
     /// <summary>
-    /// Performs silent background fetch if no modals are open and remotes exist.
-    /// Usages: CommitLogViewModel auto-fetch timer.
+    /// Performs background auto-fetch with status notification if no modals are open and remotes exist.
+    /// Usages: CommitLogViewModel and CommitLogView auto-fetch timer.
     /// </summary>
     public async Task AutoFetchAsync()
     {
         var state = _getState();
-        if (state.IsLoading || state.Remotes.Count == 0 || IsAnyModalOpen())
+        if (_isAutoFetching || state.IsLoading || state.Remotes.Count == 0 || IsAnyModalOpen())
         {
             return;
         }
 
+        _autoFetchCts?.Cancel();
+        _autoFetchCts?.Dispose();
+        _autoFetchCts = new CancellationTokenSource();
+        var token = _autoFetchCts.Token;
+        _isAutoFetching = true;
+
+        _appStatusService?.SetInProgress(CommitLogStrings.FetchingRemotes);
         try
         {
             GitCredentials? credentials = null;
@@ -143,8 +153,42 @@ public sealed class CommitLogRemoteCoordinator
                 };
             }
 
-            await _gitService.FetchAsync(state.RepositoryPath, credentials: credentials);
+            await _gitService.FetchAsync(state.RepositoryPath, credentials: credentials, cancellationToken: token);
+            if (token.IsCancellationRequested)
+            {
+                _appStatusService?.SetReady();
+                return;
+            }
+
             await _loadRepositoryData();
+            _appStatusService?.SetReady();
+        }
+        catch (OperationCanceledException)
+        {
+            _appStatusService?.SetReady();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine(ex.Message);
+            _appStatusService?.SetReady();
+        }
+        finally
+        {
+            _isAutoFetching = false;
+        }
+    }
+
+    /// <summary>
+    /// Cancels any in-progress automatic background fetch operation.
+    /// Usages: CommitLogViewModel when switching repositories or deactivating view.
+    /// </summary>
+    public void CancelAutoFetch()
+    {
+        try
+        {
+            _autoFetchCts?.Cancel();
+            _autoFetchCts?.Dispose();
+            _autoFetchCts = null;
         }
         catch (Exception ex)
         {

@@ -313,6 +313,28 @@ public class CommitLogBranchesAndRemotesTests
     }
 
     [Fact]
+    public void CancelAutoFetch_WhenInvoked_DoesNotThrow()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        CommitLogViewModel vm = new(screen, "/repo/path", gitService);
+
+        vm.CancelAutoFetch();
+    }
+
+    [Fact]
+    public void UpdateAutoFetchIntervalInput_UpdatesState()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        CommitLogViewModel vm = new(screen, "/repo/path", gitService);
+
+        vm.UpdateAutoFetchIntervalInput("120");
+
+        Assert.Equal("120", vm.State.AutoFetchIntervalInput);
+    }
+
+    [Fact]
     public void FetchCommand_WhenAuthFails_OpensCredentialsModal()
     {
         MockScreen screen = new();

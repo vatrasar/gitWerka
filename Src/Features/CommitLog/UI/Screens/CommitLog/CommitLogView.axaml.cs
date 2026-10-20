@@ -14,7 +14,7 @@
 /// - Remote operations (Fetch, Pull, Push) with automatic credentials authentication dialog on challenge.
 /// - Profiles management: switch active Git profile from toolbar dropdown menu, or navigate to ProfileManagementView; enforce active Git profile requirement to execute commits with alert guidance.
 /// - System shortcuts: Open repository in system file manager, default terminal, or code editor (direct toolbar buttons on wide layouts or compact 'Open in' dropdown).
-/// - Periodic automatic repository status refresh every 5 seconds and automatic background remote fetch every 30 seconds.
+/// - Periodic automatic repository status refresh every 5 seconds and automatic remote fetch on repository open and periodically at configurable interval (default 60 seconds).
 /// - Uncommitted working tree changes displayed directly as a // WIP row in the commit history graph (GitKraken style).
 /// - Credentials modal for HTTPS username/token and SSH key passphrase input.
 /// - Working tree changes tracking (staged / unstaged) with bulk staging and commit composition.
@@ -98,8 +98,23 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
             .Subscribe(Observer.Create<long>(_ => TriggerPeriodicAutoRefresh()))
             .DisposeWith(disposables);
 
-        Observable.Interval(TimeSpan.FromSeconds(30), RxApp.MainThreadScheduler)
-            .Subscribe(Observer.Create<long>(_ => TriggerPeriodicAutoFetch()))
+        this.WhenAnyValue(x => x.ViewModel!.State.Remotes)
+            .Where(remotes => remotes.Count > 0)
+            .Take(1)
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(Observer.Create<ImmutableList<RemoteInfo>>(_ => TriggerPeriodicAutoFetch()))
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(x => x.ViewModel!.State.AutoFetchIntervalSeconds)
+            .DistinctUntilChanged()
+            .Select(seconds => seconds > 0
+                ? Observable.Interval(TimeSpan.FromSeconds(seconds), RxApp.MainThreadScheduler).Select(_ => Unit.Default)
+                : Observable.Never<Unit>())
+            .Switch()
+            .Subscribe(Observer.Create<Unit>(_ => TriggerPeriodicAutoFetch()))
+            .DisposeWith(disposables);
+
+        Disposable.Create(() => ViewModel?.CancelAutoFetch())
             .DisposeWith(disposables);
     }
 

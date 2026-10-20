@@ -40,7 +40,8 @@ public class ApplicationSettingsRepository : IApplicationSettingsRepository
         return new ApplicationSettings
         {
             DefaultProjectsDirectory = entity.DefaultProjectsDirectory ?? string.Empty,
-            MaxVisibleBranches = entity.MaxVisibleBranches > 0 ? entity.MaxVisibleBranches : 5
+            MaxVisibleBranches = entity.MaxVisibleBranches > 0 ? entity.MaxVisibleBranches : 5,
+            AutoFetchIntervalSeconds = entity.AutoFetchIntervalSeconds >= 0 ? entity.AutoFetchIntervalSeconds : 60
         };
     }
 
@@ -57,18 +58,21 @@ public class ApplicationSettingsRepository : IApplicationSettingsRepository
             .FirstOrDefaultAsync(cancellationToken);
 
         int branchLimit = settings.MaxVisibleBranches > 0 ? settings.MaxVisibleBranches : 5;
+        int fetchInterval = settings.AutoFetchIntervalSeconds >= 0 ? settings.AutoFetchIntervalSeconds : 60;
 
         if (entity != null)
         {
             entity.DefaultProjectsDirectory = settings.DefaultProjectsDirectory ?? string.Empty;
             entity.MaxVisibleBranches = branchLimit;
+            entity.AutoFetchIntervalSeconds = fetchInterval;
         }
         else
         {
             entity = new ApplicationSettingsEntity
             {
                 DefaultProjectsDirectory = settings.DefaultProjectsDirectory ?? string.Empty,
-                MaxVisibleBranches = branchLimit
+                MaxVisibleBranches = branchLimit,
+                AutoFetchIntervalSeconds = fetchInterval
             };
             await _dbContext.ApplicationSettings.AddAsync(entity, cancellationToken);
         }

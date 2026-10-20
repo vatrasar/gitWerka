@@ -93,7 +93,7 @@ public sealed class CommitLogComponentCoordinator
             NewFavoriteNameInput = s.NewFavoriteNameInput,
             NewFavoriteGroupInput = s.NewFavoriteGroupInput,
             IsEditingExistingFavorite = s.IsEditingExistingFavorite,
-            CollapsedFavoriteGroupNames = s.CollapsedFavoriteGroupNames,
+            ExpandedFavoriteGroupNames = s.ExpandedFavoriteGroupNames,
             FavoriteGroups = s.FavoriteGroups,
             UngroupedFavoriteRepositories = s.UngroupedFavoriteRepositories,
             ExistingGroupNames = s.ExistingGroupNames
@@ -111,6 +111,7 @@ public sealed class CommitLogComponentCoordinator
             DefaultProjectsDirectory = s.DefaultProjectsDirectory,
             DefaultProjectsDirectoryInput = s.DefaultProjectsDirectoryInput,
             MaxVisibleBranchesInput = s.MaxVisibleBranchesInput,
+            AutoFetchIntervalInput = s.AutoFetchIntervalInput,
             AiApiKeyInput = s.AiApiKeyInput,
             AiModelInput = s.AiModelInput,
             AiCommitStyleInput = s.AiCommitStyleInput,

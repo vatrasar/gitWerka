@@ -71,7 +71,7 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
             State.AllRepositories,
             State.FavoriteRepositories,
             trimmed,
-            State.CollapsedFavoriteGroupNames,
+            State.ExpandedFavoriteGroupNames,
             State.SelectedTab);
 
         UpdateState(s => s with
@@ -304,7 +304,7 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
             repos,
             favorites,
             State.SearchQuery,
-            State.CollapsedFavoriteGroupNames,
+            State.ExpandedFavoriteGroupNames,
             State.SelectedTab);
 
         UpdateState(s => s with
@@ -328,14 +328,14 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
             return;
         }
 
-        var collapsed = State.CollapsedFavoriteGroupNames.Contains(groupName)
-            ? State.CollapsedFavoriteGroupNames.Remove(groupName)
-            : State.CollapsedFavoriteGroupNames.Add(groupName);
+        var expanded = State.ExpandedFavoriteGroupNames.Contains(groupName)
+            ? State.ExpandedFavoriteGroupNames.Remove(groupName)
+            : State.ExpandedFavoriteGroupNames.Add(groupName);
 
-        var (groups, ungrouped) = RepositoryGroupingHelper.BuildFavoriteGroupsAndUngrouped(State.FavoriteRepositories, collapsed, State.SearchQuery);
+        var (groups, ungrouped) = RepositoryGroupingHelper.BuildFavoriteGroupsAndUngrouped(State.FavoriteRepositories, expanded, State.SearchQuery);
         UpdateState(s => s with
         {
-            CollapsedFavoriteGroupNames = collapsed,
+            ExpandedFavoriteGroupNames = expanded,
             FavoriteGroups = groups,
             UngroupedFavoriteRepositories = ungrouped
         });

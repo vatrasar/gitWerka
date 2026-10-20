@@ -16,7 +16,7 @@ using ReactiveUI;
 /// Component: SettingsModalView
 /// Purpose: Modal for editing repository Git author, project defaults, and AI commit assistant configuration.
 /// Usage: Bound to SettingsModalViewModel in CommitLogView.
-/// Key UI elements: SettingsModalBackdrop, ConfigUserNameTextBox, ConfigUserEmailTextBox, DefaultProjectsDirectoryTextBox, AiApiKeyTextBox.
+/// Key UI elements: SettingsModalBackdrop, ConfigUserNameTextBox, ConfigUserEmailTextBox, DefaultProjectsDirectoryTextBox, AutoFetchIntervalTextBox, AiApiKeyTextBox.
 /// Used In: CommitLogView
 /// </summary>
 public partial class SettingsModalView : ReactiveUserControl<SettingsModalViewModel>
@@ -72,6 +72,16 @@ public partial class SettingsModalView : ReactiveUserControl<SettingsModalViewMo
                 if (MaxVisibleBranchesTextBox.Text != branches)
                 {
                     MaxVisibleBranchesTextBox.Text = branches;
+                }
+            }))
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(x => x.ViewModel!.State.AutoFetchIntervalInput)
+            .Subscribe(Observer.Create<string>(interval =>
+            {
+                if (AutoFetchIntervalTextBox.Text != interval)
+                {
+                    AutoFetchIntervalTextBox.Text = interval;
                 }
             }))
             .DisposeWith(disposables);
@@ -150,6 +160,10 @@ public partial class SettingsModalView : ReactiveUserControl<SettingsModalViewMo
 
         this.WhenAnyValue(x => x.MaxVisibleBranchesTextBox.Text)
             .Subscribe(Observer.Create<string?>(branches => ViewModel?.UpdateMaxVisibleBranchesInput(branches ?? string.Empty)))
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(x => x.AutoFetchIntervalTextBox.Text)
+            .Subscribe(Observer.Create<string?>(interval => ViewModel?.UpdateAutoFetchIntervalInput(interval ?? string.Empty)))
             .DisposeWith(disposables);
 
         this.WhenAnyValue(x => x.AiApiKeyTextBox.Text)

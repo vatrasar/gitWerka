@@ -57,7 +57,7 @@ public class RepositoryManagerFavoritesAndSettingsTests
     }
 
     [Fact]
-    public void ToggleFavoriteGroupCommand_WhenGroupIsExpanded_TogglesIsExpandedState()
+    public void ToggleFavoriteGroupCommand_WhenGroupIsCollapsedByDefault_TogglesIsExpandedState()
     {
         MockScreen screen = new();
         MockRecentRepositoriesRepository repo = new();
@@ -66,17 +66,17 @@ public class RepositoryManagerFavoritesAndSettingsTests
         MockGitService gitService = new();
         RepositoryManagerViewModel vm = new(screen, repo, gitService);
 
+        Assert.False(vm.State.FavoriteGroups[0].IsExpanded);
+
+        vm.ToggleFavoriteGroupCommand.Execute("Group Alpha").Subscribe();
+
         Assert.True(vm.State.FavoriteGroups[0].IsExpanded);
+        Assert.Contains("Group Alpha", vm.State.ExpandedFavoriteGroupNames);
 
         vm.ToggleFavoriteGroupCommand.Execute("Group Alpha").Subscribe();
 
         Assert.False(vm.State.FavoriteGroups[0].IsExpanded);
-        Assert.Contains("Group Alpha", vm.State.CollapsedFavoriteGroupNames);
-
-        vm.ToggleFavoriteGroupCommand.Execute("Group Alpha").Subscribe();
-
-        Assert.True(vm.State.FavoriteGroups[0].IsExpanded);
-        Assert.DoesNotContain("Group Alpha", vm.State.CollapsedFavoriteGroupNames);
+        Assert.DoesNotContain("Group Alpha", vm.State.ExpandedFavoriteGroupNames);
     }
 
     [Fact]
