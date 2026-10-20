@@ -43,75 +43,99 @@
 
   <!-- Working Tree Change Item Template (Used for Staged and Unstaged Changes) -->
   <DataTemplate x:Key="WorkingTreeChangeItemTemplate" x:DataType="models:WorkingTreeChange">
-    <Grid ColumnDefinitions="Auto, *, Auto">
+    <Grid ColumnDefinitions="Auto, *, Auto"
+          Background="Transparent"
+          ToolTip.Tip="{Binding DisplayToolTip}">
       <material:MaterialIcon Grid.Column="0"
                             Kind="{Binding Status, Converter={x:Static conv:FileStatusToIconConverter.Instance}}"
                             Foreground="{Binding Status, Converter={x:Static conv:FileStatusToBrushConverter.Instance}}"
                             Width="14"
                             Height="14"
                             Margin="0,0,6,0"
-                            VerticalAlignment="Center" />
+                            VerticalAlignment="Center"
+                            ToolTip.Tip="{Binding DisplayToolTip}" />
       <TextBlock Grid.Column="1"
                  Text="{Binding Path}"
                  FontSize="11"
+                 Background="Transparent"
                  TextTrimming="CharacterEllipsis"
-                 VerticalAlignment="Center" />
-      <TextBlock Grid.Column="2"
-                 Text="{Binding Status}"
-                 FontSize="10"
-                 Foreground="{DynamicResource SubtleTextBrush}"
-                 Margin="4,0,0,0"
-                 VerticalAlignment="Center" />
+                 VerticalAlignment="Center"
+                 ToolTip.Tip="{Binding DisplayToolTip}" />
+      <StackPanel Grid.Column="2"
+                  Orientation="Horizontal"
+                  Spacing="4"
+                  Margin="6,0,0,0"
+                  VerticalAlignment="Center"
+                  ToolTip.Tip="{Binding DisplayToolTip}">
+        <TextBlock Text="{Binding LinesAdded, StringFormat='+{0}'}"
+                   Foreground="{DynamicResource SuccessBrush}"
+                   FontSize="10" />
+        <TextBlock Text="{Binding LinesDeleted, StringFormat='-{0}'}"
+                   Foreground="{DynamicResource ErrorBrush}"
+                   FontSize="10" />
+      </StackPanel>
     </Grid>
   </DataTemplate>
 
   <!-- Conflicted File Item Template -->
   <DataTemplate x:Key="ConflictedFileItemTemplate" x:DataType="models:WorkingTreeChange">
-    <Grid ColumnDefinitions="Auto, *, Auto">
+    <Grid ColumnDefinitions="Auto, *, Auto"
+          Background="Transparent"
+          ToolTip.Tip="{Binding DisplayToolTip}">
       <material:MaterialIcon Grid.Column="0"
                             Kind="AlertCircleOutline"
                             Width="14"
                             Height="14"
                             Foreground="{DynamicResource WarningBrush}"
                             Margin="0,0,6,0"
-                            VerticalAlignment="Center" />
+                            VerticalAlignment="Center"
+                            ToolTip.Tip="{Binding DisplayToolTip}" />
       <TextBlock Grid.Column="1"
                  Text="{Binding Path}"
                  FontSize="11"
                  FontWeight="Medium"
+                 Background="Transparent"
                  Foreground="{DynamicResource TextPrimaryBrush}"
                  TextTrimming="CharacterEllipsis"
-                 VerticalAlignment="Center" />
+                 VerticalAlignment="Center"
+                 ToolTip.Tip="{Binding DisplayToolTip}" />
       <TextBlock Grid.Column="2"
                  Text="{Binding Status}"
                  FontSize="10"
                  Foreground="{DynamicResource WarningBrush}"
                  Margin="4,0,0,0"
-                 VerticalAlignment="Center" />
+                 VerticalAlignment="Center"
+                 ToolTip.Tip="{Binding DisplayToolTip}" />
     </Grid>
   </DataTemplate>
 
   <!-- Resolved File Item Template -->
   <DataTemplate x:Key="ResolvedFileItemTemplate" x:DataType="models:WorkingTreeChange">
-    <Grid ColumnDefinitions="Auto, *, Auto">
+    <Grid ColumnDefinitions="Auto, *, Auto"
+          Background="Transparent"
+          ToolTip.Tip="{Binding DisplayToolTip}">
       <material:MaterialIcon Grid.Column="0"
                             Kind="CheckCircleOutline"
                             Width="14"
                             Height="14"
                             Foreground="{DynamicResource SuccessBrush}"
                             Margin="0,0,6,0"
-                            VerticalAlignment="Center" />
+                            VerticalAlignment="Center"
+                            ToolTip.Tip="{Binding DisplayToolTip}" />
       <TextBlock Grid.Column="1"
                  Text="{Binding Path}"
                  FontSize="11"
+                 Background="Transparent"
                  TextTrimming="CharacterEllipsis"
-                 VerticalAlignment="Center" />
+                 VerticalAlignment="Center"
+                 ToolTip.Tip="{Binding DisplayToolTip}" />
       <TextBlock Grid.Column="2"
                  Text="{Binding Status}"
                  FontSize="10"
                  Foreground="{DynamicResource SubtleTextBrush}"
                  Margin="4,0,0,0"
-                 VerticalAlignment="Center" />
+                 VerticalAlignment="Center"
+                 ToolTip.Tip="{Binding DisplayToolTip}" />
     </Grid>
   </DataTemplate>
 

@@ -514,6 +514,58 @@ public class GitServiceTests : IDisposable
         Assert.Equal("Base commit", finalLog[2].Message);
     }
 
+    [Fact]
+    public async Task GetWorkingTreeChangesAsync_WithStagedUnstagedAndUntracked_CalculatesLinesAndFullPath()
+    {
+        string repoPath = await _gitService.InitializeRepositoryAsync(_testDirectory);
+
+        string stagedFile = Path.Combine(repoPath, "staged.txt");
+        await File.WriteAllTextAsync(stagedFile, "Line 1\nLine 2\n");
+        await _gitService.StageFileAsync(repoPath, "staged.txt");
+        await _gitService.CreateCommitAsync(repoPath, "Base", "Tester", "tester@example.com");
+
+        string unstagedFile = Path.Combine(repoPath, "unstaged.txt");
+        await File.WriteAllTextAsync(unstagedFile, "Alpha\nBeta\nGamma\n");
+        await _gitService.StageFileAsync(repoPath, "unstaged.txt");
+        await _gitService.CreateCommitAsync(repoPath, "Add unstaged", "Tester", "tester@example.com");
+
+        await File.WriteAllTextAsync(stagedFile, "Line 1 modified\nLine 2\nLine 3\nLine 4\n");
+        await _gitService.StageFileAsync(repoPath, "staged.txt");
+
+        await File.WriteAllTextAsync(unstagedFile, "Alpha\nDelta\n");
+
+        string untrackedFile = Path.Combine(repoPath, "untracked.txt");
+        await File.WriteAllTextAsync(untrackedFile, "One\nTwo\nThree\nFour\nFive\n");
+
+        var changes = await _gitService.GetWorkingTreeChangesAsync(repoPath);
+
+        var stagedChange = changes.First(c => c.Path == "staged.txt" && c.IsStaged);
+        Assert.Equal(3, stagedChange.LinesAdded);
+        Assert.Equal(1, stagedChange.LinesDeleted);
+        Assert.Equal(Path.GetFullPath(stagedFile), stagedChange.FullPath);
+        Assert.Equal("staged.txt", stagedChange.DisplayToolTip);
+
+        var unstagedChange = changes.First(c => c.Path == "unstaged.txt" && !c.IsStaged);
+        Assert.Equal(1, unstagedChange.LinesAdded);
+        Assert.Equal(2, unstagedChange.LinesDeleted);
+        Assert.Equal(Path.GetFullPath(unstagedFile), unstagedChange.FullPath);
+        Assert.Equal("unstaged.txt", unstagedChange.DisplayToolTip);
+
+        var untrackedChange = changes.First(c => c.Path == "untracked.txt" && !c.IsStaged);
+        Assert.Equal(5, untrackedChange.LinesAdded);
+        Assert.Equal(0, untrackedChange.LinesDeleted);
+        Assert.Equal(Path.GetFullPath(untrackedFile), untrackedChange.FullPath);
+        Assert.Equal("untracked.txt", untrackedChange.DisplayToolTip);
+    }
+
+    [Fact]
+    public void WorkingTreeChange_DisplayToolTip_ReturnsPath()
+    {
+        WorkingTreeChange change = new() { Path = "Src/App.cs", FullPath = "/repo/Src/App.cs" };
+
+        Assert.Equal("Src/App.cs", change.DisplayToolTip);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_testDirectory))

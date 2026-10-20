@@ -172,8 +172,8 @@ public class GitService : IGitService
         _workingTree.GetFileDiffLinesAsync(repositoryPath, commitSha, filePath, cancellationToken);
 
     /// <summary>
-    /// Reads working tree modifications.
-    /// Usages: CommitLogViewModel.
+    /// Reads working tree modifications including line addition and deletion counts.
+    /// Usages: CommitLogWorkingTreeCoordinator, CommitLogViewModel.
     /// </summary>
     public Task<IReadOnlyList<WorkingTreeChange>> GetWorkingTreeChangesAsync(string repositoryPath, CancellationToken cancellationToken = default) =>
         _workingTree.GetWorkingTreeChangesAsync(repositoryPath, cancellationToken);

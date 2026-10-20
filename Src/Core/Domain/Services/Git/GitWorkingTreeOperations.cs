@@ -17,7 +17,8 @@ using LibGit2Sharp;
 public class GitWorkingTreeOperations
 {
     /// <summary>
-    /// Reads working tree changes (both staged and unstaged).
+    /// Reads working tree changes (both staged and unstaged) including file statuses, line additions, and line deletions.
+    /// Invoked by: <see cref="GitService.GetWorkingTreeChangesAsync"/>.
     /// </summary>
     public Task<IReadOnlyList<WorkingTreeChange>> GetWorkingTreeChangesAsync(string repositoryPath, CancellationToken cancellationToken = default)
     {
@@ -27,6 +28,9 @@ public class GitWorkingTreeOperations
         {
             using Repository repository = new(repositoryPath);
             RepositoryStatus status = repository.RetrieveStatus(new StatusOptions());
+            string workingDirectory = repository.Info.WorkingDirectory ?? repositoryPath;
+            Dictionary<string, (int Added, int Deleted)> stagedStats = BuildStagedStats(repository);
+            Dictionary<string, (int Added, int Deleted)> unstagedStats = BuildUnstagedStats(repository);
             List<WorkingTreeChange> changes = new();
 
             foreach (StatusEntry entry in status)
@@ -36,7 +40,7 @@ public class GitWorkingTreeOperations
                     continue;
                 }
 
-                AppendWorkingTreeEntries(entry, changes);
+                AppendWorkingTreeEntries(entry, changes, workingDirectory, stagedStats, unstagedStats);
             }
 
             return (IReadOnlyList<WorkingTreeChange>)changes;
@@ -165,39 +169,184 @@ public class GitWorkingTreeOperations
         return result;
     }
 
-    private static void AppendWorkingTreeEntries(StatusEntry entry, List<WorkingTreeChange> changes)
+    private static Dictionary<string, (int Added, int Deleted)> BuildStagedStats(Repository repository)
     {
+        Dictionary<string, (int Added, int Deleted)> stats = new(StringComparer.Ordinal);
+        try
+        {
+            PopulateStagedStats(repository, stats);
+        }
+        catch (LibGit2SharpException exception)
+        {
+            System.Diagnostics.Debug.WriteLine(exception.Message);
+        }
+
+        return stats;
+    }
+
+    private static void PopulateStagedStats(Repository repository, Dictionary<string, (int Added, int Deleted)> stats)
+    {
+        Tree? headTree = repository.Head.Tip?.Tree;
+        Patch patch = repository.Diff.Compare<Patch>(headTree, DiffTargets.Index);
+        foreach (PatchEntryChanges entry in patch)
+        {
+            stats[entry.Path] = (entry.LinesAdded, entry.LinesDeleted);
+        }
+    }
+
+    private static Dictionary<string, (int Added, int Deleted)> BuildUnstagedStats(Repository repository)
+    {
+        Dictionary<string, (int Added, int Deleted)> stats = new(StringComparer.Ordinal);
+        try
+        {
+            PopulateUnstagedStats(repository, stats);
+        }
+        catch (LibGit2SharpException exception)
+        {
+            System.Diagnostics.Debug.WriteLine(exception.Message);
+        }
+
+        return stats;
+    }
+
+    private static void PopulateUnstagedStats(Repository repository, Dictionary<string, (int Added, int Deleted)> stats)
+    {
+        Patch patch = repository.Diff.Compare<Patch>();
+        foreach (PatchEntryChanges entry in patch)
+        {
+            stats[entry.Path] = (entry.LinesAdded, entry.LinesDeleted);
+        }
+    }
+
+    private static void AppendWorkingTreeEntries(
+        StatusEntry entry,
+        List<WorkingTreeChange> changes,
+        string workingDirectory,
+        Dictionary<string, (int Added, int Deleted)> stagedStats,
+        Dictionary<string, (int Added, int Deleted)> unstagedStats)
+    {
+        string fullPath = Path.GetFullPath(Path.Combine(workingDirectory, entry.FilePath));
+
         if (entry.State.HasFlag(FileStatus.Conflicted))
         {
             changes.Add(new WorkingTreeChange
             {
                 Path = entry.FilePath,
+                FullPath = fullPath,
                 Status = FileChangeStatus.Conflicted,
                 IsStaged = false
             });
             return;
         }
 
-        if (entry.State.HasFlag(FileStatus.ModifiedInIndex) || entry.State.HasFlag(FileStatus.NewInIndex) || entry.State.HasFlag(FileStatus.DeletedFromIndex) || entry.State.HasFlag(FileStatus.RenamedInIndex))
+        if (IsStagedStatus(entry.State))
         {
-            changes.Add(new WorkingTreeChange
-            {
-                Path = entry.FilePath,
-                Status = ResolveIndexStatus(entry.State),
-                IsStaged = true
-            });
+            AppendStagedEntry(entry, changes, fullPath, stagedStats);
         }
 
-        if (entry.State.HasFlag(FileStatus.ModifiedInWorkdir) || entry.State.HasFlag(FileStatus.NewInWorkdir) || entry.State.HasFlag(FileStatus.DeletedFromWorkdir) || entry.State.HasFlag(FileStatus.RenamedInWorkdir))
+        if (IsWorkdirStatus(entry.State))
         {
-            changes.Add(new WorkingTreeChange
-            {
-                Path = entry.FilePath,
-                Status = ResolveWorkdirStatus(entry.State),
-                IsStaged = false
-            });
+            AppendWorkdirEntry(entry, changes, fullPath, unstagedStats);
         }
     }
+
+    private static void AppendStagedEntry(
+        StatusEntry entry,
+        List<WorkingTreeChange> changes,
+        string fullPath,
+        Dictionary<string, (int Added, int Deleted)> stagedStats)
+    {
+        stagedStats.TryGetValue(entry.FilePath, out (int Added, int Deleted) lineChange);
+        changes.Add(new WorkingTreeChange
+        {
+            Path = entry.FilePath,
+            FullPath = fullPath,
+            Status = ResolveIndexStatus(entry.State),
+            IsStaged = true,
+            LinesAdded = lineChange.Added,
+            LinesDeleted = lineChange.Deleted
+        });
+    }
+
+    private static void AppendWorkdirEntry(
+        StatusEntry entry,
+        List<WorkingTreeChange> changes,
+        string fullPath,
+        Dictionary<string, (int Added, int Deleted)> unstagedStats)
+    {
+        (int Added, int Deleted) lineChange = ResolveWorkdirLineStats(entry, fullPath, unstagedStats);
+        changes.Add(new WorkingTreeChange
+        {
+            Path = entry.FilePath,
+            FullPath = fullPath,
+            Status = ResolveWorkdirStatus(entry.State),
+            IsStaged = false,
+            LinesAdded = lineChange.Added,
+            LinesDeleted = lineChange.Deleted
+        });
+    }
+
+    private static (int Added, int Deleted) ResolveWorkdirLineStats(
+        StatusEntry entry,
+        string fullPath,
+        Dictionary<string, (int Added, int Deleted)> unstagedStats)
+    {
+        if (entry.State.HasFlag(FileStatus.NewInWorkdir))
+        {
+            return (CountFileLines(fullPath), 0);
+        }
+
+        unstagedStats.TryGetValue(entry.FilePath, out (int Added, int Deleted) stats);
+        return stats;
+    }
+
+    private static int CountFileLines(string fullPath)
+    {
+        try
+        {
+            return CountLinesFromStream(fullPath);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            System.Diagnostics.Debug.WriteLine(exception.Message);
+            return 0;
+        }
+    }
+
+    private static int CountLinesFromStream(string fullPath)
+    {
+        if (!File.Exists(fullPath))
+        {
+            return 0;
+        }
+
+        using FileStream stream = new(fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using StreamReader reader = new(stream);
+        return ReadLineCount(reader);
+    }
+
+    private static int ReadLineCount(StreamReader reader)
+    {
+        int lineCount = 0;
+        while (reader.ReadLine() != null)
+        {
+            lineCount++;
+        }
+
+        return lineCount;
+    }
+
+    private static bool IsStagedStatus(FileStatus state) =>
+        state.HasFlag(FileStatus.ModifiedInIndex) ||
+        state.HasFlag(FileStatus.NewInIndex) ||
+        state.HasFlag(FileStatus.DeletedFromIndex) ||
+        state.HasFlag(FileStatus.RenamedInIndex);
+
+    private static bool IsWorkdirStatus(FileStatus state) =>
+        state.HasFlag(FileStatus.ModifiedInWorkdir) ||
+        state.HasFlag(FileStatus.NewInWorkdir) ||
+        state.HasFlag(FileStatus.DeletedFromWorkdir) ||
+        state.HasFlag(FileStatus.RenamedInWorkdir);
 
     private static FileChangeStatus ResolveIndexStatus(FileStatus state)
     {

@@ -9,7 +9,15 @@ public record WorkingTreeChange
 {
     public string Path { get; init; } = string.Empty;
 
+    public string FullPath { get; init; } = string.Empty;
+
     public FileChangeStatus Status { get; init; }
 
     public bool IsStaged { get; init; }
+
+    public int LinesAdded { get; init; }
+
+    public int LinesDeleted { get; init; }
+
+    public string DisplayToolTip => Path;
 }

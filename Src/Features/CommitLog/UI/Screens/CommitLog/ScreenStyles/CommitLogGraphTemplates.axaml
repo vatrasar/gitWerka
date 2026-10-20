@@ -115,7 +115,8 @@
 
   <!-- Changed File Item Template -->
   <DataTemplate x:Key="ChangedFileItemTemplate" x:DataType="models:FileDiffSummary">
-    <Border Classes="ChangedFileCard">
+    <Border Classes="ChangedFileCard"
+            ToolTip.Tip="{Binding Path}">
       <Grid ColumnDefinitions="Auto, *, Auto">
         <material:MaterialIcon Grid.Column="0"
                               Kind="{Binding Status, Converter={x:Static conv:FileStatusToIconConverter.Instance}}"
