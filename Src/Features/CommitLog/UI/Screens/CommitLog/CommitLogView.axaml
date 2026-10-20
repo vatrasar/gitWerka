@@ -407,6 +407,12 @@
                    ItemTemplate="{StaticResource CommitListItemTemplate}">
             <ListBox.ContextMenu>
               <ContextMenu x:Name="CommitsContextMenu">
+                <MenuItem x:Name="ContextCheckoutCommitMenuItem"
+                          Header="{x:Static res:CommitLogStrings.CheckoutCommitMenu}">
+                  <MenuItem.Icon>
+                    <material:MaterialIcon Kind="SourceCommit" Width="16" Height="16" />
+                  </MenuItem.Icon>
+                </MenuItem>
                 <MenuItem x:Name="ContextCherryPickMenuItem"
                           Header="{x:Static res:CommitLogStrings.CherryPickMenu}">
                   <MenuItem.Icon>

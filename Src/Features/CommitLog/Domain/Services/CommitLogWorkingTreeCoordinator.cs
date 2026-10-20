@@ -100,6 +100,7 @@ public sealed class CommitLogWorkingTreeCoordinator
             await _gitService.StageFileAsync(state.RepositoryPath, filePath);
             IReadOnlyList<WorkingTreeChange> changes = await _gitService.GetWorkingTreeChangesAsync(state.RepositoryPath);
             _updateState(s => s with { WorkingTreeChanges = changes.ToImmutableList() });
+            await RefreshWipCommitIfSelectedAsync();
         }
         catch (Exception ex)
         {
@@ -120,6 +121,7 @@ public sealed class CommitLogWorkingTreeCoordinator
             await _gitService.UnstageFileAsync(state.RepositoryPath, filePath);
             IReadOnlyList<WorkingTreeChange> changes = await _gitService.GetWorkingTreeChangesAsync(state.RepositoryPath);
             _updateState(s => s with { WorkingTreeChanges = changes.ToImmutableList() });
+            await RefreshWipCommitIfSelectedAsync();
         }
         catch (Exception ex)
         {
@@ -140,6 +142,7 @@ public sealed class CommitLogWorkingTreeCoordinator
             await _gitService.DiscardFileChangesAsync(state.RepositoryPath, filePath);
             IReadOnlyList<WorkingTreeChange> changes = await _gitService.GetWorkingTreeChangesAsync(state.RepositoryPath);
             _updateState(s => s with { WorkingTreeChanges = changes.ToImmutableList() });
+            await RefreshWipCommitIfSelectedAsync();
         }
         catch (Exception ex)
         {
@@ -163,6 +166,7 @@ public sealed class CommitLogWorkingTreeCoordinator
 
             IReadOnlyList<WorkingTreeChange> changes = await _gitService.GetWorkingTreeChangesAsync(state.RepositoryPath);
             _updateState(s => s with { WorkingTreeChanges = changes.ToImmutableList() });
+            await RefreshWipCommitIfSelectedAsync();
         }
         catch (Exception ex)
         {
@@ -186,10 +190,36 @@ public sealed class CommitLogWorkingTreeCoordinator
 
             IReadOnlyList<WorkingTreeChange> changes = await _gitService.GetWorkingTreeChangesAsync(state.RepositoryPath);
             _updateState(s => s with { WorkingTreeChanges = changes.ToImmutableList() });
+            await RefreshWipCommitIfSelectedAsync();
         }
         catch (Exception ex)
         {
             _updateState(s => s with { ErrorMessage = ex.Message });
+        }
+    }
+
+    private async Task RefreshWipCommitIfSelectedAsync()
+    {
+        var state = _getState();
+        if (state.SelectedCommit?.IsWip != true)
+        {
+            return;
+        }
+
+        var wipDetail = await _gitService.GetCommitDetailAsync(state.RepositoryPath, "WIP")
+            ?? CommitLogHistoryHelper.BuildWipCommitDetail(state.WorkingTreeChanges, state.SelectedCommit.ParentShas);
+        _updateState(s => s with { SelectedCommitDetail = wipDetail });
+
+        if (wipDetail.ChangedFiles.Count > 0)
+        {
+            var fileToSelect = wipDetail.ChangedFiles.FirstOrDefault(f => f.Path == state.SelectedFileDiff?.Path)
+                ?? wipDetail.ChangedFiles[0];
+            var lines = await _gitService.GetFileDiffLinesAsync(state.RepositoryPath, "WIP", fileToSelect.Path);
+            _updateState(s => s with { SelectedFileDiff = fileToSelect, DiffLines = lines.ToImmutableList() });
+        }
+        else
+        {
+            _updateState(s => s with { SelectedFileDiff = null, DiffLines = ImmutableList<DiffLine>.Empty });
         }
     }
 

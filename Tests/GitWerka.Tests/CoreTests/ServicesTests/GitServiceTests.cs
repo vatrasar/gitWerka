@@ -259,6 +259,32 @@ public class GitServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetCommitDetailAsync_WipCommit_ReturnsChangedFilesWithAccurateLineCounts()
+    {
+        string repoPath = await _gitService.InitializeRepositoryAsync(_testDirectory);
+        await File.WriteAllTextAsync(Path.Combine(repoPath, "base.txt"), "line1\nline2\nline3\n");
+        await _gitService.StageFileAsync(repoPath, "base.txt");
+        await _gitService.CreateCommitAsync(repoPath, "Base commit", "Tester", "tester@example.com");
+
+        await File.WriteAllTextAsync(Path.Combine(repoPath, "base.txt"), "line1\nline2_modified\nline3\nline4\n");
+        await File.WriteAllTextAsync(Path.Combine(repoPath, "untracked.txt"), "first\nsecond\nthird\n");
+
+        CommitDetail? detail = await _gitService.GetCommitDetailAsync(repoPath, "WIP");
+        Assert.NotNull(detail);
+        Assert.Equal("WIP", detail.Sha);
+
+        FileDiffSummary? baseDiff = detail.ChangedFiles.Find(f => f.Path == "base.txt");
+        Assert.NotNull(baseDiff);
+        Assert.Equal(2, baseDiff.LinesAdded);
+        Assert.Equal(1, baseDiff.LinesDeleted);
+
+        FileDiffSummary? untrackedDiff = detail.ChangedFiles.Find(f => f.Path == "untracked.txt");
+        Assert.NotNull(untrackedDiff);
+        Assert.Equal(3, untrackedDiff.LinesAdded);
+        Assert.Equal(0, untrackedDiff.LinesDeleted);
+    }
+
+    [Fact]
     public async Task MergeBranchAsync_FastForward_MovesHeadForward()
     {
         string repoPath = await _gitService.InitializeRepositoryAsync(_testDirectory);
@@ -564,6 +590,27 @@ public class GitServiceTests : IDisposable
         WorkingTreeChange change = new() { Path = "Src/App.cs", FullPath = "/repo/Src/App.cs" };
 
         Assert.Equal("Src/App.cs", change.DisplayToolTip);
+    }
+
+    [Fact]
+    public async Task CheckoutCommitAsync_ValidCommit_DetachesHeadAtTargetCommit()
+    {
+        string repoPath = await _gitService.InitializeRepositoryAsync(_testDirectory);
+        string file1 = Path.Combine(repoPath, "first.txt");
+        await File.WriteAllTextAsync(file1, "First content");
+        await _gitService.StageFileAsync(repoPath, "first.txt");
+        string firstSha = await _gitService.CreateCommitAsync(repoPath, "First commit", "Tester", "tester@example.com");
+
+        string file2 = Path.Combine(repoPath, "second.txt");
+        await File.WriteAllTextAsync(file2, "Second content");
+        await _gitService.StageFileAsync(repoPath, "second.txt");
+        string secondSha = await _gitService.CreateCommitAsync(repoPath, "Second commit", "Tester", "tester@example.com");
+
+        await _gitService.CheckoutCommitAsync(repoPath, firstSha);
+
+        GitRepositoryInfo info = await _gitService.GetRepositoryInfoAsync(repoPath);
+        Assert.True(info.IsHeadDetached);
+        Assert.Equal(firstSha, info.HeadCommitSha);
     }
 
     public void Dispose()

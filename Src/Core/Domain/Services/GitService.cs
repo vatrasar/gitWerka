@@ -242,6 +242,13 @@ public class GitService : IGitService
         _branches.CheckoutBranchAsync(repositoryPath, branchName, cancellationToken);
 
     /// <summary>
+    /// Checks out a specific commit into a detached HEAD state.
+    /// Usages: CommitLogViewModel.
+    /// </summary>
+    public Task CheckoutCommitAsync(string repositoryPath, string commitSha, CancellationToken cancellationToken = default) =>
+        _branches.CheckoutCommitAsync(repositoryPath, commitSha, cancellationToken);
+
+    /// <summary>
     /// Creates a new branch.
     /// Usages: CommitLogViewModel.
     /// </summary>

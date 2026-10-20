@@ -22,9 +22,9 @@ using ReactiveUI;
 
 /// <summary>
 /// Component: FavoritesDockView
-/// Purpose: Displays favorite repositories drawer and modal for adding or editing favorites.
+/// Purpose: Displays favorite repositories drawer and modal for adding or editing favorites, and prompt to init Git for non-repo folders.
 /// Usage: Bound to FavoritesDockViewModel in CommitLogView.
-/// Key UI elements: FavoritesDockBackdrop, FavoritesDockPanel, FavoriteGroupsItemsControl, UngroupedFavoritesItemsControl, AddFavoriteModalBackdrop.
+/// Key UI elements: FavoritesDockBackdrop, FavoritesDockPanel, FavoriteGroupsItemsControl, UngroupedFavoritesItemsControl, AddFavoriteModalBackdrop, NotGitRepositoryModalBackdrop, CancelNotGitRepositoryButton, ConfirmInitNotGitRepositoryButton.
 /// Used In: CommitLogView
 /// </summary>
 public partial class FavoritesDockView : ReactiveUserControl<FavoritesDockViewModel>
@@ -48,6 +48,8 @@ public partial class FavoritesDockView : ReactiveUserControl<FavoritesDockViewMo
         this.OneWayBind(ViewModel, x => x.State.UngroupedFavoriteRepositories, x => x.UngroupedFavoritesItemsControl.ItemsSource);
         this.OneWayBind(ViewModel, x => x.State.IsAddFavoriteModalVisible, x => x.AddFavoriteModalBackdrop.IsVisible);
         this.OneWayBind(ViewModel, x => x.State.TargetFavoritePath, x => x.TargetFavoritePathTextBlock.Text);
+        this.OneWayBind(ViewModel, x => x.State.IsNotGitRepositoryModalVisible, x => x.NotGitRepositoryModalBackdrop.IsVisible);
+        this.OneWayBind(ViewModel, x => x.State.NotGitRepositoryPath, x => x.NotGitRepositoryPathTextBlock.Text);
 
         this.WhenAnyValue(x => x.ViewModel!.State.IsEditingExistingFavorite)
             .Subscribe(Observer.Create<bool>(isEditing =>
@@ -95,6 +97,8 @@ public partial class FavoritesDockView : ReactiveUserControl<FavoritesDockViewMo
         this.BindCommand(ViewModel, x => x.CloseFavoritesDockCommand, x => x.CloseFavoritesDockButton);
         this.BindCommand(ViewModel, x => x.HideAddFavoriteModalCommand, x => x.CancelAddFavoriteButton);
         this.BindCommand(ViewModel, x => x.ConfirmAddFavoriteCommand, x => x.ConfirmAddFavoriteButton);
+        this.BindCommand(ViewModel, x => x.HideNotGitRepositoryModalCommand, x => x.CancelNotGitRepositoryButton);
+        this.BindCommand(ViewModel, x => x.ConfirmInitializeNotGitRepositoryCommand, x => x.ConfirmInitNotGitRepositoryButton);
 
         FavoritesBackdropDismissBorder.PointerPressed += (s, e) => ViewModel?.CloseFavoritesDockCommand.Execute().Subscribe();
         OpenFolderFromDockButton.Click += async (s, e) => await HandleOpenFolderFromDockClickAsync();

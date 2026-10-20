@@ -63,6 +63,9 @@ internal sealed class MockGitService : IGitService
     public Task CheckoutBranchAsync(string repositoryPath, string branchName, CancellationToken cancellationToken = default) =>
         Task.CompletedTask;
 
+    public Task CheckoutCommitAsync(string repositoryPath, string commitSha, CancellationToken cancellationToken = default) =>
+        Task.CompletedTask;
+
     public Task<string> CreateCommitAsync(string repositoryPath, string message, string authorName, string authorEmail, bool amendPreviousCommit = false, CancellationToken cancellationToken = default) =>
         Task.FromResult("sha");
 

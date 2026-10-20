@@ -61,6 +61,27 @@ public class GitBranchOperations
     }
 
     /// <summary>
+    /// Checks out the specified commit into a detached HEAD state.
+    /// Usages: GitService, CommitLogViewModel.
+    /// </summary>
+    public Task CheckoutCommitAsync(string repositoryPath, string commitSha, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return Task.Run(() =>
+        {
+            using Repository repository = new(repositoryPath);
+            Commit? commit = repository.Lookup<Commit>(commitSha);
+            if (commit == null)
+            {
+                throw new InvalidOperationException($"Commit '{commitSha}' not found in repository.");
+            }
+
+            Commands.Checkout(repository, commit);
+        }, cancellationToken);
+    }
+
+    /// <summary>
     /// Creates a new branch pointing to HEAD or a specified commit.
     /// </summary>
     public Task CreateBranchAsync(string repositoryPath, string branchName, string? targetShaOrRef = null, CancellationToken cancellationToken = default)

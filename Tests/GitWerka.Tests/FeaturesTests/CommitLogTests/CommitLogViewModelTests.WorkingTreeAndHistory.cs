@@ -58,6 +58,46 @@ public class CommitLogWorkingTreeAndHistoryTests
     }
 
     [Fact]
+    public void CheckoutCommit_WithCommit_ExecutesCheckoutCommitOnGitService()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        CommitSummary commit = new() { Sha = "checkout123", Message = "Checkout test", AuthorName = "Alice" };
+        CommitLogViewModel vm = new(screen, "/repo/path", gitService);
+
+        vm.CheckoutCommitCommand.Execute(commit).Subscribe();
+
+        Assert.Equal("checkout123", gitService.LastCheckedOutCommitSha);
+    }
+
+    [Fact]
+    public async Task CheckoutCommit_WithoutCommit_ExecutesCheckoutCommitOnSelectedCommit()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        CommitSummary commit = new() { Sha = "checkout456", Message = "Checkout selected", AuthorName = "Bob" };
+        CommitLogViewModel vm = new(screen, "/repo/path", gitService);
+
+        await vm.SelectCommitAsync(commit);
+        vm.CheckoutCommitCommand.Execute(null!).Subscribe();
+
+        Assert.Equal("checkout456", gitService.LastCheckedOutCommitSha);
+    }
+
+    [Fact]
+    public void CheckoutCommit_WithWipCommit_DoesNotExecuteCheckout()
+    {
+        MockScreen screen = new();
+        MockGitService gitService = new();
+        CommitSummary wipCommit = new() { Sha = "wip123", IsWip = true, Message = "Uncommitted changes" };
+        CommitLogViewModel vm = new(screen, "/repo/path", gitService);
+
+        vm.CheckoutCommitCommand.Execute(wipCommit).Subscribe();
+
+        Assert.Null(gitService.LastCheckedOutCommitSha);
+    }
+
+    [Fact]
     public void RevertCommit_WithCommit_ExecutesRevertOnGitService()
     {
         MockScreen screen = new();
@@ -191,6 +231,8 @@ public class CommitLogWorkingTreeAndHistoryTests
         Assert.Equal("WIP", vm.State.SelectedCommitDetail.Sha);
         Assert.Single(vm.State.SelectedCommitDetail.ChangedFiles);
         Assert.Equal("modified.cs", vm.State.SelectedCommitDetail.ChangedFiles[0].Path);
+        Assert.Equal(1, vm.State.SelectedCommitDetail.ChangedFiles[0].LinesAdded);
+        Assert.Equal(1, vm.State.SelectedCommitDetail.ChangedFiles[0].LinesDeleted);
         Assert.Equal(CommitLogSidebarTab.WorkingTree, vm.State.ActiveSidebarTab);
     }
 

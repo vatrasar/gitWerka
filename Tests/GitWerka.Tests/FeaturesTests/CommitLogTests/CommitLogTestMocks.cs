@@ -56,11 +56,19 @@ internal sealed class MockGitService : IGitService
     public string? LastRequestedBranchName { get; private set; }
     public Dictionary<string, IReadOnlyList<CommitSummary>> BranchCommits { get; } = new(StringComparer.OrdinalIgnoreCase);
 
-    public bool IsValidRepository(string path) => true;
+    public Func<string, bool>? IsValidRepositoryFunc { get; set; }
+    public bool IsValidRepository(string path) => IsValidRepositoryFunc?.Invoke(path) ?? true;
     public string? FindRepositoryRoot(string path) => path;
 
-    public Task<string> InitializeRepositoryAsync(string directoryPath, bool isBare = false, CancellationToken cancellationToken = default) =>
-        Task.FromResult(directoryPath);
+    public bool InitializeCalled { get; private set; }
+    public string? LastInitializedPath { get; private set; }
+
+    public Task<string> InitializeRepositoryAsync(string directoryPath, bool isBare = false, CancellationToken cancellationToken = default)
+    {
+        InitializeCalled = true;
+        LastInitializedPath = directoryPath;
+        return Task.FromResult(directoryPath);
+    }
 
     public Task<string> CloneRepositoryAsync(string sourceUrl, string targetDirectoryPath, CancellationToken cancellationToken = default) =>
         Task.FromResult(targetDirectoryPath);
@@ -86,8 +94,40 @@ internal sealed class MockGitService : IGitService
 
     public Task<CommitDetail?> GetCommitDetailAsync(string repositoryPath, string commitSha, CancellationToken cancellationToken = default)
     {
-        Details.TryGetValue(commitSha, out CommitDetail? detail);
-        return Task.FromResult(detail);
+        if (Details.TryGetValue(commitSha, out CommitDetail? detail))
+        {
+            return Task.FromResult<CommitDetail?>(detail);
+        }
+
+        if (string.Equals(commitSha, "WIP", StringComparison.OrdinalIgnoreCase))
+        {
+            var changedFiles = WorkingChanges
+                .GroupBy(c => c.Path)
+                .Select(g => new FileDiffSummary
+                {
+                    Path = g.Key,
+                    Status = g.First().Status,
+                    LinesAdded = 1,
+                    LinesDeleted = 1
+                })
+                .ToImmutableList();
+
+            return Task.FromResult<CommitDetail?>(new CommitDetail
+            {
+                Sha = "WIP",
+                ShortSha = string.Empty,
+                Message = "Uncommitted changes in working directory",
+                AuthorName = "Working Directory",
+                AuthorEmail = string.Empty,
+                AuthorDate = DateTimeOffset.Now,
+                CommitterName = "Working Directory",
+                CommitterEmail = string.Empty,
+                CommitterDate = DateTimeOffset.Now,
+                ChangedFiles = changedFiles
+            });
+        }
+
+        return Task.FromResult<CommitDetail?>(null);
     }
 
     public Task<IReadOnlyList<DiffLine>> GetFileDiffLinesAsync(string repositoryPath, string commitSha, string filePath, CancellationToken cancellationToken = default) =>
@@ -126,6 +166,14 @@ internal sealed class MockGitService : IGitService
     public Task CheckoutBranchAsync(string repositoryPath, string branchName, CancellationToken cancellationToken = default)
     {
         LastCheckedOutBranch = branchName;
+        return Task.CompletedTask;
+    }
+
+    public string? LastCheckedOutCommitSha { get; private set; }
+
+    public Task CheckoutCommitAsync(string repositoryPath, string commitSha, CancellationToken cancellationToken = default)
+    {
+        LastCheckedOutCommitSha = commitSha;
         return Task.CompletedTask;
     }
 

@@ -3,6 +3,7 @@ namespace GitWerka.Features.CommitLog.Domain.Services;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Threading.Tasks;
 using GitWerka.Core.Domain.Enums;
 using GitWerka.Core.Domain.Models;
@@ -63,11 +64,18 @@ public sealed class CommitLogHistoryActionCoordinator
         var state = _getState();
         if (commit.IsWip)
         {
-            var wipDetail = CommitLogHistoryHelper.BuildWipCommitDetail(state.WorkingTreeChanges, commit.ParentShas);
+            var wipDetail = await _gitService.GetCommitDetailAsync(state.RepositoryPath, "WIP")
+                ?? CommitLogHistoryHelper.BuildWipCommitDetail(state.WorkingTreeChanges, commit.ParentShas);
             _updateState(s => s with { SelectedCommitDetail = wipDetail, ActiveSidebarTab = CommitLogSidebarTab.WorkingTree });
             if (wipDetail.ChangedFiles.Count > 0)
             {
-                await SelectFileDiffAsync(wipDetail.ChangedFiles[0]);
+                var fileToSelect = wipDetail.ChangedFiles.FirstOrDefault(f => f.Path == state.SelectedFileDiff?.Path)
+                    ?? wipDetail.ChangedFiles[0];
+                await SelectFileDiffAsync(fileToSelect);
+            }
+            else
+            {
+                _updateState(s => s with { SelectedFileDiff = null, DiffLines = ImmutableList<DiffLine>.Empty });
             }
             return;
         }
