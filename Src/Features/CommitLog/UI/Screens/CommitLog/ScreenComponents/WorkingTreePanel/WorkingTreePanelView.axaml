@@ -1,0 +1,280 @@
+<rxui:ReactiveUserControl x:Class="GitWerka.Features.CommitLog.UI.Screens.CommitLog.ScreenComponents.WorkingTreePanel.WorkingTreePanelView"
+                          x:TypeArguments="local:WorkingTreePanelViewModel"
+                          xmlns="https://github.com/avaloniaui"
+                          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                          xmlns:rxui="http://reactiveui.net"
+                          xmlns:local="using:GitWerka.Features.CommitLog.UI.Screens.CommitLog.ScreenComponents.WorkingTreePanel"
+                          xmlns:res="using:GitWerka.Features.CommitLog.Resources"
+                          xmlns:material="using:Material.Icons.Avalonia">
+
+  <UserControl.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://GitWerka/Src/Features/CommitLog/UI/Screens/CommitLog/ScreenStyles/CommitLogSidebarTemplates.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </UserControl.Resources>
+
+  <UserControl.Styles>
+    <StyleInclude Source="avares://GitWerka/Src/Features/CommitLog/UI/Screens/CommitLog/ScreenStyles/CommitLogStyles.axaml" />
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="*, Auto">
+    <!-- Normal Mode: Staged & Unstaged Changes -->
+    <Grid x:Name="NormalWorkingTreePanel"
+          Grid.Row="0"
+          RowDefinitions="Auto, *, Auto, *">
+      <!-- Staged Changes Section Header -->
+      <Grid Grid.Row="0" ColumnDefinitions="*, Auto" Margin="12,8,8,4">
+        <TextBlock Grid.Column="0"
+                   Text="{x:Static res:CommitLogStrings.StagedChangesHeader}"
+                   Classes="SectionHeader"
+                   VerticalAlignment="Center" />
+        <Button Grid.Column="1"
+                x:Name="UnstageAllButton"
+                Classes="ToolbarAction"
+                Padding="6,2">
+          <TextBlock Text="{x:Static res:CommitLogStrings.UnstageAllButton}" FontSize="10" />
+        </Button>
+      </Grid>
+
+      <ListBox Grid.Row="1"
+               x:Name="StagedChangesListBox"
+               Background="Transparent"
+               BorderThickness="0"
+               ItemTemplate="{StaticResource WorkingTreeChangeItemTemplate}" />
+
+      <!-- Unstaged Changes Section Header -->
+      <Grid Grid.Row="2" ColumnDefinitions="*, Auto" Margin="12,8,8,4">
+        <TextBlock Grid.Column="0"
+                   Text="{x:Static res:CommitLogStrings.UnstagedChangesHeader}"
+                   Classes="SectionHeader"
+                   VerticalAlignment="Center" />
+        <Button Grid.Column="1"
+                x:Name="StageAllButton"
+                Classes="ToolbarAction"
+                Padding="6,2">
+          <TextBlock Text="{x:Static res:CommitLogStrings.StageAllButton}" FontSize="10" />
+        </Button>
+      </Grid>
+
+      <ListBox Grid.Row="3"
+               x:Name="UnstagedChangesListBox"
+               Background="Transparent"
+               BorderThickness="0"
+               ItemTemplate="{StaticResource WorkingTreeChangeItemTemplate}" />
+    </Grid>
+
+    <!-- Conflict Mode: Conflicted Files & Resolved Files -->
+    <Grid x:Name="ConflictWorkingTreePanel"
+          Grid.Row="0"
+          RowDefinitions="Auto, Auto, *, Auto, *"
+          IsVisible="False">
+      <!-- Conflict Header Notification Banner -->
+      <Border Grid.Row="0"
+              Background="{DynamicResource WarningBannerBackgroundBrush}"
+              BorderBrush="{DynamicResource GitGraphBranch3Brush}"
+              BorderThickness="1"
+              CornerRadius="6"
+              Margin="8,8,8,4"
+              Padding="8,6">
+        <StackPanel Spacing="3">
+          <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+            <material:MaterialIcon Kind="AlertCircleOutline" Width="16" Height="16" Foreground="{DynamicResource WarningBrush}" />
+            <TextBlock Text="{x:Static res:CommitLogStrings.MergeConflictsDetected}"
+                       FontWeight="SemiBold"
+                       FontSize="12"
+                       Foreground="{DynamicResource TextPrimaryBrush}" />
+          </StackPanel>
+          <TextBlock x:Name="ConflictMergingDetailsTextBlock"
+                     FontSize="11"
+                     Foreground="{DynamicResource WarningBrush}"
+                     Margin="22,0,0,0" />
+        </StackPanel>
+      </Border>
+
+      <!-- Conflicted Files Section Header -->
+      <Grid Grid.Row="1" ColumnDefinitions="*, Auto" Margin="12,8,8,4">
+        <TextBlock Grid.Column="0"
+                   x:Name="ConflictedFilesHeaderTextBlock"
+                   Classes="SectionHeader"
+                   Foreground="{DynamicResource WarningBrush}"
+                   VerticalAlignment="Center"
+                   TextTrimming="CharacterEllipsis" />
+        <Button Grid.Column="1"
+                x:Name="MarkAllResolvedButton"
+                Classes="ToolbarAction"
+                Padding="6,2"
+                VerticalAlignment="Center"
+                ToolTip.Tip="{x:Static res:CommitLogStrings.MarkAllResolvedButton}">
+          <TextBlock Text="{x:Static res:CommitLogStrings.MarkAllButton}" FontSize="10" />
+        </Button>
+      </Grid>
+
+      <ListBox Grid.Row="2"
+               x:Name="ConflictedFilesListBox"
+               Background="Transparent"
+               BorderThickness="0"
+               ItemTemplate="{StaticResource ConflictedFileItemTemplate}" />
+
+      <!-- Resolved Files Section Header -->
+      <Grid Grid.Row="3" ColumnDefinitions="*, Auto" Margin="12,8,8,4">
+        <TextBlock Grid.Column="0"
+                   x:Name="ResolvedFilesHeaderTextBlock"
+                   Classes="SectionHeader"
+                   Foreground="{DynamicResource SuccessBrush}"
+                   VerticalAlignment="Center" />
+      </Grid>
+
+      <ListBox Grid.Row="4"
+               x:Name="ResolvedFilesListBox"
+               Background="Transparent"
+               BorderThickness="0"
+               ItemTemplate="{StaticResource ResolvedFileItemTemplate}" />
+    </Grid>
+
+    <!-- Commit Composer Panel -->
+    <Border Grid.Row="1"
+            BorderThickness="0,1,0,0"
+            BorderBrush="{DynamicResource CardBorderBrush}"
+            Padding="10">
+      <StackPanel Spacing="8">
+        <Grid ColumnDefinitions="*, Auto">
+          <TextBlock Grid.Column="0"
+                     Text="{x:Static res:CommitLogStrings.CommitButton}"
+                     Classes="SectionHeader"
+                     VerticalAlignment="Center" />
+          <Button x:Name="GenerateAiCommitButton"
+                  Grid.Column="1"
+                  Classes="SecondaryAction"
+                  Padding="8,4"
+                  ToolTip.Tip="{x:Static res:CommitLogStrings.GenerateAiCommitToolTip}">
+            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+              <material:MaterialIcon x:Name="GenerateAiCommitNormalIcon"
+                                     Kind="AutoFixHigh"
+                                     Width="14"
+                                     Height="14"
+                                     Foreground="{DynamicResource GitGraphBranch3Brush}" />
+              <material:MaterialIcon x:Name="GenerateAiCommitLoadingIcon"
+                                     Kind="Loading"
+                                     Classes="RotatingSpinner"
+                                     Width="14"
+                                     Height="14"
+                                     Foreground="{DynamicResource AccentPrimaryBrush}"
+                                     IsVisible="False" />
+              <TextBlock x:Name="GenerateAiCommitButtonText"
+                         Text="{x:Static res:CommitLogStrings.GenerateAiCommitButton}"
+                         FontSize="11"
+                         VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+        </Grid>
+
+        <!-- AI Notification / Error Banner -->
+        <Border x:Name="AiErrorBanner"
+                Classes="AiNotificationBanner"
+                IsVisible="False">
+          <Grid ColumnDefinitions="Auto, *, Auto, Auto">
+            <material:MaterialIcon x:Name="AiErrorIcon"
+                                   Grid.Column="0"
+                                   Classes="AiBannerIcon"
+                                   Kind="AlertCircleOutline"
+                                   Width="16"
+                                   Height="16"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,6,0" />
+            <TextBlock x:Name="AiErrorTextBlock"
+                       Grid.Column="1"
+                       FontSize="11"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       TextWrapping="Wrap"
+                       VerticalAlignment="Center" />
+            <Button x:Name="AiErrorSettingsButton"
+                    Grid.Column="2"
+                    Classes="SecondaryAction"
+                    Content="{x:Static res:CommitLogStrings.SettingsButton}"
+                    Padding="6,2"
+                    Margin="6,0,4,0"
+                    FontSize="11"
+                    VerticalAlignment="Center"
+                    IsVisible="False" />
+            <Button x:Name="AiErrorDismissButton"
+                    Grid.Column="3"
+                    Classes="SecondaryAction"
+                    Padding="4,2"
+                    VerticalAlignment="Center">
+              <material:MaterialIcon Kind="Close" Width="12" Height="12" />
+            </Button>
+          </Grid>
+        </Border>
+
+        <!-- Progress bar for active AI generation -->
+        <ProgressBar x:Name="AiGeneratingProgressBar"
+                     IsIndeterminate="True"
+                     Height="2"
+                     Margin="0,0,0,2"
+                     Foreground="{DynamicResource AccentPrimaryBrush}"
+                     IsVisible="False" />
+
+        <!-- No Active Profile Warning Banner -->
+        <Border x:Name="NoActiveProfileBanner"
+                Background="{DynamicResource WarningBannerBackgroundBrush}"
+                BorderBrush="{DynamicResource WarningBrush}"
+                BorderThickness="1"
+                CornerRadius="6"
+                Padding="8,6"
+                IsVisible="False">
+          <Grid ColumnDefinitions="Auto, *, Auto">
+            <material:MaterialIcon Grid.Column="0"
+                                   Kind="AccountAlertOutline"
+                                   Width="16"
+                                   Height="16"
+                                   Foreground="{DynamicResource WarningBrush}"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,8,0" />
+            <TextBlock x:Name="NoActiveProfileTextBlock"
+                       Grid.Column="1"
+                       FontSize="11"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       TextWrapping="Wrap"
+                       VerticalAlignment="Center"
+                       Text="{x:Static res:CommitLogStrings.NoActiveProfileCommitWarning}" />
+            <Button x:Name="ConfigureProfileButton"
+                    Grid.Column="2"
+                    Classes="SecondaryAction"
+                    Content="{x:Static res:CommitLogStrings.SelectProfileButton}"
+                    Padding="6,2"
+                    Margin="6,0,0,0"
+                    FontSize="11"
+                    VerticalAlignment="Center" />
+          </Grid>
+        </Border>
+
+        <TextBox x:Name="CommitMessageTextBox"
+                 AcceptsReturn="True"
+                 TextWrapping="Wrap"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 Height="90"
+                 Watermark="{x:Static res:CommitLogStrings.CommitMessagePlaceholder}" />
+        <Grid ColumnDefinitions="*, Auto">
+          <CheckBox x:Name="AmendCommitCheckBox"
+                    Grid.Column="0"
+                    Content="{x:Static res:CommitLogStrings.AmendCommitCheckbox}"
+                    FontSize="12" />
+          <TextBlock x:Name="CommitMessageRemainingCountTextBlock"
+                     Grid.Column="1"
+                     Classes="CommitSubjectCounter"
+                     FontSize="11"
+                     VerticalAlignment="Center"
+                     ToolTip.Tip="{x:Static res:CommitLogStrings.CommitSubjectLimitToolTip}" />
+        </Grid>
+        <Button x:Name="CommitButton"
+                Classes="PrimaryAction"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Center"
+                ToolTip.ShowOnDisabled="True"
+                Content="{x:Static res:CommitLogStrings.CommitButton}" />
+      </StackPanel>
+    </Border>
+  </Grid>
+</rxui:ReactiveUserControl>

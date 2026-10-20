@@ -1,0 +1,292 @@
+<rxui:ReactiveUserControl x:Class="GitWerka.Features.CommitLog.UI.Screens.CommitLog.ScreenComponents.GitOperationModals.GitOperationModalsView"
+                          x:TypeArguments="local:GitOperationModalsViewModel"
+                          xmlns="https://github.com/avaloniaui"
+                          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                          xmlns:rxui="http://reactiveui.net"
+                          xmlns:local="using:GitWerka.Features.CommitLog.UI.Screens.CommitLog.ScreenComponents.GitOperationModals"
+                          xmlns:models="using:GitWerka.Core.Domain.Models"
+                          xmlns:res="using:GitWerka.Features.CommitLog.Resources"
+                          xmlns:sharedRes="using:GitWerka.Shared.Resources"
+                          xmlns:material="using:Material.Icons.Avalonia">
+
+  <UserControl.Styles>
+    <StyleInclude Source="avares://GitWerka/Src/Features/CommitLog/UI/Screens/CommitLog/ScreenStyles/CommitLogStyles.axaml" />
+  </UserControl.Styles>
+
+  <Grid>
+    <!-- Create Branch Modal -->
+    <Grid x:Name="CreateBranchModalBackdrop"
+          Classes="ModalBackdrop"
+          IsVisible="False">
+      <Border Classes="ModalCard"
+              Width="420"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <StackPanel Spacing="16">
+          <TextBlock Text="{x:Static res:CommitLogStrings.CreateBranchModalTitle}"
+                     FontSize="16"
+                     FontWeight="SemiBold" />
+
+          <TextBox x:Name="NewBranchNameTextBox"
+                   Watermark="{x:Static res:CommitLogStrings.BranchNamePlaceholder}" />
+
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button x:Name="CancelCreateBranchButton"
+                    Classes="SecondaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.CancelButton}" />
+            <Button x:Name="ConfirmCreateBranchButton"
+                    Classes="PrimaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.SaveButton}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- Create Remote Modal -->
+    <Grid x:Name="CreateRemoteModalBackdrop"
+          Classes="ModalBackdrop"
+          IsVisible="False">
+      <Border Classes="ModalCard"
+              Width="440"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <StackPanel Spacing="14">
+          <TextBlock Text="{x:Static res:CommitLogStrings.CreateRemoteModalTitle}"
+                     FontSize="16"
+                     FontWeight="SemiBold" />
+
+          <StackPanel Spacing="4">
+            <TextBlock Text="{x:Static res:CommitLogStrings.RemoteNameLabel}" FontSize="12" />
+            <TextBox x:Name="NewRemoteNameTextBox"
+                     Watermark="{x:Static res:CommitLogStrings.RemoteNamePlaceholder}" />
+          </StackPanel>
+
+          <StackPanel Spacing="4">
+            <TextBlock Text="{x:Static res:CommitLogStrings.RemoteUrlLabel}" FontSize="12" />
+            <TextBox x:Name="NewRemoteUrlTextBox"
+                     Watermark="{x:Static res:CommitLogStrings.RemoteUrlPlaceholder}" />
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button x:Name="CancelCreateRemoteButton"
+                    Classes="SecondaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.CancelButton}" />
+            <Button x:Name="ConfirmCreateRemoteButton"
+                    Classes="PrimaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.SaveButton}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- Create Tag Modal -->
+    <Grid x:Name="CreateTagModalBackdrop"
+          Classes="ModalBackdrop"
+          IsVisible="False">
+      <Border Classes="ModalCard"
+              Width="420"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <StackPanel Spacing="14">
+          <TextBlock Text="{x:Static res:CommitLogStrings.CreateTagModalTitle}"
+                     FontSize="16"
+                     FontWeight="SemiBold" />
+
+          <TextBox x:Name="NewTagNameTextBox"
+                   Watermark="{x:Static res:CommitLogStrings.TagNamePlaceholder}" />
+
+          <TextBox x:Name="NewTagMessageTextBox"
+                   AcceptsReturn="True"
+                   Height="60"
+                   Watermark="{x:Static res:CommitLogStrings.TagMessagePlaceholder}" />
+
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button x:Name="CancelCreateTagButton"
+                    Classes="SecondaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.CancelButton}" />
+            <Button x:Name="ConfirmCreateTagButton"
+                    Classes="PrimaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.SaveButton}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- Create Stash Modal -->
+    <Grid x:Name="CreateStashModalBackdrop"
+          Classes="ModalBackdrop"
+          IsVisible="False">
+      <Border Classes="ModalCard"
+              Width="420"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <StackPanel Spacing="16">
+          <TextBlock Text="{x:Static res:CommitLogStrings.StashModalTitle}"
+                     FontSize="16"
+                     FontWeight="SemiBold" />
+
+          <TextBox x:Name="NewStashMessageTextBox"
+                   Watermark="{x:Static res:CommitLogStrings.StashMessagePlaceholder}" />
+
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button x:Name="CancelCreateStashButton"
+                    Classes="SecondaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.CancelButton}" />
+            <Button x:Name="ConfirmCreateStashButton"
+                    Classes="PrimaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.SaveButton}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- Reset Confirmation Modal -->
+    <Grid x:Name="ResetConfirmModalBackdrop"
+          Classes="ModalBackdrop"
+          IsVisible="False">
+      <Border Classes="ModalCard"
+              Width="440"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <StackPanel Spacing="16">
+          <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+            <material:MaterialIcon Kind="AlertCircleOutline"
+                                  Width="24"
+                                  Height="24"
+                                  Foreground="{DynamicResource ErrorBrush}" />
+            <TextBlock Text="{x:Static res:CommitLogStrings.ResetConfirmModalTitle}"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       VerticalAlignment="Center" />
+          </StackPanel>
+
+          <TextBlock Text="{x:Static res:CommitLogStrings.ResetConfirmMessage}"
+                     TextWrapping="Wrap"
+                     FontSize="13" />
+
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button x:Name="CancelResetButton"
+                    Classes="SecondaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.CancelButton}" />
+            <Button x:Name="ConfirmResetButton"
+                    Classes="PrimaryAction"
+                    Background="{DynamicResource ErrorBrush}"
+                    Content="{x:Static res:CommitLogStrings.ConfirmResetButton}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- Merge Branch Modal -->
+    <Grid x:Name="MergeModalBackdrop"
+          Classes="ModalBackdrop"
+          IsVisible="False">
+      <Border Classes="ModalCard"
+              Width="440"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <StackPanel Spacing="16">
+          <TextBlock Text="{x:Static res:CommitLogStrings.MergeModalTitle}"
+                     FontSize="16"
+                     FontWeight="SemiBold" />
+
+          <StackPanel Spacing="6">
+            <TextBlock Text="{x:Static res:CommitLogStrings.MergeSourceBranchLabel}" FontSize="12" />
+            <ComboBox x:Name="MergeBranchesComboBox"
+                      HorizontalAlignment="Stretch">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="models:BranchInfo">
+                  <TextBlock Text="{Binding Name}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </StackPanel>
+
+          <StackPanel Spacing="8">
+            <RadioButton x:Name="MergeFastForwardRadioButton"
+                         GroupName="MergeStrategyGroup"
+                         IsChecked="True"
+                         Content="{x:Static res:CommitLogStrings.MergeFastForwardOption}" />
+            <RadioButton x:Name="MergeNoFastForwardRadioButton"
+                         GroupName="MergeStrategyGroup"
+                         Content="{x:Static res:CommitLogStrings.MergeNoFastForwardOption}" />
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button x:Name="CancelMergeButton"
+                    Classes="SecondaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.CancelButton}" />
+            <Button x:Name="ConfirmMergeButton"
+                    Classes="PrimaryAction"
+                    Content="{x:Static res:CommitLogStrings.ConfirmMergeButton}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- Credentials Dialog Modal -->
+    <Grid x:Name="CredentialsModalBackdrop"
+          Classes="ModalBackdrop"
+          IsVisible="False">
+      <Border Classes="ModalCard"
+              Width="460"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <StackPanel Spacing="16">
+          <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+            <material:MaterialIcon Kind="KeyOutline"
+                                   Width="24"
+                                   Height="24"
+                                   Foreground="{DynamicResource GitGraphBranch1Brush}" />
+            <TextBlock Text="{x:Static res:CommitLogStrings.CredentialsModalTitle}"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       VerticalAlignment="Center" />
+          </StackPanel>
+
+          <TextBlock x:Name="CredentialsSubtitleTextBlock"
+                     TextWrapping="Wrap"
+                     Classes="SubtleCaption" />
+
+          <StackPanel Orientation="Horizontal" Spacing="16">
+            <RadioButton x:Name="CredentialsHttpsRadioButton"
+                         GroupName="CredentialsAuthTypeGroup"
+                         IsChecked="True"
+                         Content="HTTPS / Personal Access Token" />
+            <RadioButton x:Name="CredentialsSshRadioButton"
+                         GroupName="CredentialsAuthTypeGroup"
+                         Content="SSH Key Passphrase" />
+          </StackPanel>
+
+          <StackPanel x:Name="CredentialsUsernamePanel" Spacing="4">
+            <TextBlock Text="{x:Static res:CommitLogStrings.CredentialsUsernameLabel}" FontSize="12" />
+            <TextBox x:Name="CredentialsUsernameTextBox" />
+          </StackPanel>
+
+          <StackPanel x:Name="CredentialsPasswordPanel" Spacing="4">
+            <TextBlock x:Name="CredentialsPasswordLabelTextBlock"
+                       Text="{x:Static res:CommitLogStrings.CredentialsPasswordLabel}"
+                       FontSize="12" />
+            <TextBox x:Name="CredentialsPasswordTextBox"
+                     PasswordChar="•" />
+          </StackPanel>
+
+          <TextBlock x:Name="CredentialsErrorMessageTextBlock"
+                     Foreground="{DynamicResource ErrorBrush}"
+                     FontSize="12"
+                     TextWrapping="Wrap"
+                     IsVisible="False" />
+
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button x:Name="CancelCredentialsButton"
+                    Classes="SecondaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.CancelButton}" />
+            <Button x:Name="SubmitCredentialsButton"
+                    Classes="PrimaryAction"
+                    Content="{x:Static res:CommitLogStrings.CredentialsAuthenticateButton}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+  </Grid>
+</rxui:ReactiveUserControl>

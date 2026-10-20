@@ -1,0 +1,121 @@
+<rxui:ReactiveUserControl x:Class="GitWerka.Features.CommitLog.UI.Screens.CommitLog.ScreenComponents.SettingsModal.SettingsModalView"
+                          x:TypeArguments="local:SettingsModalViewModel"
+                          xmlns="https://github.com/avaloniaui"
+                          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                          xmlns:rxui="http://reactiveui.net"
+                          xmlns:local="using:GitWerka.Features.CommitLog.UI.Screens.CommitLog.ScreenComponents.SettingsModal"
+                          xmlns:res="using:GitWerka.Features.CommitLog.Resources"
+                          xmlns:sharedRes="using:GitWerka.Shared.Resources">
+
+  <UserControl.Styles>
+    <StyleInclude Source="avares://GitWerka/Src/Features/CommitLog/UI/Screens/CommitLog/ScreenStyles/CommitLogStyles.axaml" />
+  </UserControl.Styles>
+
+  <Grid x:Name="SettingsModalBackdrop"
+        Classes="ModalBackdrop"
+        IsVisible="False">
+    <Border Classes="ModalCard"
+            Width="520"
+            MaxHeight="620"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center">
+      <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                    VerticalScrollBarVisibility="Auto"
+                    Padding="0,0,6,0">
+        <StackPanel Spacing="14">
+          <TextBlock Text="{x:Static res:CommitLogStrings.SettingsModalTitle}"
+                     FontSize="16"
+                     FontWeight="SemiBold" />
+
+          <StackPanel Spacing="4">
+            <TextBlock Text="{x:Static res:CommitLogStrings.UserNameLabel}" FontSize="12" />
+            <TextBox x:Name="ConfigUserNameTextBox" />
+          </StackPanel>
+
+          <StackPanel Spacing="4">
+            <TextBlock Text="{x:Static res:CommitLogStrings.UserEmailLabel}" FontSize="12" />
+            <TextBox x:Name="ConfigUserEmailTextBox" />
+          </StackPanel>
+
+          <Border Height="1"
+                  Background="{DynamicResource CardBorderBrush}"
+                  Margin="0,4" />
+
+          <TextBlock Text="{x:Static res:CommitLogStrings.GeneralSettingsSectionTitle}"
+                     FontSize="14"
+                     FontWeight="SemiBold" />
+
+          <StackPanel Spacing="4">
+            <TextBlock Text="{x:Static res:CommitLogStrings.DefaultProjectsDirectoryLabel}" FontSize="12" />
+            <Grid ColumnDefinitions="*, 8, Auto">
+              <TextBox Grid.Column="0"
+                       x:Name="DefaultProjectsDirectoryTextBox"
+                       Watermark="{x:Static res:CommitLogStrings.DefaultProjectsDirectoryPlaceholder}" />
+              <Button Grid.Column="2"
+                      x:Name="BrowseDefaultProjectsDirectoryButton"
+                      Classes="SecondaryAction"
+                      Content="{x:Static res:CommitLogStrings.BrowseButton}" />
+            </Grid>
+          </StackPanel>
+
+          <StackPanel Spacing="4">
+            <TextBlock Text="{x:Static res:CommitLogStrings.MaxVisibleBranchesLabel}" FontSize="12" />
+            <TextBox x:Name="MaxVisibleBranchesTextBox"
+                     Watermark="{x:Static res:CommitLogStrings.MaxVisibleBranchesPlaceholder}" />
+          </StackPanel>
+
+          <Border Height="1"
+                  Background="{DynamicResource CardBorderBrush}"
+                  Margin="0,4" />
+
+          <TextBlock Text="{x:Static res:CommitLogStrings.AiSettingsSectionTitle}"
+                     FontSize="14"
+                     FontWeight="SemiBold" />
+
+          <StackPanel Spacing="4">
+            <TextBlock Text="{x:Static res:CommitLogStrings.AiApiKeyLabel}" FontSize="12" />
+            <TextBox x:Name="AiApiKeyTextBox"
+                     PasswordChar="*"
+                     Watermark="{x:Static res:CommitLogStrings.AiApiKeyPlaceholder}" />
+          </StackPanel>
+
+          <Grid ColumnDefinitions="*, 110">
+            <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,10,0">
+              <TextBlock Text="{x:Static res:CommitLogStrings.AiModelLabel}" FontSize="12" />
+              <TextBox x:Name="AiModelTextBox"
+                       Watermark="{x:Static res:CommitLogStrings.AiModelPlaceholder}" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="4">
+              <TextBlock Text="{x:Static res:CommitLogStrings.AiTokenLimitLabel}" FontSize="12" />
+              <TextBox x:Name="AiTokenLimitTextBox"
+                       Watermark="{x:Static res:CommitLogStrings.AiTokenLimitPlaceholder}" />
+            </StackPanel>
+          </Grid>
+
+          <StackPanel Spacing="4">
+            <TextBlock Text="{x:Static res:CommitLogStrings.AiCommitStyleLabel}" FontSize="12" />
+            <TextBox x:Name="AiCommitStyleTextBox"
+                     Watermark="{x:Static res:CommitLogStrings.AiCommitStylePlaceholder}" />
+          </StackPanel>
+
+          <StackPanel Spacing="4">
+            <TextBlock Text="{x:Static res:CommitLogStrings.AiProjectDescriptionLabel}" FontSize="12" />
+            <TextBox x:Name="AiProjectDescriptionTextBox"
+                     AcceptsReturn="True"
+                     Height="65"
+                     Watermark="{x:Static res:CommitLogStrings.AiProjectDescriptionPlaceholder}" />
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,10,0,0">
+            <Button x:Name="CancelSettingsButton"
+                    Classes="SecondaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.CancelButton}" />
+            <Button x:Name="ConfirmSettingsButton"
+                    Classes="PrimaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.SaveButton}" />
+          </StackPanel>
+        </StackPanel>
+      </ScrollViewer>
+    </Border>
+  </Grid>
+</rxui:ReactiveUserControl>

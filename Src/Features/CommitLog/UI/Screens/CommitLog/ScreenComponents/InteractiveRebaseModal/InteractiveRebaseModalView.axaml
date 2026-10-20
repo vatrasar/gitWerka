@@ -1,0 +1,112 @@
+<rxui:ReactiveUserControl x:Class="GitWerka.Features.CommitLog.UI.Screens.CommitLog.ScreenComponents.InteractiveRebaseModal.InteractiveRebaseModalView"
+                          x:TypeArguments="local:InteractiveRebaseModalViewModel"
+                          xmlns="https://github.com/avaloniaui"
+                          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                          xmlns:rxui="http://reactiveui.net"
+                          xmlns:local="using:GitWerka.Features.CommitLog.UI.Screens.CommitLog.ScreenComponents.InteractiveRebaseModal"
+                          xmlns:res="using:GitWerka.Features.CommitLog.Resources"
+                          xmlns:sharedRes="using:GitWerka.Shared.Resources"
+                          xmlns:material="using:Material.Icons.Avalonia">
+
+  <UserControl.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://GitWerka/Src/Features/CommitLog/UI/Screens/CommitLog/ScreenStyles/CommitLogGraphTemplates.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </UserControl.Resources>
+
+  <UserControl.Styles>
+    <StyleInclude Source="avares://GitWerka/Src/Features/CommitLog/UI/Screens/CommitLog/ScreenStyles/CommitLogStyles.axaml" />
+  </UserControl.Styles>
+
+  <Grid x:Name="InteractiveRebaseModalBackdrop"
+        Classes="ModalBackdrop"
+        IsVisible="False">
+    <Border Classes="ModalCard"
+            Width="760"
+            MaxHeight="650"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center">
+      <Grid RowDefinitions="Auto, *, Auto, Auto">
+        <!-- Modal Header -->
+        <Grid Grid.Row="0" ColumnDefinitions="*, Auto" Margin="0,0,0,12">
+          <StackPanel Grid.Column="0" Spacing="4">
+            <TextBlock Text="{x:Static res:CommitLogStrings.InteractiveRebaseModalTitle}"
+                       FontSize="18"
+                       FontWeight="SemiBold" />
+            <TextBlock x:Name="RebaseUpstreamSubtitleTextBlock"
+                       Classes="SubtleCaption" />
+          </StackPanel>
+        </Grid>
+
+        <!-- Rebase Steps List -->
+        <Border Grid.Row="1"
+                BorderBrush="{DynamicResource CardBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Background="{DynamicResource AppBackgroundBrush}"
+                MinHeight="250"
+                MaxHeight="350">
+          <ListBox x:Name="RebaseStepsListBox"
+                   Background="Transparent"
+                   ItemTemplate="{StaticResource RebaseStepItemTemplate}">
+          </ListBox>
+        </Border>
+
+        <!-- Selected Step Actions & Editor Panel -->
+        <Border Grid.Row="2"
+                BorderBrush="{DynamicResource CardBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="10"
+                Margin="0,10,0,14"
+                Background="{DynamicResource ShellHeaderFooterBrush}">
+          <Grid RowDefinitions="Auto, Auto" ColumnDefinitions="Auto, 12, *">
+            <!-- Reorder Buttons -->
+            <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Spacing="6">
+              <Button x:Name="MoveUpStepButton" Classes="ToolbarAction">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <material:MaterialIcon Kind="ArrowUp" Width="14" Height="14" />
+                  <TextBlock Text="{x:Static res:CommitLogStrings.MoveUpButton}" FontSize="11" />
+                </StackPanel>
+              </Button>
+              <Button x:Name="MoveDownStepButton" Classes="ToolbarAction">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <material:MaterialIcon Kind="ArrowDown" Width="14" Height="14" />
+                  <TextBlock Text="{x:Static res:CommitLogStrings.MoveDownButton}" FontSize="11" />
+                </StackPanel>
+              </Button>
+            </StackPanel>
+
+            <!-- Action Selector Buttons -->
+            <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
+              <Button x:Name="ActionPickButton" Classes="ToolbarAction" Content="{x:Static res:CommitLogStrings.RebaseActionPick}" />
+              <Button x:Name="ActionRewordButton" Classes="ToolbarAction" Content="{x:Static res:CommitLogStrings.RebaseActionReword}" />
+              <Button x:Name="ActionEditButton" Classes="ToolbarAction" Content="{x:Static res:CommitLogStrings.RebaseActionEdit}" />
+              <Button x:Name="ActionSquashButton" Classes="ToolbarAction" Content="{x:Static res:CommitLogStrings.RebaseActionSquash}" />
+              <Button x:Name="ActionFixupButton" Classes="ToolbarAction" Content="{x:Static res:CommitLogStrings.RebaseActionFixup}" />
+              <Button x:Name="ActionDropButton" Classes="ToolbarAction" Content="{x:Static res:CommitLogStrings.RebaseActionDrop}" />
+            </StackPanel>
+
+            <!-- Reword Message Input -->
+            <TextBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                     x:Name="RebaseStepMessageTextBox"
+                     Margin="0,8,0,0"
+                     Watermark="{x:Static res:CommitLogStrings.NewMessagePlaceholder}" />
+          </Grid>
+        </Border>
+
+        <!-- Modal Action Buttons -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+          <Button x:Name="CancelInteractiveRebaseButton"
+                  Classes="SecondaryAction"
+                  Content="{x:Static sharedRes:GlobalStrings.CancelButton}" />
+          <Button x:Name="ConfirmInteractiveRebaseButton"
+                  Classes="PrimaryAction"
+                  Content="{x:Static res:CommitLogStrings.StartRebaseButton}" />
+        </StackPanel>
+      </Grid>
+    </Border>
+  </Grid>
+</rxui:ReactiveUserControl>
