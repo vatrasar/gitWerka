@@ -4,7 +4,7 @@
 /// Available Functionalities:
 /// - Hosts the active routed screen view via ReactiveUI RoutedViewHost.
 /// - Displays current active repository header badge when loaded.
-/// - Provides back-navigation button when the navigation stack depth is greater than one.
+/// - Provides back-navigation button returning directly to the welcome screen when repository or child screens are active.
 /// - Provides settings button in header to configure options (global settings on welcome screen, or repository options when loaded).
 /// - Provides profile selection dropdown and management shortcut in header on the right of settings button.
 /// - Displays application status messages in the footer bar.
