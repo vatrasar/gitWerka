@@ -111,6 +111,7 @@ public sealed class CommitLogComponentCoordinator
             DefaultProjectsDirectory = s.DefaultProjectsDirectory,
             DefaultProjectsDirectoryInput = s.DefaultProjectsDirectoryInput,
             MaxVisibleBranchesInput = s.MaxVisibleBranchesInput,
+            AutoFetchIntervalInput = s.AutoFetchIntervalInput,
             AiApiKeyInput = s.AiApiKeyInput,
             AiModelInput = s.AiModelInput,
             AiCommitStyleInput = s.AiCommitStyleInput,

@@ -48,6 +48,14 @@ public class CommitLogSettingsCoordinator
     public void UpdateMaxVisibleBranchesInput(string text) =>
         _updateState(s => s with { MaxVisibleBranchesInput = text ?? string.Empty });
 
+    /// <summary>
+    /// Updates automatic background fetch interval input in state.
+    /// Usages: CommitLogViewModel and SettingsModal.
+    /// </summary>
+    /// <param name="text">Auto-fetch interval in seconds string.</param>
+    public void UpdateAutoFetchIntervalInput(string text) =>
+        _updateState(s => s with { AutoFetchIntervalInput = text ?? string.Empty });
+
     public void UpdateAiApiKeyInput(string text) =>
         _updateState(s => s with { AiApiKeyInput = text ?? string.Empty });
 
@@ -74,7 +82,9 @@ public class CommitLogSettingsCoordinator
         _updateState(s => s with
         {
             DefaultProjectsDirectory = settings.DefaultProjectsDirectory ?? string.Empty,
-            DefaultProjectsDirectoryInput = settings.DefaultProjectsDirectory ?? string.Empty
+            DefaultProjectsDirectoryInput = settings.DefaultProjectsDirectory ?? string.Empty,
+            AutoFetchIntervalSeconds = settings.AutoFetchIntervalSeconds,
+            AutoFetchIntervalInput = settings.AutoFetchIntervalSeconds.ToString()
         });
     }
 
@@ -97,6 +107,8 @@ public class CommitLogSettingsCoordinator
                 DefaultProjectsDirectory = appSettings.DefaultProjectsDirectory,
                 DefaultProjectsDirectoryInput = appSettings.DefaultProjectsDirectory,
                 MaxVisibleBranchesInput = (appSettings.MaxVisibleBranches > 0 ? appSettings.MaxVisibleBranches : 5).ToString(),
+                AutoFetchIntervalSeconds = appSettings.AutoFetchIntervalSeconds >= 0 ? appSettings.AutoFetchIntervalSeconds : 60,
+                AutoFetchIntervalInput = (appSettings.AutoFetchIntervalSeconds >= 0 ? appSettings.AutoFetchIntervalSeconds : 60).ToString(),
                 AiApiKeyInput = aiConfig.ApiKey ?? string.Empty,
                 AiModelInput = aiConfig.Model,
                 AiCommitStyleInput = aiConfig.CommitStyle,
@@ -127,6 +139,12 @@ public class CommitLogSettingsCoordinator
                 state.ConfigUserEmailInput.Trim());
 
             string trimmedDir = state.DefaultProjectsDirectoryInput?.Trim() ?? string.Empty;
+            int fetchInterval = 60;
+            if (int.TryParse(state.AutoFetchIntervalInput, out int parsedInterval) && parsedInterval >= 0)
+            {
+                fetchInterval = parsedInterval;
+            }
+
             if (_appSettingsRepo != null)
             {
                 int maxBranches = 5;
@@ -138,11 +156,16 @@ public class CommitLogSettingsCoordinator
                 await _appSettingsRepo.SaveSettingsAsync(new ApplicationSettings
                 {
                     MaxVisibleBranches = maxBranches,
-                    DefaultProjectsDirectory = trimmedDir
+                    DefaultProjectsDirectory = trimmedDir,
+                    AutoFetchIntervalSeconds = fetchInterval
                 });
             }
 
-            _updateState(s => s with { DefaultProjectsDirectory = trimmedDir });
+            _updateState(s => s with
+            {
+                DefaultProjectsDirectory = trimmedDir,
+                AutoFetchIntervalSeconds = fetchInterval
+            });
 
             await SaveAiSettingsAsync();
             await reloadCallback();

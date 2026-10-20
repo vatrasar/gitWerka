@@ -135,6 +135,10 @@ public record CommitLogState
 
     public string MaxVisibleBranchesInput { get; init; } = "5";
 
+    public int AutoFetchIntervalSeconds { get; init; } = 60;
+
+    public string AutoFetchIntervalInput { get; init; } = "60";
+
     public string AiApiKeyInput { get; init; } = string.Empty;
 
     public string AiModelInput { get; init; } = "google/gemini-2.5-flash";

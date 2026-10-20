@@ -64,6 +64,12 @@
                      Watermark="{x:Static res:CommitLogStrings.MaxVisibleBranchesPlaceholder}" />
           </StackPanel>
 
+          <StackPanel Spacing="4">
+            <TextBlock Text="{x:Static res:CommitLogStrings.AutoFetchIntervalLabel}" FontSize="12" />
+            <TextBox x:Name="AutoFetchIntervalTextBox"
+                     Watermark="{x:Static res:CommitLogStrings.AutoFetchIntervalPlaceholder}" />
+          </StackPanel>
+
           <Border Height="1"
                   Background="{DynamicResource CardBorderBrush}"
                   Margin="0,4" />
