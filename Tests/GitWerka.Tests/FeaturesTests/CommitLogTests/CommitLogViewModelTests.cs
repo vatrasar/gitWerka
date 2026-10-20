@@ -98,8 +98,40 @@ public class CommitLogViewModelTests
 
         public Task<CommitDetail?> GetCommitDetailAsync(string repositoryPath, string commitSha, CancellationToken cancellationToken = default)
         {
-            Details.TryGetValue(commitSha, out CommitDetail? detail);
-            return Task.FromResult(detail);
+            if (Details.TryGetValue(commitSha, out CommitDetail? detail))
+            {
+                return Task.FromResult<CommitDetail?>(detail);
+            }
+
+            if (string.Equals(commitSha, "WIP", StringComparison.OrdinalIgnoreCase))
+            {
+                var changedFiles = WorkingChanges
+                    .GroupBy(c => c.Path)
+                    .Select(g => new FileDiffSummary
+                    {
+                        Path = g.Key,
+                        Status = g.First().Status,
+                        LinesAdded = 1,
+                        LinesDeleted = 1
+                    })
+                    .ToImmutableList();
+
+                return Task.FromResult<CommitDetail?>(new CommitDetail
+                {
+                    Sha = "WIP",
+                    ShortSha = string.Empty,
+                    Message = "Uncommitted changes in working directory",
+                    AuthorName = "Working Directory",
+                    AuthorEmail = string.Empty,
+                    AuthorDate = DateTimeOffset.Now,
+                    CommitterName = "Working Directory",
+                    CommitterEmail = string.Empty,
+                    CommitterDate = DateTimeOffset.Now,
+                    ChangedFiles = changedFiles
+                });
+            }
+
+            return Task.FromResult<CommitDetail?>(null);
         }
 
         public Task<IReadOnlyList<DiffLine>> GetFileDiffLinesAsync(string repositoryPath, string commitSha, string filePath, CancellationToken cancellationToken = default) =>
@@ -2096,6 +2128,8 @@ public class CommitLogViewModelTests
         Assert.Equal("WIP", vm.State.SelectedCommitDetail.Sha);
         Assert.Single(vm.State.SelectedCommitDetail.ChangedFiles);
         Assert.Equal("modified.cs", vm.State.SelectedCommitDetail.ChangedFiles[0].Path);
+        Assert.Equal(1, vm.State.SelectedCommitDetail.ChangedFiles[0].LinesAdded);
+        Assert.Equal(1, vm.State.SelectedCommitDetail.ChangedFiles[0].LinesDeleted);
         Assert.Equal(CommitLogSidebarTab.WorkingTree, vm.State.ActiveSidebarTab);
     }
 

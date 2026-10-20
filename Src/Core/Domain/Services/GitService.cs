@@ -223,6 +223,11 @@ public class GitService : IGitService
         return Task.Run(() =>
         {
             using Repository repository = new(repositoryPath);
+            if (string.Equals(commitSha, "WIP", StringComparison.OrdinalIgnoreCase))
+            {
+                return WorkingTreeDiffCalculator.CreateWipCommitDetail(repository, repositoryPath);
+            }
+
             Commit? commit = repository.Lookup<Commit>(commitSha);
             if (commit == null)
             {

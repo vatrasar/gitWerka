@@ -527,6 +527,33 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
 
     private async Task SelectWipCommitAsync(CommitSummary commit)
     {
+        CommitDetail? wipDetail = await _gitService.GetCommitDetailAsync(State.RepositoryPath, "WIP")
+            ?? BuildFallbackWipDetail(commit);
+
+        UpdateState(s => s with
+        {
+            SelectedCommitDetail = wipDetail,
+            ActiveSidebarTab = CommitLogSidebarTab.WorkingTree
+        });
+
+        if (wipDetail.ChangedFiles.Count > 0)
+        {
+            FileDiffSummary fileToSelect = wipDetail.ChangedFiles.FirstOrDefault(f => f.Path == State.SelectedFileDiff?.Path)
+                ?? wipDetail.ChangedFiles[0];
+            await SelectFileDiffAsync(fileToSelect);
+        }
+        else
+        {
+            UpdateState(s => s with
+            {
+                SelectedFileDiff = null,
+                DiffLines = ImmutableList<DiffLine>.Empty
+            });
+        }
+    }
+
+    private CommitDetail BuildFallbackWipDetail(CommitSummary commit)
+    {
         var changedFiles = State.WorkingTreeChanges
             .GroupBy(c => c.Path)
             .Select(g => new FileDiffSummary
@@ -538,7 +565,7 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
             })
             .ToImmutableList();
 
-        CommitDetail wipDetail = new()
+        return new CommitDetail
         {
             Sha = "WIP",
             ShortSha = string.Empty,
@@ -552,17 +579,6 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
             ParentShas = commit.ParentShas,
             ChangedFiles = changedFiles
         };
-
-        UpdateState(s => s with
-        {
-            SelectedCommitDetail = wipDetail,
-            ActiveSidebarTab = CommitLogSidebarTab.WorkingTree
-        });
-
-        if (changedFiles.Count > 0)
-        {
-            await SelectFileDiffAsync(changedFiles[0]);
-        }
     }
 
     /// <summary>
@@ -777,6 +793,7 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
             await _gitService.StageFileAsync(State.RepositoryPath, filePath);
             IReadOnlyList<WorkingTreeChange> changes = await _gitService.GetWorkingTreeChangesAsync(State.RepositoryPath);
             UpdateState(s => s with { WorkingTreeChanges = changes.ToImmutableList() });
+            await RefreshWipCommitIfSelectedAsync();
         }
         catch (Exception ex)
         {
@@ -792,6 +809,7 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
             await _gitService.UnstageFileAsync(State.RepositoryPath, filePath);
             IReadOnlyList<WorkingTreeChange> changes = await _gitService.GetWorkingTreeChangesAsync(State.RepositoryPath);
             UpdateState(s => s with { WorkingTreeChanges = changes.ToImmutableList() });
+            await RefreshWipCommitIfSelectedAsync();
         }
         catch (Exception ex)
         {
@@ -807,10 +825,19 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
             await _gitService.DiscardFileChangesAsync(State.RepositoryPath, filePath);
             IReadOnlyList<WorkingTreeChange> changes = await _gitService.GetWorkingTreeChangesAsync(State.RepositoryPath);
             UpdateState(s => s with { WorkingTreeChanges = changes.ToImmutableList() });
+            await RefreshWipCommitIfSelectedAsync();
         }
         catch (Exception ex)
         {
             UpdateState(s => s with { ErrorMessage = ex.Message });
+        }
+    }
+
+    private async Task RefreshWipCommitIfSelectedAsync()
+    {
+        if (State.SelectedCommit?.IsWip == true)
+        {
+            await SelectWipCommitAsync(State.SelectedCommit);
         }
     }
 
@@ -1697,6 +1724,7 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
             await StageAllUnstaged();
             IReadOnlyList<WorkingTreeChange> changes = await _gitService.GetWorkingTreeChangesAsync(State.RepositoryPath);
             UpdateState(s => s with { WorkingTreeChanges = changes.ToImmutableList() });
+            await RefreshWipCommitIfSelectedAsync();
         }
         catch (Exception ex)
         {
@@ -1712,6 +1740,7 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
             await UnstageAllStaged();
             IReadOnlyList<WorkingTreeChange> changes = await _gitService.GetWorkingTreeChangesAsync(State.RepositoryPath);
             UpdateState(s => s with { WorkingTreeChanges = changes.ToImmutableList() });
+            await RefreshWipCommitIfSelectedAsync();
         }
         catch (Exception ex)
         {
