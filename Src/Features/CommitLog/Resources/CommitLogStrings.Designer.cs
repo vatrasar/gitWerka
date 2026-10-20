@@ -91,6 +91,7 @@ namespace GitWerka.Features.CommitLog.Resources {
         public static string ApplyStashButton => ResourceManager.GetString("ApplyStashButton", resourceCulture) ?? "Apply";
         public static string PopStashButton => ResourceManager.GetString("PopStashButton", resourceCulture) ?? "Pop";
         public static string DropStashButton => ResourceManager.GetString("DropStashButton", resourceCulture) ?? "Drop";
+        public static string CheckoutCommitMenu => ResourceManager.GetString("CheckoutCommitMenu", resourceCulture) ?? "Checkout Commit";
         public static string CherryPickMenu => ResourceManager.GetString("CherryPickMenu", resourceCulture) ?? "Cherry-pick Commit";
         public static string RevertMenu => ResourceManager.GetString("RevertMenu", resourceCulture) ?? "Revert Commit";
         public static string ResetMenu => ResourceManager.GetString("ResetMenu", resourceCulture) ?? "Reset Current Branch to Here";

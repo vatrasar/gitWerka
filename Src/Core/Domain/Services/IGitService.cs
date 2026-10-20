@@ -144,6 +144,15 @@ public interface IGitService
     Task CheckoutBranchAsync(string repositoryPath, string branchName, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Checks out a specific commit into a detached HEAD state.
+    /// Usages: CommitLogViewModel.
+    /// </summary>
+    /// <param name="repositoryPath">Directory path of the repository.</param>
+    /// <param name="commitSha">Commit SHA to checkout.</param>
+    /// <param name="cancellationToken">Cancellation token for async operation.</param>
+    Task CheckoutCommitAsync(string repositoryPath, string commitSha, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Creates a new commit or amends the previous commit from currently staged changes.
     /// Usages: CommitLogViewModel.
     /// </summary>

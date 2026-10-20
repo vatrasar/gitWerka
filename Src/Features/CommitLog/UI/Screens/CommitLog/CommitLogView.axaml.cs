@@ -23,7 +23,7 @@
 /// - AI-assisted commit message generation from staged changes via OpenRouter integration with automatic retry mechanism on rate limits (429) and status notifications.
 /// - Commit file changes and structured diff inspection.
 /// - Git configuration modal for user name and email settings, default projects directory, max visible branches in graph, AI API key, model, commit style, token limit, and per-repository project description.
-/// - Commit context actions: Cherry-pick, Revert, Reset current branch (Soft, Mixed, Hard), Create branch or tag from commit, Interactive rebase onto commit.
+/// - Commit context actions: Checkout commit, Cherry-pick, Revert, Reset current branch (Soft, Mixed, Hard), Create branch or tag from commit, Interactive rebase onto commit.
 /// - Favorites drawer dock: shows recently opened repository not in favorites, grouped and ungrouped favorite repositories with expandable categories, add and edit favorite with custom name and group modal, remove from favorites button, switch repository on item selection.
 /// Key UI Elements:
 /// - Smart Components: WorkingTreePanelControl, FavoritesDockControl, SettingsModalControl, InteractiveRebaseModalControl, GitModalsControl.
@@ -35,7 +35,7 @@
 /// - BranchesListBox, BranchesContextMenu, BranchMergeMenuItem, NewBranchActionButton.
 /// - RemotesListBox, RemotesContextMenu, RemoteFetchMenuItem, RemoteDeleteMenuItem, ItemFetchRemoteButton, ItemDeleteRemoteButton, NewRemoteActionButton.
 /// - StashesListBox, StashesContextMenu, StashPopMenuItem, StashDropMenuItem, ItemPopStashButton, ItemDropStashButton, NewStashActionButton.
-/// - CommitsListBox, CommitsContextMenu, ContextCherryPickMenuItem, ContextRevertMenuItem, ContextResetMenuItem, ContextResetSoftMenuItem, ContextResetMixedMenuItem, ContextResetHardMenuItem, ContextCreateBranchMenuItem, ContextCreateTagMenuItem, ContextInteractiveRebaseMenuItem.
+/// - CommitsListBox, CommitsContextMenu, ContextCheckoutCommitMenuItem, ContextCherryPickMenuItem, ContextRevertMenuItem, ContextResetMenuItem, ContextResetSoftMenuItem, ContextResetMixedMenuItem, ContextResetHardMenuItem, ContextCreateBranchMenuItem, ContextCreateTagMenuItem, ContextInteractiveRebaseMenuItem.
 /// - ChangedFilesListBox, DiffLinesItemsControl.
 /// Navigation:
 /// - Navigate From: RepositoryManagerView on opening a repository.
@@ -51,6 +51,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.ReactiveUI;
 using Avalonia.VisualTree;
@@ -200,6 +201,7 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
             .Subscribe(Observer.Create<CommitSummary?>(commit =>
             {
                 bool isRealCommit = commit != null && !commit.IsWip;
+                ContextCheckoutCommitMenuItem.IsEnabled = isRealCommit;
                 ContextCherryPickMenuItem.IsEnabled = isRealCommit;
                 ContextRevertMenuItem.IsEnabled = isRealCommit;
                 ContextResetMenuItem.IsEnabled = isRealCommit;
@@ -279,6 +281,7 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
         this.BindCommand(ViewModel, x => x.ShowStashModalCommand, x => x.NewStashActionButton);
         SetupStashesList(disposables);
 
+        this.BindCommand(ViewModel, x => x.CheckoutCommitCommand, x => x.ContextCheckoutCommitMenuItem);
         this.BindCommand(ViewModel, x => x.CherryPickCommitCommand, x => x.ContextCherryPickMenuItem);
         this.BindCommand(ViewModel, x => x.RevertCommitCommand, x => x.ContextRevertMenuItem);
         this.BindCommand(ViewModel, x => x.CreateBranchFromCommitCommand, x => x.ContextCreateBranchMenuItem);
@@ -331,6 +334,21 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
         }
     }
 
+    private void HandleCommitsPointerPressed(PointerPressedEventArgs e)
+    {
+        if (!e.GetCurrentPoint(CommitsListBox).Properties.IsRightButtonPressed)
+        {
+            return;
+        }
+
+        Visual? visual = e.Source as Visual;
+        ListBoxItem? item = visual?.FindAncestorOfType<ListBoxItem>(true);
+        if (item?.DataContext is CommitSummary commit)
+        {
+            CommitsListBox.SelectedItem = commit;
+        }
+    }
+
     private void SetupTextInputs(CompositeDisposable disposables)
     {
         this.WhenAnyValue(x => x.SearchCommitsTextBox.Text)
@@ -341,6 +359,8 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
 
     private void SetupSelectionHandlers(CompositeDisposable disposables)
     {
+        CommitsListBox.AddHandler(InputElement.PointerPressedEvent, (sender, e) => HandleCommitsPointerPressed(e), RoutingStrategies.Tunnel);
+
         CommitsListBox.SelectionChanged += async (sender, e) =>
         {
             if (CommitsListBox.SelectedItem is CommitSummary selected && ViewModel != null)

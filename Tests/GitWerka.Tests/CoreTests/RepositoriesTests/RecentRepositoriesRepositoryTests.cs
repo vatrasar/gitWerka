@@ -235,6 +235,84 @@ public class RecentRepositoriesRepositoryTests : IDisposable
         Assert.Null(repo.GroupName);
     }
 
+    [Fact]
+    public async Task AddOrUpdateRecentRepositoryAsync_WithTrailingSlash_NormalizesAndDeduplicates()
+    {
+        RecentRepository initial = new()
+        {
+            Name = "repo1",
+            Path = "/dummy/repo1",
+            LastOpenedAtUtc = DateTime.UtcNow.AddMinutes(-5),
+            IsPinned = true
+        };
+        await _repository.AddOrUpdateRecentRepositoryAsync(initial);
+
+        RecentRepository updated = new()
+        {
+            Name = "repo1",
+            Path = "/dummy/repo1/",
+            LastOpenedAtUtc = DateTime.UtcNow,
+            IsPinned = false
+        };
+        await _repository.AddOrUpdateRecentRepositoryAsync(updated);
+
+        IReadOnlyList<RecentRepository> repos = await _repository.GetRecentRepositoriesAsync();
+
+        Assert.Single(repos);
+        Assert.Equal("/dummy/repo1", repos[0].Path);
+        Assert.True(repos[0].IsPinned);
+    }
+
+    [Fact]
+    public async Task GetRecentRepositoriesAsync_DeduplicatesExistingDatabaseEntries()
+    {
+        _dbContext.RecentRepositories.AddRange(
+            new GitWerka.Infrastructure.Data.Entities.RecentRepositoryEntity
+            {
+                Name = "repoX",
+                Path = "/dummy/repoX",
+                LastOpenedAtUtc = DateTime.UtcNow.AddMinutes(-10),
+                IsPinned = false
+            },
+            new GitWerka.Infrastructure.Data.Entities.RecentRepositoryEntity
+            {
+                Name = "repoX",
+                Path = "/dummy/repoX/",
+                LastOpenedAtUtc = DateTime.UtcNow,
+                IsPinned = true
+            });
+        await _dbContext.SaveChangesAsync();
+
+        IReadOnlyList<RecentRepository> repos = await _repository.GetRecentRepositoriesAsync();
+
+        Assert.Single(repos);
+        Assert.Equal("/dummy/repoX", repos[0].Path);
+    }
+
+    [Fact]
+    public async Task RemoveRecentRepositoryAsync_RemovesBothTrailingSlashAndNormalizedEntries()
+    {
+        _dbContext.RecentRepositories.AddRange(
+            new GitWerka.Infrastructure.Data.Entities.RecentRepositoryEntity
+            {
+                Name = "repoY",
+                Path = "/dummy/repoY",
+                LastOpenedAtUtc = DateTime.UtcNow
+            },
+            new GitWerka.Infrastructure.Data.Entities.RecentRepositoryEntity
+            {
+                Name = "repoY",
+                Path = "/dummy/repoY/",
+                LastOpenedAtUtc = DateTime.UtcNow
+            });
+        await _dbContext.SaveChangesAsync();
+
+        await _repository.RemoveRecentRepositoryAsync("/dummy/repoY/");
+
+        IReadOnlyList<RecentRepository> repos = await _repository.GetRecentRepositoriesAsync();
+        Assert.Empty(repos);
+    }
+
     public void Dispose()
     {
         _dbContext.Dispose();

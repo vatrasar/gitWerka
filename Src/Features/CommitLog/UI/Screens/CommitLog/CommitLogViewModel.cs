@@ -382,6 +382,7 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
 
     [ReactiveCommand] private async Task PopStash(int stashIndex) => await _historyActionCoordinator.PopStashAsync(stashIndex);
     [ReactiveCommand] private async Task DropStash(int stashIndex) => await _historyActionCoordinator.DropStashAsync(stashIndex);
+    [ReactiveCommand] private async Task CheckoutCommit(CommitSummary? commit) => await _branchTagCoordinator.CheckoutCommitAsync(commit);
     [ReactiveCommand] private async Task CherryPickCommit(CommitSummary? commit) => await _historyActionCoordinator.CherryPickCommitAsync(commit);
     [ReactiveCommand] private async Task RevertCommit(CommitSummary? commit) => await _historyActionCoordinator.RevertCommitAsync(commit);
 

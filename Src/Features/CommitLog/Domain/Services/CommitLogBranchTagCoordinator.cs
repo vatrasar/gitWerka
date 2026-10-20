@@ -150,6 +150,37 @@ public sealed class CommitLogBranchTagCoordinator
     }
 
     /// <summary>
+    /// Checks out a specific commit into a detached HEAD state.
+    /// Usages: CommitLogViewModel and commit context menu.
+    /// </summary>
+    /// <param name="commit">Target commit to checkout, or null to checkout the currently selected commit.</param>
+    public async Task CheckoutCommitAsync(CommitSummary? commit = null)
+    {
+        var state = _getState();
+        CommitSummary? target = commit ?? state.SelectedCommit;
+        if (target == null || target.IsWip || string.IsNullOrWhiteSpace(target.Sha))
+        {
+            return;
+        }
+
+        _updateState(s => s with { IsLoading = true, ErrorMessage = null });
+
+        try
+        {
+            await _gitService.CheckoutCommitAsync(state.RepositoryPath, target.Sha);
+            await _loadRepositoryData();
+        }
+        catch (Exception ex)
+        {
+            _updateState(s => s with
+            {
+                IsLoading = false,
+                ErrorMessage = ex.Message
+            });
+        }
+    }
+
+    /// <summary>
     /// Shows the create branch modal dialog.
     /// Usages: CommitLogViewModel and toolbar.
     /// </summary>
