@@ -14,7 +14,7 @@
 /// - Remote operations (Fetch, Pull, Push) with automatic credentials authentication dialog on challenge.
 /// - Profiles management: switch active Git profile from toolbar dropdown menu, or navigate to ProfileManagementView; enforce active Git profile requirement to execute commits with alert guidance.
 /// - System shortcuts: Open repository in system file manager, default terminal, or code editor (direct toolbar buttons on wide layouts or compact 'Open in' dropdown).
-/// - Periodic automatic repository status refresh every 5 seconds and automatic remote fetch on repository open and periodically at configurable interval (default 60 seconds).
+/// - Periodic change-detected repository status refresh every 5 seconds that updates UI only when commits, working tree, branches, or remotes change, and periodic automatic remote fetch at configurable interval (default 60 seconds).
 /// - Uncommitted working tree changes displayed directly as a // WIP row in the commit history graph (GitKraken style).
 /// - Credentials modal for HTTPS username/token and SSH key passphrase input.
 /// - Working tree changes tracking (staged / unstaged) with bulk staging and commit composition.
@@ -130,7 +130,7 @@ public partial class CommitLogView : ReactiveUserControl<CommitLogViewModel>
             return;
         }
 
-        ViewModel.LoadRepositoryDataCommand.Execute().Subscribe();
+        ViewModel.RefreshIfChangedCommand.Execute().Subscribe();
     }
 
     private void TriggerPeriodicAutoFetch()

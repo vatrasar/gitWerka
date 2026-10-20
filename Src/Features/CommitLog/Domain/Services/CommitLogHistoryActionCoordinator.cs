@@ -53,6 +53,12 @@ public sealed class CommitLogHistoryActionCoordinator
             return;
         }
 
+        var state = _getState();
+        if (state.SelectedCommit?.Sha == commit.Sha && !commit.IsWip && state.SelectedCommitDetail != null)
+        {
+            return;
+        }
+
         _updateState(s => s with
         {
             SelectedCommit = commit,
@@ -60,8 +66,6 @@ public sealed class CommitLogHistoryActionCoordinator
             SelectedFileDiff = null,
             DiffLines = ImmutableList<DiffLine>.Empty
         });
-
-        var state = _getState();
         if (commit.IsWip)
         {
             var wipDetail = await _gitService.GetCommitDetailAsync(state.RepositoryPath, "WIP")

@@ -177,6 +177,9 @@ internal sealed class MockGitService : IGitService
         MarkAllConflictsResolvedCalled = true;
         return Task.CompletedTask;
     }
+
+    public Task<GitRepositoryStateSnapshot> GetRepositoryStateSnapshotAsync(string repositoryPath, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new GitRepositoryStateSnapshot());
 }
 
 internal static class ConflictResolverTestHelper

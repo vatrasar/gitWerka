@@ -52,9 +52,13 @@ internal sealed class MockGitService : IGitService
     public List<WorkingTreeChange> WorkingChanges { get; set; } = new();
     public Dictionary<string, CommitDetail> Details { get; set; } = new();
     public List<DiffLine> DiffLines { get; set; } = new();
+    public GitRepositoryStateSnapshot SnapshotToReturn { get; set; } = new();
     public string? LastCheckedOutBranch { get; private set; }
     public string? LastRequestedBranchName { get; private set; }
     public Dictionary<string, IReadOnlyList<CommitSummary>> BranchCommits { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    public Task<GitRepositoryStateSnapshot> GetRepositoryStateSnapshotAsync(string repositoryPath, CancellationToken cancellationToken = default) =>
+        Task.FromResult(SnapshotToReturn);
 
     public Func<string, bool>? IsValidRepositoryFunc { get; set; }
     public bool IsValidRepository(string path) => IsValidRepositoryFunc?.Invoke(path) ?? true;

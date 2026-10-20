@@ -22,6 +22,7 @@ public sealed class CommitLogRemoteCoordinator
     private readonly Func<CommitLogState> _getState;
     private readonly Action<Func<CommitLogState, CommitLogState>> _updateState;
     private readonly Func<Task> _loadRepositoryData;
+    private readonly Func<Task>? _refreshIfChanged;
     private CancellationTokenSource? _autoFetchCts;
     private bool _isAutoFetching;
 
@@ -30,13 +31,15 @@ public sealed class CommitLogRemoteCoordinator
         IAppStatusService? appStatusService,
         Func<CommitLogState> getState,
         Action<Func<CommitLogState, CommitLogState>> updateState,
-        Func<Task> loadRepositoryData)
+        Func<Task> loadRepositoryData,
+        Func<Task>? refreshIfChanged = null)
     {
         _gitService = gitService;
         _appStatusService = appStatusService;
         _getState = getState;
         _updateState = updateState;
         _loadRepositoryData = loadRepositoryData;
+        _refreshIfChanged = refreshIfChanged;
     }
 
     /// <summary>
@@ -160,7 +163,14 @@ public sealed class CommitLogRemoteCoordinator
                 return;
             }
 
-            await _loadRepositoryData();
+            if (_refreshIfChanged != null)
+            {
+                await _refreshIfChanged();
+            }
+            else
+            {
+                await _loadRepositoryData();
+            }
             _appStatusService?.SetReady();
         }
         catch (OperationCanceledException)

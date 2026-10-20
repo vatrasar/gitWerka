@@ -22,6 +22,7 @@ public class GitService : IGitService
     private readonly GitMergeRebaseOperations _mergeRebase;
     private readonly GitRemoteOperations _remotes;
     private readonly GitWorkingTreeOperations _workingTree;
+    private readonly GitSnapshotOperations _snapshots;
 
     public GitService(
         GitBranchOperations? branches = null,
@@ -30,7 +31,8 @@ public class GitService : IGitService
         GitGraphOperations? graph = null,
         GitMergeRebaseOperations? mergeRebase = null,
         GitRemoteOperations? remotes = null,
-        GitWorkingTreeOperations? workingTree = null)
+        GitWorkingTreeOperations? workingTree = null,
+        GitSnapshotOperations? snapshots = null)
     {
         _branches = branches ?? new GitBranchOperations();
         _commits = commits ?? new GitCommitOperations();
@@ -39,6 +41,7 @@ public class GitService : IGitService
         _mergeRebase = mergeRebase ?? new GitMergeRebaseOperations();
         _remotes = remotes ?? new GitRemoteOperations();
         _workingTree = workingTree ?? new GitWorkingTreeOperations();
+        _snapshots = snapshots ?? new GitSnapshotOperations();
     }
 
     /// <summary>
@@ -457,4 +460,11 @@ public class GitService : IGitService
     /// </summary>
     public Task MarkAllConflictsResolvedAsync(string repositoryPath, CancellationToken cancellationToken = default) =>
         _conflicts.MarkAllConflictsResolvedAsync(repositoryPath, cancellationToken);
+
+    /// <summary>
+    /// Computes a lightweight snapshot of repository refs, working tree status, and remotes used to detect changes.
+    /// Usages: CommitLogDataLoader.
+    /// </summary>
+    public Task<GitRepositoryStateSnapshot> GetRepositoryStateSnapshotAsync(string repositoryPath, CancellationToken cancellationToken = default) =>
+        _snapshots.GetRepositoryStateSnapshotAsync(repositoryPath, cancellationToken);
 }

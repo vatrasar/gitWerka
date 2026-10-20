@@ -478,4 +478,13 @@ public interface IGitService
     /// <param name="repositoryPath">Directory path of the repository.</param>
     /// <param name="cancellationToken">Cancellation token for async operation.</param>
     Task MarkAllConflictsResolvedAsync(string repositoryPath, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Computes a lightweight snapshot of repository refs, working tree status, and remotes used to detect changes.
+    /// Usages: CommitLogDataLoader.
+    /// </summary>
+    /// <param name="repositoryPath">Directory path of the repository.</param>
+    /// <param name="cancellationToken">Cancellation token for async operation.</param>
+    /// <returns>GitRepositoryStateSnapshot representing the current repository signature.</returns>
+    Task<GitRepositoryStateSnapshot> GetRepositoryStateSnapshotAsync(string repositoryPath, CancellationToken cancellationToken = default);
 }

@@ -120,6 +120,9 @@ internal sealed class MockGitService : IGitService
 
     public Task SaveConflictResolutionAsync(string repositoryPath, string filePath, string resolvedContent, CancellationToken cancellationToken = default) => Task.CompletedTask;
     public Task MarkAllConflictsResolvedAsync(string repositoryPath, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+    public Task<GitRepositoryStateSnapshot> GetRepositoryStateSnapshotAsync(string repositoryPath, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new GitRepositoryStateSnapshot());
 }
 
 internal sealed class TestProfileRepository : IProfileRepository

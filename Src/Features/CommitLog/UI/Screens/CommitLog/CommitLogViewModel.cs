@@ -45,6 +45,7 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
     private readonly CommitLogRemoteCoordinator _remoteCoordinator;
     private readonly CommitLogBranchTagCoordinator _branchTagCoordinator;
     private readonly CommitLogHistoryActionCoordinator _historyActionCoordinator;
+    private readonly CommitLogDataLoader _dataLoader;
 
     public string? UrlPathSegment => "commit-log";
     public IScreen HostScreen { get; }
@@ -85,13 +86,24 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
         _mergeRebaseCoordinator = new CommitLogMergeRebaseCoordinator(_gitService, UpdateState, () => State);
         _settingsCoordinator = new CommitLogSettingsCoordinator(_gitService, _applicationSettingsRepository, _aiConfigurationRepository, UpdateState, () => State);
         _workingTreeCoordinator = new CommitLogWorkingTreeCoordinator(_gitService, HostScreen, _aiCommitMessageService, _appStatusService, () => State, UpdateState, async () => await LoadRepositoryData());
-        _remoteCoordinator = new CommitLogRemoteCoordinator(_gitService, _appStatusService, () => State, UpdateState, async () => await LoadRepositoryData());
+        _remoteCoordinator = new CommitLogRemoteCoordinator(_gitService, _appStatusService, () => State, UpdateState, async () => await LoadRepositoryData(), async () => await RefreshIfChanged());
         _branchTagCoordinator = new CommitLogBranchTagCoordinator(_gitService, () => State, UpdateState, async () => await LoadRepositoryData(), async () => await _settingsCoordinator.ResolveMaxVisibleBranchesAsync());
         _historyActionCoordinator = new CommitLogHistoryActionCoordinator(_gitService, _systemLauncherService, _profileRepository, HostScreen, () => State, UpdateState, async () => await LoadRepositoryData());
 
         CanCommit = this.WhenAnyValue(x => x.State.ActiveProfile).Select(profile => profile != null);
 
         InitializeSmartComponents(repositoryPath);
+
+        _dataLoader = new CommitLogDataLoader(
+            _gitService,
+            _settingsCoordinator,
+            _historyActionCoordinator,
+            _favoritesCoordinator,
+            () => State,
+            UpdateState,
+            () => WorkingTreePanel,
+            () => GitModals,
+            () => FavoritesDock);
 
         var componentCoordinator = new CommitLogComponentCoordinator(
             FavoritesDock, SettingsModal, InteractiveRebaseModal, GitModals, WorkingTreePanel,
@@ -264,70 +276,10 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
     public void UpdateRebaseStepMessage(RebaseStep step, string message) => _mergeRebaseCoordinator.UpdateRebaseStepMessage(step, message);
 
     [ReactiveCommand]
-    private async Task LoadRepositoryData()
-    {
-        UpdateState(s => s with { IsLoading = true, ErrorMessage = null });
+    private async Task RefreshIfChanged() => await _dataLoader.RefreshRepositoryDataAsync(force: false);
 
-        try
-        {
-            GitRepositoryInfo info = await _gitService.GetRepositoryInfoAsync(State.RepositoryPath);
-            int maxVisibleBranches = await _settingsCoordinator.ResolveMaxVisibleBranchesAsync();
-            IReadOnlyList<BranchInfo> branches = await _gitService.GetBranchesAsync(State.RepositoryPath);
-            string? activeBranch = CommitLogHistoryHelper.ResolveActiveBranchName(State.SelectedBranchName, branches);
-            IReadOnlyList<CommitSummary> commits = await _gitService.GetCommitLogAsync(
-                State.RepositoryPath, maxCount: 300, maxBranches: maxVisibleBranches, branchName: activeBranch);
-            IReadOnlyList<TagInfo> tags = await _gitService.GetTagsAsync(State.RepositoryPath);
-            IReadOnlyList<StashInfo> stashes = await _gitService.GetStashesAsync(State.RepositoryPath);
-            IReadOnlyList<RemoteInfo> remotes = await _gitService.GetRemotesAsync(State.RepositoryPath);
-            IReadOnlyList<WorkingTreeChange> workingTree = await _gitService.GetWorkingTreeChangesAsync(State.RepositoryPath);
-            RepositoryOperationStatus opStatus = await _gitService.GetRepositoryOperationStatusAsync(State.RepositoryPath);
-
-            var commitList = commits.ToImmutableList();
-            var filtered = CommitLogHistoryHelper.FilterCommits(commitList, State.SearchQuery);
-            var branchItems = CommitLogHistoryHelper.BuildBranchListItems(branches, maxVisibleBranches);
-
-            string branchDisplay = info.IsHeadDetached && !string.IsNullOrEmpty(info.HeadCommitSha)
-                ? $"HEAD ({info.HeadCommitSha[..Math.Min(7, info.HeadCommitSha.Length)]})"
-                : info.CurrentBranch;
-
-            UpdateState(s => s with
-            {
-                IsLoading = false,
-                CurrentBranch = branchDisplay,
-                SelectedBranchName = activeBranch,
-                AllCommits = commitList,
-                FilteredCommits = filtered,
-                Branches = branches.ToImmutableList(),
-                BranchListItems = branchItems,
-                Tags = tags.ToImmutableList(),
-                Stashes = stashes.ToImmutableList(),
-                Remotes = remotes.ToImmutableList(),
-                WorkingTreeChanges = workingTree.ToImmutableList(),
-                OperationStatus = opStatus,
-                MergeSourceBranch = CommitLogHistoryHelper.ExtractMergeSourceBranch(opStatus.Message),
-                MergeTargetBranch = branchDisplay
-            });
-
-            await _historyActionCoordinator.LoadProfilesDataAsync();
-            await _favoritesCoordinator.InitializeFavoriteAndRecentStateAsync();
-            await FavoritesDock.RefreshFavoritesDockDataAsync();
-
-            WorkingTreePanel.UpdateWorkingTree(State.WorkingTreeChanges, State.MergeSourceBranch, State.MergeTargetBranch, State.OperationStatus, State.ActiveProfile);
-            GitModals.SetAvailableBranches(State.Branches);
-
-            if (filtered.Count > 0)
-            {
-                CommitSummary toSelect = State.SelectedCommit != null
-                    ? filtered.FirstOrDefault(c => c.Sha == State.SelectedCommit.Sha) ?? filtered[0]
-                    : filtered[0];
-                await SelectCommitAsync(toSelect);
-            }
-        }
-        catch (Exception ex)
-        {
-            UpdateState(s => s with { IsLoading = false, ErrorMessage = ex.Message });
-        }
-    }
+    [ReactiveCommand]
+    private async Task LoadRepositoryData() => await _dataLoader.RefreshRepositoryDataAsync(force: true);
 
     [ReactiveCommand] private void DismissError() => UpdateState(s => s with { ErrorMessage = null });
     [ReactiveCommand] private async Task ToggleFavoritesDock() => await FavoritesDock.ToggleFavoritesDockCommand.Execute().FirstAsync();
