@@ -53,6 +53,10 @@ public record RepositoryManagerState
 
     public string? ErrorMessage { get; init; }
 
+    public bool IsNotGitRepositoryModalVisible { get; init; }
+
+    public string NotGitRepositoryPath { get; init; } = string.Empty;
+
     public bool IsOperationRunning { get; init; }
 
     public bool IsSettingsModalVisible { get; init; }

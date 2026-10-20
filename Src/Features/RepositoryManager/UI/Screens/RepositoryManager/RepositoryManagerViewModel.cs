@@ -134,7 +134,12 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
         string resolvedPath = _gitService.FindRepositoryRoot(path) ?? path;
         if (!_gitService.IsValidRepository(resolvedPath))
         {
-            UpdateState(s => s with { ErrorMessage = "Selected directory is not a valid Git repository." });
+            UpdateState(s => s with
+            {
+                IsNotGitRepositoryModalVisible = true,
+                NotGitRepositoryPath = resolvedPath,
+                ErrorMessage = null
+            });
             return;
         }
 
@@ -155,6 +160,56 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
             aiCommitMessageService: _aiCommitMessageService,
             aiConfigurationRepository: _aiConfigurationRepository,
             applicationSettingsRepository: _applicationSettingsRepository);
+
+    [ReactiveCommand]
+    private void HideNotGitRepositoryModal() =>
+        UpdateState(s => s with
+        {
+            IsNotGitRepositoryModalVisible = false,
+            NotGitRepositoryPath = string.Empty
+        });
+
+    [ReactiveCommand]
+    private async Task ConfirmInitializeNotGitRepository()
+    {
+        string targetPath = State.NotGitRepositoryPath;
+        if (string.IsNullOrWhiteSpace(targetPath))
+        {
+            UpdateState(s => s with { IsNotGitRepositoryModalVisible = false });
+            return;
+        }
+
+        UpdateState(s => s with
+        {
+            IsNotGitRepositoryModalVisible = false,
+            IsOperationRunning = true,
+            ErrorMessage = null
+        });
+
+        try
+        {
+            string initPath = await _gitService.InitializeRepositoryAsync(targetPath);
+            await SaveRecentRepositoryAsync(initPath);
+            await ReloadRepositoriesAsync();
+
+            UpdateState(s => s with
+            {
+                IsOperationRunning = false,
+                NotGitRepositoryPath = string.Empty
+            });
+
+            HostScreen.Router.Navigate.Execute(CreateCommitLogViewModel(initPath)).Subscribe();
+        }
+        catch (Exception ex)
+        {
+            UpdateState(s => s with
+            {
+                IsOperationRunning = false,
+                ErrorMessage = ex.Message,
+                NotGitRepositoryPath = string.Empty
+            });
+        }
+    }
 
     [ReactiveCommand]
     private async Task LoadRecentRepositories()

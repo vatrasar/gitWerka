@@ -231,5 +231,9 @@ namespace GitWerka.Features.CommitLog.Resources {
         public static string CommitProfileRequiredToolTip => ResourceManager.GetString("CommitProfileRequiredToolTip", resourceCulture) ?? "Cannot commit without an active Git profile. Please select or configure a profile.";
         public static string AutoFetchIntervalLabel => ResourceManager.GetString("AutoFetchIntervalLabel", resourceCulture) ?? "Auto-Fetch Interval (seconds, 0 to disable)";
         public static string AutoFetchIntervalPlaceholder => ResourceManager.GetString("AutoFetchIntervalPlaceholder", resourceCulture) ?? "60";
+        public static string NotGitRepositoryModalTitle => ResourceManager.GetString("NotGitRepositoryModalTitle", resourceCulture) ?? "Not a Git Repository";
+        public static string NotGitRepositoryMessage => ResourceManager.GetString("NotGitRepositoryMessage", resourceCulture) ?? "The selected directory is not a Git repository.";
+        public static string NotGitRepositoryQuestion => ResourceManager.GetString("NotGitRepositoryQuestion", resourceCulture) ?? "Would you like to initialize a new Git repository here?";
+        public static string InitializeGitButton => ResourceManager.GetString("InitializeGitButton", resourceCulture) ?? "Initialize Git";
     }
 }

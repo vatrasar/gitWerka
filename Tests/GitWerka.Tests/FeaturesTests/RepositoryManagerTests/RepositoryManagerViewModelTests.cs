@@ -125,4 +125,55 @@ public class RepositoryManagerViewModelTests
 
         vm.SelectRecentTabCommand.Execute().Subscribe();
     }
+
+    [Fact]
+    public async Task OpenRepositoryPathAsync_WhenNotGitRepository_ShowsNotGitRepositoryModal()
+    {
+        MockScreen screen = new();
+        MockRecentRepositoriesRepository repo = new();
+        MockGitService gitService = new() { IsValidRepositoryFunc = _ => false };
+        RepositoryManagerViewModel vm = new(screen, repo, gitService);
+
+        await vm.OpenRepositoryPathAsync("/path/to/plain/folder");
+
+        Assert.True(vm.State.IsNotGitRepositoryModalVisible);
+        Assert.Equal("/path/to/plain/folder", vm.State.NotGitRepositoryPath);
+        Assert.Null(vm.State.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task HideNotGitRepositoryModal_HidesModalAndClearsPath()
+    {
+        MockScreen screen = new();
+        MockRecentRepositoriesRepository repo = new();
+        MockGitService gitService = new() { IsValidRepositoryFunc = _ => false };
+        RepositoryManagerViewModel vm = new(screen, repo, gitService);
+
+        await vm.OpenRepositoryPathAsync("/path/to/plain/folder");
+        Assert.True(vm.State.IsNotGitRepositoryModalVisible);
+
+        vm.HideNotGitRepositoryModalCommand.Execute().Subscribe();
+
+        Assert.False(vm.State.IsNotGitRepositoryModalVisible);
+        Assert.Equal(string.Empty, vm.State.NotGitRepositoryPath);
+    }
+
+    [Fact]
+    public async Task ConfirmInitializeNotGitRepository_InitializesGitRepositoryAndNavigates()
+    {
+        MockScreen screen = new();
+        MockRecentRepositoriesRepository repo = new();
+        MockGitService gitService = new() { IsValidRepositoryFunc = _ => false };
+        RepositoryManagerViewModel vm = new(screen, repo, gitService);
+
+        await vm.OpenRepositoryPathAsync("/path/to/plain/folder");
+
+        gitService.IsValidRepositoryFunc = _ => true;
+        await vm.ConfirmInitializeNotGitRepositoryCommand.Execute();
+
+        Assert.True(gitService.InitializeCalled);
+        Assert.Equal("/path/to/plain/folder", gitService.LastInitializedPath);
+        Assert.False(vm.State.IsNotGitRepositoryModalVisible);
+        Assert.Contains(screen.Router.NavigationStack, x => x is CommitLogViewModel);
+    }
 }

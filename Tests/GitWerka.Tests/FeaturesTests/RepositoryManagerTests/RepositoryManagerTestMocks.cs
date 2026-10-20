@@ -79,7 +79,8 @@ internal sealed class MockGitService : IGitService
     public string? LastClonedPath { get; private set; }
     public string? LastInitializedPath { get; private set; }
 
-    public bool IsValidRepository(string path) => true;
+    public Func<string, bool>? IsValidRepositoryFunc { get; set; }
+    public bool IsValidRepository(string path) => IsValidRepositoryFunc?.Invoke(path) ?? true;
 
     public string? FindRepositoryRoot(string path) => path;
 

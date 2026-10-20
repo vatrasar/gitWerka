@@ -56,11 +56,19 @@ internal sealed class MockGitService : IGitService
     public string? LastRequestedBranchName { get; private set; }
     public Dictionary<string, IReadOnlyList<CommitSummary>> BranchCommits { get; } = new(StringComparer.OrdinalIgnoreCase);
 
-    public bool IsValidRepository(string path) => true;
+    public Func<string, bool>? IsValidRepositoryFunc { get; set; }
+    public bool IsValidRepository(string path) => IsValidRepositoryFunc?.Invoke(path) ?? true;
     public string? FindRepositoryRoot(string path) => path;
 
-    public Task<string> InitializeRepositoryAsync(string directoryPath, bool isBare = false, CancellationToken cancellationToken = default) =>
-        Task.FromResult(directoryPath);
+    public bool InitializeCalled { get; private set; }
+    public string? LastInitializedPath { get; private set; }
+
+    public Task<string> InitializeRepositoryAsync(string directoryPath, bool isBare = false, CancellationToken cancellationToken = default)
+    {
+        InitializeCalled = true;
+        LastInitializedPath = directoryPath;
+        return Task.FromResult(directoryPath);
+    }
 
     public Task<string> CloneRepositoryAsync(string sourceUrl, string targetDirectoryPath, CancellationToken cancellationToken = default) =>
         Task.FromResult(targetDirectoryPath);

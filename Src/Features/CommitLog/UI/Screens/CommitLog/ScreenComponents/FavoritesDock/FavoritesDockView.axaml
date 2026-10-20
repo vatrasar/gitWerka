@@ -230,5 +230,57 @@
         </StackPanel>
       </Border>
     </Grid>
+
+    <!-- Not a Git Repository Init Prompt Modal -->
+    <Grid x:Name="NotGitRepositoryModalBackdrop"
+          Classes="ModalBackdrop"
+          IsVisible="False">
+      <Border Classes="ModalCard"
+              Width="420"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <StackPanel Spacing="16">
+          <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+            <material:MaterialIcon Kind="AlertCircleOutline"
+                                   Width="24"
+                                   Height="24"
+                                   Foreground="{DynamicResource WarningBrush}" />
+            <TextBlock Text="{x:Static res:CommitLogStrings.NotGitRepositoryModalTitle}"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       VerticalAlignment="Center" />
+          </StackPanel>
+
+          <TextBlock Text="{x:Static res:CommitLogStrings.NotGitRepositoryMessage}"
+                     FontSize="12"
+                     Classes="SubtleCaption"
+                     TextWrapping="Wrap" />
+
+          <Border Background="{DynamicResource SurfaceCardBrush}"
+                  BorderBrush="{DynamicResource CardBorderBrush}"
+                  BorderThickness="1"
+                  CornerRadius="6"
+                  Padding="10,8">
+            <TextBlock x:Name="NotGitRepositoryPathTextBlock"
+                       Classes="SubtleCaption"
+                       TextTrimming="CharacterEllipsis" />
+          </Border>
+
+          <TextBlock Text="{x:Static res:CommitLogStrings.NotGitRepositoryQuestion}"
+                     FontWeight="SemiBold"
+                     FontSize="13"
+                     TextWrapping="Wrap" />
+
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button x:Name="CancelNotGitRepositoryButton"
+                    Classes="SecondaryAction"
+                    Content="{x:Static sharedRes:GlobalStrings.CancelButton}" />
+            <Button x:Name="ConfirmInitNotGitRepositoryButton"
+                    Classes="PrimaryAction"
+                    Content="{x:Static res:CommitLogStrings.InitializeGitButton}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
   </Grid>
 </rxui:ReactiveUserControl>

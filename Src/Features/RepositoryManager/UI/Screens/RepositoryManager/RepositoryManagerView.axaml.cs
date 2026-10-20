@@ -6,6 +6,7 @@
 /// - Browse and filter favorite repositories grouped by category with expandable sections and ungrouped listings.
 /// - Edit favorite repository display name and category group via modal dialog.
 /// - Open an existing local Git repository via system directory picker.
+/// - Prompt to initialize Git when opening a folder that is not a Git repository.
 /// - Clone a remote Git repository via URL and local directory path.
 /// - Initialize a new local Git repository in a specified folder.
 /// - Configure global application settings (default projects directory and AI assistant) via settings modal overlay.
@@ -15,6 +16,7 @@
 /// - FavoritesTabButton, RecentTabButton, SearchInputTextBox, RecentRepositoriesListBox, FavoritesScrollViewer, FavoriteGroupsItemsControl, UngroupedFavoritesSectionHeaderTextBlock, UngroupedFavoritesItemsControl, EmptyRepositoriesTextBlock.
 /// - EditFavoriteModalOverlay, EditFavoriteNameTextBox, EditFavoriteGroupAutoCompleteBox, TargetEditFavoritePathTextBlock, CancelEditFavoriteButton, ConfirmEditFavoriteButton.
 /// - CloneModalOverlay, InitModalOverlay, OperationRunningOverlay, ErrorBannerBorder.
+/// - NotGitRepositoryModalOverlay, NotGitRepositoryPathTextBlock, CancelNotGitRepositoryButton, ConfirmInitNotGitRepositoryButton.
 /// - SettingsModalOverlay, DefaultProjectsDirectoryTextBox, BrowseDefaultProjectsDirectoryButton, CancelSettingsButton, ConfirmSettingsButton.
 /// - AiApiKeyTextBox, AiModelTextBox, AiTokenLimitTextBox, AiCommitStyleTextBox.
 /// Navigation:
@@ -77,6 +79,9 @@ public partial class RepositoryManagerView : ReactiveUserControl<RepositoryManag
         this.OneWayBind(ViewModel, x => x.State.AiTokenLimitInput, x => x.AiTokenLimitTextBox.Text);
         this.OneWayBind(ViewModel, x => x.State.AiCommitStyleInput, x => x.AiCommitStyleTextBox.Text);
 
+        this.OneWayBind(ViewModel, x => x.State.IsNotGitRepositoryModalVisible, x => x.NotGitRepositoryModalOverlay.IsVisible);
+        this.OneWayBind(ViewModel, x => x.State.NotGitRepositoryPath, x => x.NotGitRepositoryPathTextBlock.Text);
+
         this.BindCommand(ViewModel, x => x.SelectFavoritesTabCommand, x => x.FavoritesTabButton);
         this.BindCommand(ViewModel, x => x.SelectRecentTabCommand, x => x.RecentTabButton);
         this.BindCommand(ViewModel, x => x.ShowCloneModalCommand, x => x.CloneRepositoryTileButton);
@@ -90,6 +95,8 @@ public partial class RepositoryManagerView : ReactiveUserControl<RepositoryManag
         this.BindCommand(ViewModel, x => x.ExecuteSaveSettingsCommand, x => x.ConfirmSettingsButton);
         this.BindCommand(ViewModel, x => x.HideEditFavoriteModalCommand, x => x.CancelEditFavoriteButton);
         this.BindCommand(ViewModel, x => x.ConfirmEditFavoriteCommand, x => x.ConfirmEditFavoriteButton);
+        this.BindCommand(ViewModel, x => x.HideNotGitRepositoryModalCommand, x => x.CancelNotGitRepositoryButton);
+        this.BindCommand(ViewModel, x => x.ConfirmInitializeNotGitRepositoryCommand, x => x.ConfirmInitNotGitRepositoryButton);
         this.BindCommand(ViewModel, x => x.DismissErrorCommand, x => x.DismissErrorButton);
 
         this.WhenAnyValue(
