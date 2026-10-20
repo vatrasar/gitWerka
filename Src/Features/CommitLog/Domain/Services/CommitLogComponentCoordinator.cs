@@ -93,7 +93,7 @@ public sealed class CommitLogComponentCoordinator
             NewFavoriteNameInput = s.NewFavoriteNameInput,
             NewFavoriteGroupInput = s.NewFavoriteGroupInput,
             IsEditingExistingFavorite = s.IsEditingExistingFavorite,
-            CollapsedFavoriteGroupNames = s.CollapsedFavoriteGroupNames,
+            ExpandedFavoriteGroupNames = s.ExpandedFavoriteGroupNames,
             FavoriteGroups = s.FavoriteGroups,
             UngroupedFavoriteRepositories = s.UngroupedFavoriteRepositories,
             ExistingGroupNames = s.ExistingGroupNames

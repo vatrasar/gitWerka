@@ -192,7 +192,7 @@ public class CommitLogFavoritesTests
     }
 
     [Fact]
-    public async Task ToggleFavoriteGroupCommand_WhenGroupIsExpanded_TogglesIsExpandedState()
+    public async Task ToggleFavoriteGroupCommand_WhenGroupIsCollapsedByDefault_TogglesIsExpandedState()
     {
         MockScreen screen = new();
         MockGitService gitService = new();
@@ -209,17 +209,17 @@ public class CommitLogFavoritesTests
         CommitLogViewModel vm = new(screen, "/repo/current", gitService, recentRepositoriesRepository: repo);
         await vm.RefreshFavoritesDockDataAsync();
 
+        Assert.False(vm.State.FavoriteGroups[0].IsExpanded);
+
+        vm.ToggleFavoriteGroupCommand.Execute("Backend Team").Subscribe();
+
         Assert.True(vm.State.FavoriteGroups[0].IsExpanded);
+        Assert.Contains("Backend Team", vm.State.ExpandedFavoriteGroupNames);
 
         vm.ToggleFavoriteGroupCommand.Execute("Backend Team").Subscribe();
 
         Assert.False(vm.State.FavoriteGroups[0].IsExpanded);
-        Assert.Contains("Backend Team", vm.State.CollapsedFavoriteGroupNames);
-
-        vm.ToggleFavoriteGroupCommand.Execute("Backend Team").Subscribe();
-
-        Assert.True(vm.State.FavoriteGroups[0].IsExpanded);
-        Assert.DoesNotContain("Backend Team", vm.State.CollapsedFavoriteGroupNames);
+        Assert.DoesNotContain("Backend Team", vm.State.ExpandedFavoriteGroupNames);
     }
 
     [Fact]
