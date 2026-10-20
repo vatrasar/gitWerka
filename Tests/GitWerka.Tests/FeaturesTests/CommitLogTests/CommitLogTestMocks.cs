@@ -137,6 +137,14 @@ internal sealed class MockGitService : IGitService
         return Task.CompletedTask;
     }
 
+    public string? LastCheckedOutCommitSha { get; private set; }
+
+    public Task CheckoutCommitAsync(string repositoryPath, string commitSha, CancellationToken cancellationToken = default)
+    {
+        LastCheckedOutCommitSha = commitSha;
+        return Task.CompletedTask;
+    }
+
     public string? LastCommitMessage { get; private set; }
     public bool LastCommitWasAmend { get; private set; }
     public string? LastCommitAuthorName { get; private set; }

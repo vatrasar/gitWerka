@@ -131,7 +131,9 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
             return;
         }
 
-        string resolvedPath = _gitService.FindRepositoryRoot(path) ?? path;
+        string normalizedPath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+        string resolvedPath = _gitService.FindRepositoryRoot(normalizedPath) ?? normalizedPath;
+        resolvedPath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(resolvedPath));
         if (!_gitService.IsValidRepository(resolvedPath))
         {
             UpdateState(s => s with

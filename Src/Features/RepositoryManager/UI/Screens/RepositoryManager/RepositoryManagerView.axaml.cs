@@ -47,6 +47,8 @@ using ReactiveUI;
 
 public partial class RepositoryManagerView : ReactiveUserControl<RepositoryManagerViewModel>
 {
+    private bool _isOpeningRepository;
+
     public RepositoryManagerView()
     {
         InitializeComponent();
@@ -248,10 +250,23 @@ public partial class RepositoryManagerView : ReactiveUserControl<RepositoryManag
     {
         OpenRepositoryTileButton.Click += async (sender, e) =>
         {
-            string? pickedPath = await PickFolderAsync();
-            if (!string.IsNullOrEmpty(pickedPath) && ViewModel != null)
+            if (_isOpeningRepository || ViewModel == null)
             {
-                await ViewModel.OpenRepositoryPathAsync(pickedPath);
+                return;
+            }
+
+            _isOpeningRepository = true;
+            try
+            {
+                string? pickedPath = await PickFolderAsync();
+                if (!string.IsNullOrEmpty(pickedPath))
+                {
+                    await ViewModel.OpenRepositoryPathAsync(pickedPath);
+                }
+            }
+            finally
+            {
+                _isOpeningRepository = false;
             }
         };
 
@@ -287,10 +302,20 @@ public partial class RepositoryManagerView : ReactiveUserControl<RepositoryManag
     {
         RecentRepositoriesListBox.SelectionChanged += async (sender, e) =>
         {
-            if (RecentRepositoriesListBox.SelectedItem is RecentRepository selected && ViewModel != null)
+            if (_isOpeningRepository || RecentRepositoriesListBox.SelectedItem is not RecentRepository selected || ViewModel == null)
             {
-                await ViewModel.OpenRepositoryPathAsync(selected.Path);
+                return;
+            }
+
+            _isOpeningRepository = true;
+            try
+            {
                 RecentRepositoriesListBox.SelectedItem = null;
+                await ViewModel.OpenRepositoryPathAsync(selected.Path);
+            }
+            finally
+            {
+                _isOpeningRepository = false;
             }
         };
 
@@ -316,7 +341,21 @@ public partial class RepositoryManagerView : ReactiveUserControl<RepositoryManag
 
             if (button.Classes.Contains("RepoSelectButton") && button.DataContext is RecentRepository repoToOpen)
             {
-                await ViewModel.OpenRepositoryPathAsync(repoToOpen.Path);
+                if (_isOpeningRepository)
+                {
+                    return;
+                }
+
+                _isOpeningRepository = true;
+                try
+                {
+                    await ViewModel.OpenRepositoryPathAsync(repoToOpen.Path);
+                }
+                finally
+                {
+                    _isOpeningRepository = false;
+                }
+
                 e.Handled = true;
                 return;
             }

@@ -208,6 +208,9 @@
   <data name="DropStashButton" xml:space="preserve">
     <value>Drop</value>
   </data>
+  <data name="CheckoutCommitMenu" xml:space="preserve">
+    <value>Checkout Commit</value>
+  </data>
   <data name="CherryPickMenu" xml:space="preserve">
     <value>Cherry-pick Commit</value>
   </data>
