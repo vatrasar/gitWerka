@@ -2,6 +2,7 @@ namespace GitWerka.Infrastructure.Data.Repositories;
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -36,7 +37,11 @@ public class RecentRepositoriesRepository : IRecentRepositoriesRepository
             .ThenByDescending(r => r.LastOpenedAtUtc)
             .ToListAsync(cancellationToken);
 
-        return entities.Select(MapToDomain).ToList();
+        return entities
+            .GroupBy(e => NormalizePath(e.Path))
+            .Select(g => g.First())
+            .Select(MapToDomain)
+            .ToList();
     }
 
     /// <summary>
@@ -47,16 +52,29 @@ public class RecentRepositoriesRepository : IRecentRepositoriesRepository
     /// <param name="cancellationToken">Cancellation token for async operation.</param>
     public async Task AddOrUpdateRecentRepositoryAsync(RecentRepository repository, CancellationToken cancellationToken = default)
     {
-        RecentRepositoryEntity? existingEntity = await _dbContext.RecentRepositories
-            .FirstOrDefaultAsync(r => r.Path == repository.Path, cancellationToken);
+        string normalizedPath = NormalizePath(repository.Path);
+        string withSlash = normalizedPath + Path.DirectorySeparatorChar;
 
-        if (existingEntity != null)
+        List<RecentRepositoryEntity> existingEntities = await _dbContext.RecentRepositories
+            .Where(r => r.Path == normalizedPath || r.Path == withSlash || r.Path == repository.Path)
+            .ToListAsync(cancellationToken);
+
+        RecentRepository normalizedRepo = repository with { Path = normalizedPath };
+
+        if (existingEntities.Count > 0)
         {
-            UpdateExistingEntity(existingEntity, repository);
+            RecentRepositoryEntity primary = existingEntities[0];
+            primary.Path = normalizedPath;
+            UpdateExistingEntity(primary, normalizedRepo);
+
+            if (existingEntities.Count > 1)
+            {
+                MergeDuplicates(primary, existingEntities.Skip(1));
+            }
         }
         else
         {
-            await InsertNewEntityAsync(repository, cancellationToken);
+            await InsertNewEntityAsync(normalizedRepo, cancellationToken);
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -70,15 +88,19 @@ public class RecentRepositoriesRepository : IRecentRepositoriesRepository
     /// <param name="cancellationToken">Cancellation token for async operation.</param>
     public async Task RemoveRecentRepositoryAsync(string repositoryPath, CancellationToken cancellationToken = default)
     {
-        RecentRepositoryEntity? entity = await _dbContext.RecentRepositories
-            .FirstOrDefaultAsync(r => r.Path == repositoryPath, cancellationToken);
+        string normalizedPath = NormalizePath(repositoryPath);
+        string withSlash = normalizedPath + Path.DirectorySeparatorChar;
 
-        if (entity == null)
+        List<RecentRepositoryEntity> entities = await _dbContext.RecentRepositories
+            .Where(r => r.Path == normalizedPath || r.Path == withSlash || r.Path == repositoryPath)
+            .ToListAsync(cancellationToken);
+
+        if (entities.Count == 0)
         {
             return;
         }
 
-        _dbContext.RecentRepositories.Remove(entity);
+        _dbContext.RecentRepositories.RemoveRange(entities);
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
@@ -90,15 +112,27 @@ public class RecentRepositoriesRepository : IRecentRepositoriesRepository
     /// <param name="cancellationToken">Cancellation token for async operation.</param>
     public async Task TogglePinRecentRepositoryAsync(string repositoryPath, CancellationToken cancellationToken = default)
     {
-        RecentRepositoryEntity? entity = await _dbContext.RecentRepositories
-            .FirstOrDefaultAsync(r => r.Path == repositoryPath, cancellationToken);
+        string normalizedPath = NormalizePath(repositoryPath);
+        string withSlash = normalizedPath + Path.DirectorySeparatorChar;
 
-        if (entity == null)
+        List<RecentRepositoryEntity> entities = await _dbContext.RecentRepositories
+            .Where(r => r.Path == normalizedPath || r.Path == withSlash || r.Path == repositoryPath)
+            .ToListAsync(cancellationToken);
+
+        if (entities.Count == 0)
         {
             return;
         }
 
-        entity.IsPinned = !entity.IsPinned;
+        RecentRepositoryEntity primary = entities[0];
+        primary.Path = normalizedPath;
+        primary.IsPinned = !primary.IsPinned;
+
+        if (entities.Count > 1)
+        {
+            _dbContext.RecentRepositories.RemoveRange(entities.Skip(1));
+        }
+
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
@@ -111,9 +145,12 @@ public class RecentRepositoriesRepository : IRecentRepositoriesRepository
     /// <returns>Repository domain model or null.</returns>
     public async Task<RecentRepository?> GetRepositoryByPathAsync(string repositoryPath, CancellationToken cancellationToken = default)
     {
+        string normalizedPath = NormalizePath(repositoryPath);
+        string withSlash = normalizedPath + Path.DirectorySeparatorChar;
+
         RecentRepositoryEntity? entity = await _dbContext.RecentRepositories
             .AsNoTracking()
-            .FirstOrDefaultAsync(r => r.Path == repositoryPath, cancellationToken);
+            .FirstOrDefaultAsync(r => r.Path == normalizedPath || r.Path == withSlash || r.Path == repositoryPath, cancellationToken);
 
         return entity != null ? MapToDomain(entity) : null;
     }
@@ -129,16 +166,27 @@ public class RecentRepositoriesRepository : IRecentRepositoriesRepository
     /// <param name="cancellationToken">Cancellation token for async operation.</param>
     public async Task SetFavoriteAsync(string repositoryPath, bool isFavorite, string? customName = null, string? groupName = null, CancellationToken cancellationToken = default)
     {
-        RecentRepositoryEntity? entity = await _dbContext.RecentRepositories
-            .FirstOrDefaultAsync(r => r.Path == repositoryPath, cancellationToken);
+        string normalizedPath = NormalizePath(repositoryPath);
+        string withSlash = normalizedPath + Path.DirectorySeparatorChar;
 
-        if (entity == null)
+        List<RecentRepositoryEntity> entities = await _dbContext.RecentRepositories
+            .Where(r => r.Path == normalizedPath || r.Path == withSlash || r.Path == repositoryPath)
+            .ToListAsync(cancellationToken);
+
+        if (entities.Count == 0)
         {
-            await CreateAndAddFavoriteEntityAsync(repositoryPath, isFavorite, customName, groupName, cancellationToken);
+            await CreateAndAddFavoriteEntityAsync(normalizedPath, isFavorite, customName, groupName, cancellationToken);
         }
         else
         {
-            UpdateFavoriteProperties(entity, isFavorite, customName, groupName);
+            RecentRepositoryEntity primary = entities[0];
+            primary.Path = normalizedPath;
+            UpdateFavoriteProperties(primary, isFavorite, customName, groupName);
+
+            if (entities.Count > 1)
+            {
+                _dbContext.RecentRepositories.RemoveRange(entities.Skip(1));
+            }
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -158,7 +206,11 @@ public class RecentRepositoriesRepository : IRecentRepositoriesRepository
             .OrderByDescending(r => r.LastOpenedAtUtc)
             .ToListAsync(cancellationToken);
 
-        return entities.Select(MapToDomain).ToList();
+        return entities
+            .GroupBy(e => NormalizePath(e.Path))
+            .Select(g => g.First())
+            .Select(MapToDomain)
+            .ToList();
     }
 
     /// <summary>
@@ -169,20 +221,26 @@ public class RecentRepositoriesRepository : IRecentRepositoriesRepository
     /// <returns>Recent repository model or null if none exist.</returns>
     public async Task<RecentRepository?> GetMostRecentNonFavoriteRepositoryAsync(CancellationToken cancellationToken = default)
     {
-        RecentRepositoryEntity? entity = await _dbContext.RecentRepositories
+        List<RecentRepositoryEntity> entities = await _dbContext.RecentRepositories
             .AsNoTracking()
             .Where(r => !r.IsFavorite)
             .OrderByDescending(r => r.LastOpenedAtUtc)
-            .FirstOrDefaultAsync(cancellationToken);
+            .ToListAsync(cancellationToken);
+
+        RecentRepositoryEntity? entity = entities
+            .GroupBy(e => NormalizePath(e.Path))
+            .Select(g => g.First())
+            .FirstOrDefault();
 
         return entity != null ? MapToDomain(entity) : null;
     }
+
 
     private static RecentRepository MapToDomain(RecentRepositoryEntity entity)
     {
         return new RecentRepository
         {
-            Path = entity.Path,
+            Path = NormalizePath(entity.Path),
             Name = entity.Name,
             LastOpenedAtUtc = entity.LastOpenedAtUtc,
             IsPinned = entity.IsPinned,
@@ -190,6 +248,29 @@ public class RecentRepositoriesRepository : IRecentRepositoriesRepository
             CustomName = entity.CustomName,
             GroupName = entity.GroupName
         };
+    }
+
+    private static string NormalizePath(string path) =>
+        string.IsNullOrWhiteSpace(path) ? string.Empty : Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+
+    private void MergeDuplicates(RecentRepositoryEntity primary, IEnumerable<RecentRepositoryEntity> duplicates)
+    {
+        foreach (RecentRepositoryEntity duplicate in duplicates)
+        {
+            if (duplicate.IsPinned)
+            {
+                primary.IsPinned = true;
+            }
+
+            if (duplicate.IsFavorite)
+            {
+                primary.IsFavorite = true;
+                primary.CustomName ??= duplicate.CustomName;
+                primary.GroupName ??= duplicate.GroupName;
+            }
+
+            _dbContext.RecentRepositories.Remove(duplicate);
+        }
     }
 
     private static void UpdateExistingEntity(RecentRepositoryEntity entity, RecentRepository model)
@@ -235,10 +316,16 @@ public class RecentRepositoriesRepository : IRecentRepositoriesRepository
 
     private async Task CreateAndAddFavoriteEntityAsync(string path, bool isFavorite, string? customName, string? groupName, CancellationToken cancellationToken)
     {
-        string dirName = System.IO.Path.GetFileName(path.TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar));
+        string normalized = NormalizePath(path);
+        string dirName = Path.GetFileName(normalized);
+        if (string.IsNullOrEmpty(dirName))
+        {
+            dirName = normalized;
+        }
+
         RecentRepositoryEntity entity = new()
         {
-            Path = path,
+            Path = normalized,
             Name = dirName,
             LastOpenedAtUtc = DateTime.UtcNow,
             IsFavorite = isFavorite,

@@ -88,5 +88,9 @@ namespace GitWerka.Features.RepositoryManager.Resources {
         public static string AiTokenLimitPlaceholder => ResourceManager.GetString("AiTokenLimitPlaceholder", resourceCulture) ?? "4000";
         public static string AiCommitStyleLabel => ResourceManager.GetString("AiCommitStyleLabel", resourceCulture) ?? "Commit Message Style";
         public static string AiCommitStylePlaceholder => ResourceManager.GetString("AiCommitStylePlaceholder", resourceCulture) ?? "Conventional Commits: <type>(<scope>): <subject>";
+        public static string NotGitRepositoryModalTitle => ResourceManager.GetString("NotGitRepositoryModalTitle", resourceCulture) ?? "Not a Git Repository";
+        public static string NotGitRepositoryMessage => ResourceManager.GetString("NotGitRepositoryMessage", resourceCulture) ?? "The selected directory is not a Git repository.";
+        public static string NotGitRepositoryQuestion => ResourceManager.GetString("NotGitRepositoryQuestion", resourceCulture) ?? "Would you like to initialize a new Git repository here?";
+        public static string InitializeGitButton => ResourceManager.GetString("InitializeGitButton", resourceCulture) ?? "Initialize Git";
     }
 }

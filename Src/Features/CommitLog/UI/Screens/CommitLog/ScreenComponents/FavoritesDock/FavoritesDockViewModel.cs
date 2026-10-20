@@ -221,14 +221,62 @@ public partial class FavoritesDockViewModel : ViewModelBase<FavoritesDockState>
             return;
         }
 
-        UpdateState(s => s with { IsFavoritesDockOpen = false });
-        if (!_gitService.IsValidRepository(path))
+        string resolvedPath = _gitService.FindRepositoryRoot(path) ?? path;
+        if (!_gitService.IsValidRepository(resolvedPath))
         {
-            UpdateState(s => s with { ErrorMessage = "Selected directory is not a valid Git repository." });
+            UpdateState(s => s with
+            {
+                IsNotGitRepositoryModalVisible = true,
+                NotGitRepositoryPath = resolvedPath,
+                ErrorMessage = null
+            });
             return;
         }
 
-        _repositorySelectedSubject.OnNext(path);
+        UpdateState(s => s with { IsFavoritesDockOpen = false });
+        _repositorySelectedSubject.OnNext(resolvedPath);
+    }
+
+    [ReactiveCommand]
+    private void HideNotGitRepositoryModal() =>
+        UpdateState(s => s with
+        {
+            IsNotGitRepositoryModalVisible = false,
+            NotGitRepositoryPath = string.Empty
+        });
+
+    [ReactiveCommand]
+    private async Task ConfirmInitializeNotGitRepository()
+    {
+        string targetPath = State.NotGitRepositoryPath;
+        if (string.IsNullOrWhiteSpace(targetPath))
+        {
+            UpdateState(s => s with { IsNotGitRepositoryModalVisible = false });
+            return;
+        }
+
+        UpdateState(s => s with { IsNotGitRepositoryModalVisible = false, IsFavoritesDockOpen = false });
+
+        try
+        {
+            string initPath = await _gitService.InitializeRepositoryAsync(targetPath);
+            if (_recentRepositoriesRepository != null)
+            {
+                string repoName = Path.GetFileName(initPath.TrimEnd('/', '\\'));
+                await _recentRepositoriesRepository.AddOrUpdateRecentRepositoryAsync(new RecentRepository
+                {
+                    Path = initPath,
+                    Name = repoName,
+                    LastOpenedAtUtc = DateTime.UtcNow
+                });
+            }
+
+            _repositorySelectedSubject.OnNext(initPath);
+        }
+        catch (Exception ex)
+        {
+            UpdateState(s => s with { ErrorMessage = ex.Message });
+        }
     }
 
     private static ImmutableList<string> ExtractDistinctGroupNames(ImmutableList<RecentRepository> favorites)

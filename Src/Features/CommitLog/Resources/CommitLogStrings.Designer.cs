@@ -91,6 +91,7 @@ namespace GitWerka.Features.CommitLog.Resources {
         public static string ApplyStashButton => ResourceManager.GetString("ApplyStashButton", resourceCulture) ?? "Apply";
         public static string PopStashButton => ResourceManager.GetString("PopStashButton", resourceCulture) ?? "Pop";
         public static string DropStashButton => ResourceManager.GetString("DropStashButton", resourceCulture) ?? "Drop";
+        public static string CheckoutCommitMenu => ResourceManager.GetString("CheckoutCommitMenu", resourceCulture) ?? "Checkout Commit";
         public static string CherryPickMenu => ResourceManager.GetString("CherryPickMenu", resourceCulture) ?? "Cherry-pick Commit";
         public static string RevertMenu => ResourceManager.GetString("RevertMenu", resourceCulture) ?? "Revert Commit";
         public static string ResetMenu => ResourceManager.GetString("ResetMenu", resourceCulture) ?? "Reset Current Branch to Here";
@@ -231,5 +232,9 @@ namespace GitWerka.Features.CommitLog.Resources {
         public static string CommitProfileRequiredToolTip => ResourceManager.GetString("CommitProfileRequiredToolTip", resourceCulture) ?? "Cannot commit without an active Git profile. Please select or configure a profile.";
         public static string AutoFetchIntervalLabel => ResourceManager.GetString("AutoFetchIntervalLabel", resourceCulture) ?? "Auto-Fetch Interval (seconds, 0 to disable)";
         public static string AutoFetchIntervalPlaceholder => ResourceManager.GetString("AutoFetchIntervalPlaceholder", resourceCulture) ?? "60";
+        public static string NotGitRepositoryModalTitle => ResourceManager.GetString("NotGitRepositoryModalTitle", resourceCulture) ?? "Not a Git Repository";
+        public static string NotGitRepositoryMessage => ResourceManager.GetString("NotGitRepositoryMessage", resourceCulture) ?? "The selected directory is not a Git repository.";
+        public static string NotGitRepositoryQuestion => ResourceManager.GetString("NotGitRepositoryQuestion", resourceCulture) ?? "Would you like to initialize a new Git repository here?";
+        public static string InitializeGitButton => ResourceManager.GetString("InitializeGitButton", resourceCulture) ?? "Initialize Git";
     }
 }

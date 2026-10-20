@@ -540,6 +540,27 @@ public class GitServiceTests : IDisposable
         Assert.Equal("Base commit", finalLog[2].Message);
     }
 
+    [Fact]
+    public async Task CheckoutCommitAsync_ValidCommit_DetachesHeadAtTargetCommit()
+    {
+        string repoPath = await _gitService.InitializeRepositoryAsync(_testDirectory);
+        string file1 = Path.Combine(repoPath, "first.txt");
+        await File.WriteAllTextAsync(file1, "First content");
+        await _gitService.StageFileAsync(repoPath, "first.txt");
+        string firstSha = await _gitService.CreateCommitAsync(repoPath, "First commit", "Tester", "tester@example.com");
+
+        string file2 = Path.Combine(repoPath, "second.txt");
+        await File.WriteAllTextAsync(file2, "Second content");
+        await _gitService.StageFileAsync(repoPath, "second.txt");
+        string secondSha = await _gitService.CreateCommitAsync(repoPath, "Second commit", "Tester", "tester@example.com");
+
+        await _gitService.CheckoutCommitAsync(repoPath, firstSha);
+
+        GitRepositoryInfo info = await _gitService.GetRepositoryInfoAsync(repoPath);
+        Assert.True(info.IsHeadDetached);
+        Assert.Equal(firstSha, info.HeadCommitSha);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_testDirectory))

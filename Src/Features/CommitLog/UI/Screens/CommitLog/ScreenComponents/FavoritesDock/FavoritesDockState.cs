@@ -37,4 +37,8 @@ public record FavoritesDockState
     public ImmutableList<string> ExistingGroupNames { get; init; } = ImmutableList<string>.Empty;
 
     public string? ErrorMessage { get; init; }
+ 
+    public bool IsNotGitRepositoryModalVisible { get; init; }
+
+    public string NotGitRepositoryPath { get; init; } = string.Empty;
 }

@@ -199,4 +199,16 @@
   <data name="AiCommitStylePlaceholder" xml:space="preserve">
     <value>Conventional Commits: &lt;type&gt;(&lt;scope&gt;): &lt;subject&gt;</value>
   </data>
+  <data name="NotGitRepositoryModalTitle" xml:space="preserve">
+    <value>Not a Git Repository</value>
+  </data>
+  <data name="NotGitRepositoryMessage" xml:space="preserve">
+    <value>The selected directory is not a Git repository.</value>
+  </data>
+  <data name="NotGitRepositoryQuestion" xml:space="preserve">
+    <value>Would you like to initialize a new Git repository here?</value>
+  </data>
+  <data name="InitializeGitButton" xml:space="preserve">
+    <value>Initialize Git</value>
+  </data>
 </root>

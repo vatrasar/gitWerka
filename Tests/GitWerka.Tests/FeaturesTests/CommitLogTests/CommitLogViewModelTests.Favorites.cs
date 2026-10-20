@@ -329,4 +329,54 @@ public class CommitLogFavoritesTests
         CommitLogViewModel nextVm = (CommitLogViewModel)screen.Router.NavigationStack.Last();
         Assert.Equal("/repo/second", nextVm.State.RepositoryPath);
     }
+
+    [Fact]
+    public void FavoritesDockViewModel_OpenRepository_WhenNotGitRepository_ShowsNotGitRepositoryModal()
+    {
+        MockGitService gitService = new() { IsValidRepositoryFunc = _ => false };
+        TestRecentRepositoriesRepository repo = new();
+        GitWerka.Features.CommitLog.UI.Screens.CommitLog.ScreenComponents.FavoritesDock.FavoritesDockViewModel dockVm = new(repo, gitService, "/repo/current");
+
+        dockVm.OpenRepositoryCommand.Execute("/path/to/folder").Subscribe();
+
+        Assert.True(dockVm.State.IsNotGitRepositoryModalVisible);
+        Assert.Equal("/path/to/folder", dockVm.State.NotGitRepositoryPath);
+    }
+
+    [Fact]
+    public void FavoritesDockViewModel_HideNotGitRepositoryModal_HidesModal()
+    {
+        MockGitService gitService = new() { IsValidRepositoryFunc = _ => false };
+        TestRecentRepositoriesRepository repo = new();
+        GitWerka.Features.CommitLog.UI.Screens.CommitLog.ScreenComponents.FavoritesDock.FavoritesDockViewModel dockVm = new(repo, gitService, "/repo/current");
+
+        dockVm.OpenRepositoryCommand.Execute("/path/to/folder").Subscribe();
+        Assert.True(dockVm.State.IsNotGitRepositoryModalVisible);
+
+        dockVm.HideNotGitRepositoryModalCommand.Execute().Subscribe();
+
+        Assert.False(dockVm.State.IsNotGitRepositoryModalVisible);
+        Assert.Equal(string.Empty, dockVm.State.NotGitRepositoryPath);
+    }
+
+    [Fact]
+    public async Task FavoritesDockViewModel_ConfirmInitializeNotGitRepository_InitializesAndEmitsRepositorySelected()
+    {
+        MockGitService gitService = new() { IsValidRepositoryFunc = _ => false };
+        TestRecentRepositoriesRepository repo = new();
+        GitWerka.Features.CommitLog.UI.Screens.CommitLog.ScreenComponents.FavoritesDock.FavoritesDockViewModel dockVm = new(repo, gitService, "/repo/current");
+
+        string? selectedRepo = null;
+        dockVm.RepositorySelected.Subscribe(p => selectedRepo = p);
+
+        dockVm.OpenRepositoryCommand.Execute("/path/to/folder").Subscribe();
+
+        gitService.IsValidRepositoryFunc = _ => true;
+        await dockVm.ConfirmInitializeNotGitRepositoryCommand.Execute();
+
+        Assert.True(gitService.InitializeCalled);
+        Assert.Equal("/path/to/folder", gitService.LastInitializedPath);
+        Assert.False(dockVm.State.IsNotGitRepositoryModalVisible);
+        Assert.Equal("/path/to/folder", selectedRepo);
+    }
 }

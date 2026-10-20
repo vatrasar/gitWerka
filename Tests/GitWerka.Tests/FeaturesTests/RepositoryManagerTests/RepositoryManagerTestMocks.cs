@@ -79,7 +79,8 @@ internal sealed class MockGitService : IGitService
     public string? LastClonedPath { get; private set; }
     public string? LastInitializedPath { get; private set; }
 
-    public bool IsValidRepository(string path) => true;
+    public Func<string, bool>? IsValidRepositoryFunc { get; set; }
+    public bool IsValidRepository(string path) => IsValidRepositoryFunc?.Invoke(path) ?? true;
 
     public string? FindRepositoryRoot(string path) => path;
 
@@ -121,6 +122,7 @@ internal sealed class MockGitService : IGitService
         Task.FromResult<IReadOnlyList<BranchInfo>>(Array.Empty<BranchInfo>());
 
     public Task CheckoutBranchAsync(string repositoryPath, string branchName, CancellationToken cancellationToken = default) => Task.CompletedTask;
+    public Task CheckoutCommitAsync(string repositoryPath, string commitSha, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
     public Task<string> CreateCommitAsync(string repositoryPath, string message, string authorName, string authorEmail, bool amendPreviousCommit = false, CancellationToken cancellationToken = default) =>
         Task.FromResult("sha");
