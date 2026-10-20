@@ -24,6 +24,7 @@
                                GraphWidth="{Binding GraphWidth}"
                                Lane="{Binding Lane}"
                                IsWip="{Binding IsWip}"
+                               IsHead="{Binding IsHead}"
                                PassingLanes="{Binding PassingLanes}"
                                MergingLanes="{Binding MergingLanes}"
                                ForkingOffLanes="{Binding ForkingOffLanes}" />
@@ -54,6 +55,26 @@
             <material:MaterialIcon Kind="Pencil" Width="13" Height="13" Foreground="{DynamicResource GitGraphBranch3Brush}" VerticalAlignment="Center" />
             <TextBlock x:Name="WipFilesCountTextBlock" Text="{Binding UncommittedFilesCount}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center" />
           </StackPanel>
+
+          <!-- HEAD Indicator Badge -->
+          <Border x:Name="HeadIndicatorBadge"
+                  Classes="HeadBadge"
+                  IsVisible="{Binding IsHead}"
+                  ToolTip.Tip="{Binding HeadToolTip}">
+            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+              <material:MaterialIcon Kind="CompassOutline"
+                                    Width="12"
+                                    Height="12"
+                                    Foreground="{DynamicResource GitGraphBranch2Brush}"
+                                    VerticalAlignment="Center" />
+              <TextBlock x:Name="HeadBadgeTextBlock"
+                         Text="{Binding HeadLabel}"
+                         FontSize="10"
+                         FontWeight="Bold"
+                         Foreground="{DynamicResource GitGraphBranch2Brush}"
+                         VerticalAlignment="Center" />
+            </StackPanel>
+          </Border>
 
           <ItemsControl x:Name="CommitBranchesItemsControl" ItemsSource="{Binding BranchNames}" IsVisible="{Binding HasBranches}">
             <ItemsControl.ItemsPanel>

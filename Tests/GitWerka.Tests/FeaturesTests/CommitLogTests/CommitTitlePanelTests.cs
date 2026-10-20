@@ -62,6 +62,19 @@ public class CommitTitlePanelTests
     }
 
     [Fact]
+    public void CommitSummary_HasBadges_TrueWhenIsHead()
+    {
+        CommitSummary commit = new()
+        {
+            IsHead = true,
+            IsHeadDetached = true
+        };
+
+        Assert.True(commit.HasBadges);
+        Assert.Equal("HEAD", commit.HeadLabel);
+    }
+
+    [Fact]
     public void CommitSummary_HasBadges_FalseWhenEmpty()
     {
         CommitSummary commit = new();

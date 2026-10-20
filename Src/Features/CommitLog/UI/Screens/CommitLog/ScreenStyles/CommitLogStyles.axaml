@@ -33,6 +33,17 @@
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
+  <!-- HEAD Badge Pill -->
+  <Style Selector="Border.HeadBadge">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource GitGraphBranch2Brush}" />
+    <Setter Property="BorderThickness" Value="1.5" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Padding" Value="5,2" />
+    <Setter Property="Margin" Value="0,0,4,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
   <!-- Commit Row Card -->
   <Style Selector="ListBox#CommitsListBox > ListBoxItem, ListBoxItem.CommitRowItem">
     <Setter Property="Padding" Value="0,2" />

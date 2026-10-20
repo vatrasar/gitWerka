@@ -611,6 +611,15 @@ public class GitServiceTests : IDisposable
         GitRepositoryInfo info = await _gitService.GetRepositoryInfoAsync(repoPath);
         Assert.True(info.IsHeadDetached);
         Assert.Equal(firstSha, info.HeadCommitSha);
+
+        var log = await _gitService.GetCommitLogAsync(repoPath);
+        var firstCommit = Assert.Single(log, c => c.Sha == firstSha);
+        var secondCommit = Assert.Single(log, c => c.Sha == secondSha);
+
+        Assert.True(firstCommit.IsHead);
+        Assert.True(firstCommit.IsHeadDetached);
+        Assert.Equal("HEAD", firstCommit.HeadLabel);
+        Assert.False(secondCommit.IsHead);
     }
 
     public void Dispose()

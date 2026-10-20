@@ -49,6 +49,9 @@ public class CommitGraphCanvas : Control
     public static readonly StyledProperty<bool> IsWipProperty =
         AvaloniaProperty.Register<CommitGraphCanvas, bool>(nameof(IsWip), false);
 
+    public static readonly StyledProperty<bool> IsHeadProperty =
+        AvaloniaProperty.Register<CommitGraphCanvas, bool>(nameof(IsHead), false);
+
     public int Lane
     {
         get => GetValue(LaneProperty);
@@ -65,6 +68,12 @@ public class CommitGraphCanvas : Control
     {
         get => GetValue(IsWipProperty);
         set => SetValue(IsWipProperty, value);
+    }
+
+    public bool IsHead
+    {
+        get => GetValue(IsHeadProperty);
+        set => SetValue(IsHeadProperty, value);
     }
 
     public IReadOnlyList<int>? PassingLanes
@@ -88,7 +97,7 @@ public class CommitGraphCanvas : Control
     static CommitGraphCanvas()
     {
         AffectsMeasure<CommitGraphCanvas>(GraphWidthProperty);
-        AffectsRender<CommitGraphCanvas>(LaneProperty, GraphWidthProperty, PassingLanesProperty, MergingLanesProperty, ForkingOffLanesProperty, IsWipProperty);
+        AffectsRender<CommitGraphCanvas>(LaneProperty, GraphWidthProperty, PassingLanesProperty, MergingLanesProperty, ForkingOffLanesProperty, IsWipProperty, IsHeadProperty);
     }
 
     public CommitGraphCanvas()
@@ -198,6 +207,14 @@ public class CommitGraphCanvas : Control
     private void DrawCommitNode(DrawingContext context, double currentX, double centerY, IBrush brush)
     {
         Point center = new(currentX, centerY);
+
+        if (IsHead)
+        {
+            double headRingRadius = NodeRadius + 3.0;
+            IPen headRingPen = new Pen(brush, 1.8);
+            context.DrawEllipse(null, headRingPen, center, headRingRadius, headRingRadius);
+        }
+
         context.DrawEllipse(brush, null, center, NodeRadius, NodeRadius);
 
         IPen borderPen = new Pen(Brushes.White, 1.2);

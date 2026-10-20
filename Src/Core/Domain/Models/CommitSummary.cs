@@ -38,6 +38,18 @@ public record CommitSummary
 
     public bool IsWip { get; init; }
 
+    public bool IsHead { get; init; }
+
+    public bool IsHeadDetached { get; init; }
+
+    public string? HeadBranchName { get; init; }
+
+    public string HeadLabel => "HEAD";
+
+    public string HeadToolTip => IsHeadDetached
+        ? $"HEAD (detached at {ShortSha})"
+        : (string.IsNullOrEmpty(HeadBranchName) ? "HEAD" : $"HEAD -> {HeadBranchName}");
+
     public int UncommittedFilesCount { get; init; }
 
     public double GraphWidth { get; init; } = 80.0;
@@ -46,5 +58,5 @@ public record CommitSummary
 
     public bool HasTags => TagNames.Count > 0;
 
-    public bool HasBadges => IsWip || BranchNames.Count > 0 || TagNames.Count > 0;
+    public bool HasBadges => IsWip || IsHead || BranchNames.Count > 0 || TagNames.Count > 0;
 }

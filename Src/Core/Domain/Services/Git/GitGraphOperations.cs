@@ -54,6 +54,10 @@ public class GitGraphOperations
                 summaries.Add(CreateWipCommitSummary(repository, uncommittedCount));
             }
 
+            string? headSha = repository.Head?.Tip?.Sha;
+            bool isHeadDetached = repository.Info.IsHeadDetached;
+            string? headBranchName = isHeadDetached ? null : repository.Head?.FriendlyName;
+
             foreach (Commit commit in repository.Commits.QueryBy(filter))
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -63,7 +67,8 @@ public class GitGraphOperations
                     break;
                 }
 
-                CommitSummary summary = ProcessCommitNode(commit, reservedLanes, branchMap, tagMap);
+                CommitSummary summary = ProcessCommitNode(
+                    commit, reservedLanes, branchMap, tagMap, headSha, isHeadDetached, headBranchName);
                 summaries.Add(summary);
             }
 
@@ -161,7 +166,10 @@ public class GitGraphOperations
         Commit commit,
         Dictionary<int, string> reservedLanes,
         Dictionary<string, List<string>> branchMap,
-        Dictionary<string, List<string>> tagMap)
+        Dictionary<string, List<string>> tagMap,
+        string? headSha,
+        bool isHeadDetached,
+        string? headBranchName)
     {
         List<int> reservedLanesForCommit = GetReservedLanesForHash(reservedLanes, commit.Sha);
 
@@ -185,6 +193,8 @@ public class GitGraphOperations
         branchMap.TryGetValue(commit.Sha, out List<string>? branches);
         tagMap.TryGetValue(commit.Sha, out List<string>? tags);
 
+        bool isHead = !string.IsNullOrEmpty(headSha) && string.Equals(commit.Sha, headSha, StringComparison.OrdinalIgnoreCase);
+
         return new CommitSummary
         {
             Sha = commit.Sha,
@@ -200,7 +210,10 @@ public class GitGraphOperations
             Lane = lane,
             PassingLanes = passingLanes.ToImmutableList(),
             MergingLanes = mergingLanes.ToImmutableList(),
-            ForkingOffLanes = forkingOffLanes.ToImmutableList()
+            ForkingOffLanes = forkingOffLanes.ToImmutableList(),
+            IsHead = isHead,
+            IsHeadDetached = isHead && isHeadDetached,
+            HeadBranchName = isHead ? headBranchName : null
         };
     }
 

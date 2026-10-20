@@ -286,10 +286,14 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
             var filtered = CommitLogHistoryHelper.FilterCommits(commitList, State.SearchQuery);
             var branchItems = CommitLogHistoryHelper.BuildBranchListItems(branches, maxVisibleBranches);
 
+            string branchDisplay = info.IsHeadDetached && !string.IsNullOrEmpty(info.HeadCommitSha)
+                ? $"HEAD ({info.HeadCommitSha[..Math.Min(7, info.HeadCommitSha.Length)]})"
+                : info.CurrentBranch;
+
             UpdateState(s => s with
             {
                 IsLoading = false,
-                CurrentBranch = info.CurrentBranch,
+                CurrentBranch = branchDisplay,
                 SelectedBranchName = activeBranch,
                 AllCommits = commitList,
                 FilteredCommits = filtered,
@@ -301,7 +305,7 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
                 WorkingTreeChanges = workingTree.ToImmutableList(),
                 OperationStatus = opStatus,
                 MergeSourceBranch = CommitLogHistoryHelper.ExtractMergeSourceBranch(opStatus.Message),
-                MergeTargetBranch = info.CurrentBranch
+                MergeTargetBranch = branchDisplay
             });
 
             await _historyActionCoordinator.LoadProfilesDataAsync();
@@ -311,9 +315,12 @@ public partial class CommitLogViewModel : ViewModelBase<CommitLogState>, IRoutab
             WorkingTreePanel.UpdateWorkingTree(State.WorkingTreeChanges, State.MergeSourceBranch, State.MergeTargetBranch, State.OperationStatus, State.ActiveProfile);
             GitModals.SetAvailableBranches(State.Branches);
 
-            if (filtered.Count > 0 && State.SelectedCommit == null)
+            if (filtered.Count > 0)
             {
-                await SelectCommitAsync(filtered[0]);
+                CommitSummary toSelect = State.SelectedCommit != null
+                    ? filtered.FirstOrDefault(c => c.Sha == State.SelectedCommit.Sha) ?? filtered[0]
+                    : filtered[0];
+                await SelectCommitAsync(toSelect);
             }
         }
         catch (Exception ex)
