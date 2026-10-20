@@ -1,0 +1,350 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:res="using:GitWerka.Features.CommitLog.Resources"
+                    xmlns:models="using:GitWerka.Core.Domain.Models"
+                    xmlns:conv="using:GitWerka.Shared.Converters"
+                    xmlns:material="using:Material.Icons.Avalonia">
+
+  <!-- Branch List Item Template -->
+  <DataTemplate x:Key="BranchListItemTemplate" DataType="models:BranchListItem" x:DataType="models:BranchListItem">
+    <Grid ColumnDefinitions="Auto, *, Auto">
+      <material:MaterialIcon Grid.Column="0"
+                            Kind="SourceBranchSync"
+                            Width="16"
+                            Height="16"
+                            Foreground="{DynamicResource GitGraphBranch1Brush}"
+                            Margin="0,0,6,0"
+                            VerticalAlignment="Center"
+                            IsVisible="{Binding IsAllBranches}" />
+      <material:MaterialIcon Grid.Column="0"
+                            Kind="SourceBranch"
+                            Width="16"
+                            Height="16"
+                            Foreground="{DynamicResource GitGraphBranch1Brush}"
+                            Margin="0,0,6,0"
+                            VerticalAlignment="Center"
+                            IsVisible="{Binding !IsAllBranches}" />
+      <TextBlock Grid.Column="1"
+                 Text="{Binding DisplayName}"
+                 FontSize="12"
+                 TextTrimming="CharacterEllipsis"
+                 VerticalAlignment="Center" />
+      <Border Grid.Column="2"
+              Background="{DynamicResource GitGraphBranch1Brush}"
+              CornerRadius="3"
+              Padding="4,1"
+              Margin="4,0,0,0"
+              VerticalAlignment="Center"
+              IsVisible="{Binding IsCurrentHead}">
+        <TextBlock Text="HEAD" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource ShellHeaderFooterBrush}" />
+      </Border>
+    </Grid>
+  </DataTemplate>
+
+  <!-- Working Tree Change Item Template (Used for Staged and Unstaged Changes) -->
+  <DataTemplate x:Key="WorkingTreeChangeItemTemplate" x:DataType="models:WorkingTreeChange">
+    <Grid ColumnDefinitions="Auto, *, Auto">
+      <material:MaterialIcon Grid.Column="0"
+                            Kind="{Binding Status, Converter={x:Static conv:FileStatusToIconConverter.Instance}}"
+                            Foreground="{Binding Status, Converter={x:Static conv:FileStatusToBrushConverter.Instance}}"
+                            Width="14"
+                            Height="14"
+                            Margin="0,0,6,0"
+                            VerticalAlignment="Center" />
+      <TextBlock Grid.Column="1"
+                 Text="{Binding Path}"
+                 FontSize="11"
+                 TextTrimming="CharacterEllipsis"
+                 VerticalAlignment="Center" />
+      <TextBlock Grid.Column="2"
+                 Text="{Binding Status}"
+                 FontSize="10"
+                 Foreground="{DynamicResource SubtleTextBrush}"
+                 Margin="4,0,0,0"
+                 VerticalAlignment="Center" />
+    </Grid>
+  </DataTemplate>
+
+  <!-- Conflicted File Item Template -->
+  <DataTemplate x:Key="ConflictedFileItemTemplate" x:DataType="models:WorkingTreeChange">
+    <Grid ColumnDefinitions="Auto, *, Auto">
+      <material:MaterialIcon Grid.Column="0"
+                            Kind="AlertCircleOutline"
+                            Width="14"
+                            Height="14"
+                            Foreground="{DynamicResource WarningBrush}"
+                            Margin="0,0,6,0"
+                            VerticalAlignment="Center" />
+      <TextBlock Grid.Column="1"
+                 Text="{Binding Path}"
+                 FontSize="11"
+                 FontWeight="Medium"
+                 Foreground="{DynamicResource TextPrimaryBrush}"
+                 TextTrimming="CharacterEllipsis"
+                 VerticalAlignment="Center" />
+      <TextBlock Grid.Column="2"
+                 Text="{Binding Status}"
+                 FontSize="10"
+                 Foreground="{DynamicResource WarningBrush}"
+                 Margin="4,0,0,0"
+                 VerticalAlignment="Center" />
+    </Grid>
+  </DataTemplate>
+
+  <!-- Resolved File Item Template -->
+  <DataTemplate x:Key="ResolvedFileItemTemplate" x:DataType="models:WorkingTreeChange">
+    <Grid ColumnDefinitions="Auto, *, Auto">
+      <material:MaterialIcon Grid.Column="0"
+                            Kind="CheckCircleOutline"
+                            Width="14"
+                            Height="14"
+                            Foreground="{DynamicResource SuccessBrush}"
+                            Margin="0,0,6,0"
+                            VerticalAlignment="Center" />
+      <TextBlock Grid.Column="1"
+                 Text="{Binding Path}"
+                 FontSize="11"
+                 TextTrimming="CharacterEllipsis"
+                 VerticalAlignment="Center" />
+      <TextBlock Grid.Column="2"
+                 Text="{Binding Status}"
+                 FontSize="10"
+                 Foreground="{DynamicResource SubtleTextBrush}"
+                 Margin="4,0,0,0"
+                 VerticalAlignment="Center" />
+    </Grid>
+  </DataTemplate>
+
+  <!-- Remote Item Template -->
+  <DataTemplate x:Key="RemoteListItemTemplate" x:DataType="models:RemoteInfo">
+    <Border Classes="RemoteItemCard" Padding="8,6" Margin="0,1">
+      <Grid ColumnDefinitions="Auto, *, Auto">
+        <material:MaterialIcon Grid.Column="0"
+                               Kind="CloudOutline"
+                               Width="16"
+                               Height="16"
+                               Foreground="{DynamicResource GitGraphBranch3Brush}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,8,0" />
+        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+          <TextBlock Text="{Binding Name}"
+                     FontSize="12"
+                     FontWeight="SemiBold"
+                     TextTrimming="CharacterEllipsis" />
+          <TextBlock Text="{Binding Url}"
+                     Classes="SubtleCaption"
+                     FontSize="10"
+                     TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+          <Button x:Name="ItemFetchRemoteButton"
+                  Classes="ToolbarAction"
+                  Padding="4,2"
+                  ToolTip.Tip="{x:Static res:CommitLogStrings.FetchRemoteButton}">
+            <material:MaterialIcon Kind="CloudDownload" Width="13" Height="13" />
+          </Button>
+          <Button x:Name="ItemDeleteRemoteButton"
+                  Classes="DeleteFavoriteButton"
+                  Padding="4,2"
+                  ToolTip.Tip="{x:Static res:CommitLogStrings.DeleteRemoteButton}">
+            <material:MaterialIcon Kind="DeleteOutline" Width="13" Height="13" Foreground="{DynamicResource SubtleTextBrush}" />
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+  </DataTemplate>
+
+  <!-- Stash Item Template -->
+  <DataTemplate x:Key="StashListItemTemplate" x:DataType="models:StashInfo">
+    <Border Classes="StashItemCard" Padding="8,6" Margin="0,1">
+      <Grid ColumnDefinitions="Auto, *, Auto">
+        <material:MaterialIcon Grid.Column="0"
+                               Kind="PackageVariantClosed"
+                               Width="16"
+                               Height="16"
+                               Foreground="{DynamicResource GitGraphBranch2Brush}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,8,0" />
+        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+          <TextBlock Text="{Binding Message}"
+                     FontSize="12"
+                     FontWeight="SemiBold"
+                     TextTrimming="CharacterEllipsis" />
+          <TextBlock Text="{Binding Name}"
+                     Classes="SubtleCaption"
+                     FontSize="10"
+                     TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+          <Button x:Name="ItemPopStashButton"
+                  Classes="ToolbarAction"
+                  Padding="4,2"
+                  ToolTip.Tip="{x:Static res:CommitLogStrings.PopStashButton}">
+            <material:MaterialIcon Kind="PackageUp" Width="13" Height="13" />
+          </Button>
+          <Button x:Name="ItemDropStashButton"
+                  Classes="DeleteFavoriteButton"
+                  Padding="4,2"
+                  ToolTip.Tip="{x:Static res:CommitLogStrings.DropStashButton}">
+            <material:MaterialIcon Kind="DeleteOutline" Width="13" Height="13" Foreground="{DynamicResource SubtleTextBrush}" />
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+  </DataTemplate>
+
+  <!-- Favorite Group Template (With nested repositories) -->
+  <DataTemplate x:Key="FavoriteGroupItemTemplate" x:DataType="models:FavoriteRepositoryGroup">
+    <StackPanel Spacing="4" Margin="0,0,0,8">
+      <Button x:Name="ToggleFavoriteGroupButton"
+              Classes="GroupHeaderButton"
+              HorizontalAlignment="Stretch"
+              HorizontalContentAlignment="Stretch">
+        <Grid ColumnDefinitions="Auto, Auto, *, Auto">
+          <Panel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,6,0">
+            <material:MaterialIcon Kind="ChevronDown"
+                                   Width="16"
+                                   Height="16"
+                                   Foreground="{DynamicResource SubtleTextBrush}"
+                                   IsVisible="{Binding IsExpanded}" />
+            <material:MaterialIcon Kind="ChevronRight"
+                                   Width="16"
+                                   Height="16"
+                                   Foreground="{DynamicResource SubtleTextBrush}"
+                                   IsVisible="{Binding !IsExpanded}" />
+          </Panel>
+
+          <material:MaterialIcon Grid.Column="1"
+                                 Kind="FolderMultipleOutline"
+                                 Width="16"
+                                 Height="16"
+                                 Foreground="{DynamicResource GitGraphBranch1Brush}"
+                                 VerticalAlignment="Center"
+                                 Margin="0,0,8,0" />
+
+          <TextBlock Grid.Column="2"
+                     Text="{Binding Name}"
+                     FontWeight="SemiBold"
+                     FontSize="13"
+                     VerticalAlignment="Center"
+                     TextTrimming="CharacterEllipsis" />
+
+          <Border Grid.Column="3"
+                  Classes="GroupCountBadge"
+                  VerticalAlignment="Center">
+            <TextBlock Text="{Binding Count}"
+                       FontSize="10"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource SubtleTextBrush}" />
+          </Border>
+        </Grid>
+      </Button>
+
+      <ItemsControl x:Name="GroupRepositoriesItemsControl"
+                    ItemsSource="{Binding Repositories}"
+                    IsVisible="{Binding IsExpanded}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="models:RecentRepository">
+            <Border Classes="FavoritesRepoCard GroupItemCard">
+              <Grid ColumnDefinitions="Auto, *, Auto, Auto">
+                <material:MaterialIcon Grid.Column="0"
+                                       Kind="SourceRepository"
+                                       Width="16"
+                                       Height="16"
+                                       Foreground="{DynamicResource GitGraphBranch2Brush}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,0" />
+
+                <Button Grid.Column="1"
+                        x:Name="OpenFavoriteRepoButton"
+                        Classes="RepoSelectButton"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Left">
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="{Binding DisplayName}"
+                               FontWeight="SemiBold"
+                               FontSize="12"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Path}"
+                               Classes="SubtleCaption"
+                               FontSize="10"
+                               TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                </Button>
+
+                <Button Grid.Column="2"
+                        x:Name="EditFavoriteItemButton"
+                        Classes="EditFavoriteButton"
+                        ToolTip.Tip="{x:Static res:CommitLogStrings.EditFavoriteTooltip}"
+                        VerticalAlignment="Center"
+                        Margin="4,0,0,0">
+                  <material:MaterialIcon Kind="Pencil" Width="15" Height="15" Foreground="{DynamicResource SubtleTextBrush}" />
+                </Button>
+
+                <Button Grid.Column="3"
+                        x:Name="DeleteFavoriteItemButton"
+                        Classes="DeleteFavoriteButton"
+                        ToolTip.Tip="{x:Static res:CommitLogStrings.RemoveFromFavoritesTooltip}"
+                        VerticalAlignment="Center"
+                        Margin="2,0,0,0">
+                  <material:MaterialIcon Kind="DeleteOutline" Width="16" Height="16" Foreground="{DynamicResource SubtleTextBrush}" />
+                </Button>
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </DataTemplate>
+
+  <!-- Ungrouped Favorite Repository Item Template -->
+  <DataTemplate x:Key="UngroupedFavoriteRepoItemTemplate" x:DataType="models:RecentRepository">
+    <Border Classes="FavoritesRepoCard">
+      <Grid ColumnDefinitions="Auto, *, Auto, Auto">
+        <material:MaterialIcon Grid.Column="0"
+                               Kind="Star"
+                               Width="18"
+                               Height="18"
+                               Foreground="{DynamicResource WarningBrush}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,8,0" />
+
+        <Button Grid.Column="1"
+                x:Name="OpenUngroupedFavoriteRepoButton"
+                Classes="RepoSelectButton"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Left">
+          <StackPanel Spacing="2">
+            <TextBlock Text="{Binding DisplayName}"
+                       FontWeight="SemiBold"
+                       FontSize="13"
+                       TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="{Binding Path}"
+                       Classes="SubtleCaption"
+                       FontSize="11"
+                       TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+        </Button>
+
+        <Button Grid.Column="2"
+                x:Name="EditUngroupedFavoriteItemButton"
+                Classes="EditFavoriteButton"
+                ToolTip.Tip="{x:Static res:CommitLogStrings.EditFavoriteTooltip}"
+                VerticalAlignment="Center"
+                Margin="4,0,0,0">
+          <material:MaterialIcon Kind="Pencil" Width="15" Height="15" Foreground="{DynamicResource SubtleTextBrush}" />
+        </Button>
+
+        <Button Grid.Column="3"
+                x:Name="DeleteUngroupedFavoriteItemButton"
+                Classes="DeleteFavoriteButton"
+                ToolTip.Tip="{x:Static res:CommitLogStrings.RemoveFromFavoritesTooltip}"
+                VerticalAlignment="Center"
+                Margin="2,0,0,0">
+          <material:MaterialIcon Kind="DeleteOutline" Width="16" Height="16" Foreground="{DynamicResource SubtleTextBrush}" />
+        </Button>
+      </Grid>
+    </Border>
+  </DataTemplate>
+
+</ResourceDictionary>

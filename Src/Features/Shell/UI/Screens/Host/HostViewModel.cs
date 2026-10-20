@@ -166,9 +166,18 @@ public partial class HostViewModel : ViewModelBase<HostState>, IRoutableViewMode
     [ReactiveCommand]
     private void NavigateBack()
     {
+        RepositoryManagerViewModel? welcomeScreen = Router.NavigationStack.OfType<RepositoryManagerViewModel>().FirstOrDefault();
+        if (welcomeScreen != null)
+        {
+            Router.NavigateAndReset.Execute(welcomeScreen).Subscribe();
+            welcomeScreen.LoadRecentRepositoriesCommand.Execute().Subscribe();
+            return;
+        }
+
         if (Router.NavigationStack.Count > 1)
         {
-            Router.NavigateBack.Execute().Subscribe();
+            IRoutableViewModel rootScreen = Router.NavigationStack.First();
+            Router.NavigateAndReset.Execute(rootScreen).Subscribe();
         }
     }
 

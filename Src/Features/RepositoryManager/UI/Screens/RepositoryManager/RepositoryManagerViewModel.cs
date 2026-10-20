@@ -7,7 +7,6 @@ using System.IO;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using GitWerka.Core.Domain.Models;
 using GitWerka.Core.Domain.RepositoryContracts;
@@ -15,6 +14,7 @@ using GitWerka.Core.Domain.Services;
 using GitWerka.Core.Mvvm;
 using GitWerka.Features.CommitLog.UI.Screens.CommitLog;
 using GitWerka.Features.RepositoryManager.Domain.Enums;
+using GitWerka.Features.RepositoryManager.Domain.Services;
 using ReactiveUI;
 using ReactiveUI.SourceGenerators;
 using Splat;
@@ -31,6 +31,7 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
     private readonly IApplicationSettingsRepository? _applicationSettingsRepository;
     private readonly IAiConfigurationRepository? _aiConfigurationRepository;
     private readonly IAiCommitMessageService? _aiCommitMessageService;
+    private readonly RepositorySettingsCoordinator _settingsCoordinator;
 
     public string? UrlPathSegment => "repository-manager";
 
@@ -54,6 +55,7 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
         _applicationSettingsRepository = applicationSettingsRepository ?? Locator.Current.GetService<IApplicationSettingsRepository>();
         _aiConfigurationRepository = aiConfigurationRepository ?? Locator.Current.GetService<IAiConfigurationRepository>();
         _aiCommitMessageService = aiCommitMessageService ?? Locator.Current.GetService<IAiCommitMessageService>();
+        _settingsCoordinator = new RepositorySettingsCoordinator(_applicationSettingsRepository, _aiConfigurationRepository);
 
         LoadRecentRepositoriesCommand.Execute().Subscribe();
         LoadApplicationSettingsCommand.Execute().Subscribe();
@@ -61,119 +63,67 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
 
     /// <summary>
     /// Updates the current search query and filters the repository collection.
-    /// Usages: RepositoryManagerView code-behind.
     /// </summary>
-    /// <param name="query">The user search query string.</param>
     public void UpdateSearchQuery(string query)
     {
         string trimmed = query?.Trim() ?? string.Empty;
-        var filteredAll = FilterRepositories(State.AllRepositories, trimmed);
-        var filteredFav = FilterRepositories(State.FavoriteRepositories, trimmed);
-        var (groups, ungrouped) = BuildFavoriteGroupsAndUngrouped(State.FavoriteRepositories, State.CollapsedFavoriteGroupNames, trimmed);
-        var displayed = State.SelectedTab == RepositoryManagerTab.Favorites
-            ? filteredFav
-            : filteredAll;
+        var result = RepositoryGroupingHelper.BuildCollections(
+            State.AllRepositories,
+            State.FavoriteRepositories,
+            trimmed,
+            State.ExpandedFavoriteGroupNames,
+            State.SelectedTab);
 
         UpdateState(s => s with
         {
             SearchQuery = trimmed,
-            FilteredRepositories = filteredAll,
-            FilteredFavoriteRepositories = filteredFav,
-            FavoriteGroups = groups,
-            UngroupedFavoriteRepositories = ungrouped,
-            DisplayedRepositories = displayed
+            FilteredRepositories = result.FilteredAll,
+            FilteredFavoriteRepositories = result.FilteredFavorites,
+            FavoriteGroups = result.Groups,
+            UngroupedFavoriteRepositories = result.Ungrouped,
+            DisplayedRepositories = result.Displayed
         });
-    }
-
-    /// <summary>
-    /// Updates the custom name input in the Edit Favorite modal.
-    /// Usages: RepositoryManagerView edit favorite modal.
-    /// </summary>
-    /// <param name="name">New custom repository name input.</param>
-    public void SetEditFavoriteNameInput(string name)
-    {
-        UpdateState(s => s with { EditFavoriteNameInput = name ?? string.Empty });
-    }
-
-    /// <summary>
-    /// Updates the group name input in the Edit Favorite modal.
-    /// Usages: RepositoryManagerView edit favorite modal.
-    /// </summary>
-    /// <param name="group">New group name input.</param>
-    public void SetEditFavoriteGroupInput(string group)
-    {
-        UpdateState(s => s with { EditFavoriteGroupInput = group ?? string.Empty });
     }
 
     /// <summary>
     /// Selects the active tab in the repository manager view.
-    /// Usages: RepositoryManagerView tab buttons.
     /// </summary>
-    /// <param name="tab">The tab to activate.</param>
     public void SelectTab(RepositoryManagerTab tab)
     {
-        UpdateState(s =>
+        UpdateState(s => s with
         {
-            var displayed = tab == RepositoryManagerTab.Favorites
-                ? s.FilteredFavoriteRepositories
-                : s.FilteredRepositories;
-
-            return s with
-            {
-                SelectedTab = tab,
-                DisplayedRepositories = displayed
-            };
+            SelectedTab = tab,
+            DisplayedRepositories = tab == RepositoryManagerTab.Favorites ? s.FilteredFavoriteRepositories : s.FilteredRepositories
         });
     }
 
     [ReactiveCommand]
-    private void SelectFavoritesTab()
-    {
-        SelectTab(RepositoryManagerTab.Favorites);
-    }
+    private void SelectFavoritesTab() => SelectTab(RepositoryManagerTab.Favorites);
 
     [ReactiveCommand]
-    private void SelectRecentTab()
-    {
-        SelectTab(RepositoryManagerTab.Recent);
-    }
+    private void SelectRecentTab() => SelectTab(RepositoryManagerTab.Recent);
 
     /// <summary>
     /// Sets the destination directory for the clone operation modal.
-    /// Usages: RepositoryManagerView code-behind folder picker.
     /// </summary>
-    /// <param name="path">Selected target directory path.</param>
-    public void SetCloneTargetDirectory(string path)
-    {
+    public void SetCloneTargetDirectory(string path) =>
         UpdateState(s => s with { CloneTargetDirectory = path ?? string.Empty });
-    }
 
     /// <summary>
     /// Sets the source URL for the clone operation modal.
-    /// Usages: RepositoryManagerView code-behind.
     /// </summary>
-    /// <param name="url">Source remote repository URL.</param>
-    public void SetCloneSourceUrl(string url)
-    {
+    public void SetCloneSourceUrl(string url) =>
         UpdateState(s => s with { CloneSourceUrl = url ?? string.Empty });
-    }
 
     /// <summary>
     /// Sets the directory path for the initialize operation modal.
-    /// Usages: RepositoryManagerView code-behind folder picker.
     /// </summary>
-    /// <param name="path">Selected target directory path.</param>
-    public void SetInitDirectoryPath(string path)
-    {
+    public void SetInitDirectoryPath(string path) =>
         UpdateState(s => s with { InitDirectoryPath = path ?? string.Empty });
-    }
 
     /// <summary>
     /// Attempts to open a repository from a file system path.
-    /// Usages: RepositoryManagerView code-behind folder picker, MainWindowViewModel.
     /// </summary>
-    /// <param name="path">Directory path selected by the user.</param>
-    /// <returns>Task representing the async open operation.</returns>
     public async Task OpenRepositoryPathAsync(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -182,7 +132,6 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
         }
 
         string resolvedPath = _gitService.FindRepositoryRoot(path) ?? path;
-
         if (!_gitService.IsValidRepository(resolvedPath))
         {
             UpdateState(s => s with { ErrorMessage = "Selected directory is not a valid Git repository." });
@@ -192,92 +141,55 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
         await SaveRecentRepositoryAsync(resolvedPath);
         await ReloadRepositoriesAsync();
 
-        HostScreen.Router.Navigate.Execute(new CommitLogViewModel(
+        HostScreen.Router.Navigate.Execute(CreateCommitLogViewModel(resolvedPath)).Subscribe();
+    }
+
+    private CommitLogViewModel CreateCommitLogViewModel(string repositoryPath) =>
+        new(
             HostScreen,
-            resolvedPath,
+            repositoryPath,
             _gitService,
             _systemLauncherService,
             _profileRepository,
             _recentRepositoriesRepository,
             aiCommitMessageService: _aiCommitMessageService,
             aiConfigurationRepository: _aiConfigurationRepository,
-            applicationSettingsRepository: _applicationSettingsRepository)).Subscribe();
-    }
+            applicationSettingsRepository: _applicationSettingsRepository);
 
     [ReactiveCommand]
     private async Task LoadRecentRepositories()
     {
         UpdateState(s => s with { IsLoading = true, ErrorMessage = null });
-
         try
         {
-            IReadOnlyList<RecentRepository> repos = await _recentRepositoriesRepository.GetRecentRepositoriesAsync();
-            IReadOnlyList<RecentRepository> favorites = await _recentRepositoriesRepository.GetFavoriteRepositoriesAsync();
-
-            var allList = repos.ToImmutableList();
-            var favList = favorites.ToImmutableList();
-
-            var filteredAll = FilterRepositories(allList, State.SearchQuery);
-            var filteredFav = FilterRepositories(favList, State.SearchQuery);
-            var (groups, ungrouped) = BuildFavoriteGroupsAndUngrouped(favList, State.CollapsedFavoriteGroupNames, State.SearchQuery);
-            var groupNames = ExtractDistinctGroupNames(favList);
-
-            var displayed = State.SelectedTab == RepositoryManagerTab.Favorites
-                ? filteredFav
-                : filteredAll;
-
-            UpdateState(s => s with
-            {
-                IsLoading = false,
-                AllRepositories = allList,
-                FilteredRepositories = filteredAll,
-                FavoriteRepositories = favList,
-                FilteredFavoriteRepositories = filteredFav,
-                FavoriteGroups = groups,
-                UngroupedFavoriteRepositories = ungrouped,
-                ExistingGroupNames = groupNames,
-                DisplayedRepositories = displayed
-            });
+            await ReloadRepositoriesAsync();
+            UpdateState(s => s with { IsLoading = false });
         }
         catch (Exception ex)
         {
-            UpdateState(s => s with
-            {
-                IsLoading = false,
-                ErrorMessage = ex.Message
-            });
+            UpdateState(s => s with { IsLoading = false, ErrorMessage = ex.Message });
         }
     }
 
     [ReactiveCommand]
-    private void ShowCloneModal()
-    {
+    private void ShowCloneModal() =>
         UpdateState(s => s with { IsCloneModalVisible = true, ErrorMessage = null });
-    }
 
     [ReactiveCommand]
-    private void HideCloneModal()
-    {
+    private void HideCloneModal() =>
         UpdateState(s => s with { IsCloneModalVisible = false });
-    }
 
     [ReactiveCommand]
-    private void ShowInitModal()
-    {
+    private void ShowInitModal() =>
         UpdateState(s => s with { IsInitModalVisible = true, ErrorMessage = null });
-    }
 
     [ReactiveCommand]
-    private void HideInitModal()
-    {
+    private void HideInitModal() =>
         UpdateState(s => s with { IsInitModalVisible = false });
-    }
 
     [ReactiveCommand]
-    private void DismissError()
-    {
+    private void DismissError() =>
         UpdateState(s => s with { ErrorMessage = null });
-    }
 
     [ReactiveCommand]
     private async Task ExecuteClone()
@@ -289,7 +201,6 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
         }
 
         UpdateState(s => s with { IsOperationRunning = true, ErrorMessage = null });
-
         try
         {
             string clonedPath = await _gitService.CloneRepositoryAsync(State.CloneSourceUrl, State.CloneTargetDirectory);
@@ -304,24 +215,11 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
                 CloneTargetDirectory = string.Empty
             });
 
-            HostScreen.Router.Navigate.Execute(new CommitLogViewModel(
-                HostScreen,
-                clonedPath,
-                _gitService,
-                _systemLauncherService,
-                _profileRepository,
-                _recentRepositoriesRepository,
-                aiCommitMessageService: _aiCommitMessageService,
-                aiConfigurationRepository: _aiConfigurationRepository,
-                applicationSettingsRepository: _applicationSettingsRepository)).Subscribe();
+            HostScreen.Router.Navigate.Execute(CreateCommitLogViewModel(clonedPath)).Subscribe();
         }
         catch (Exception ex)
         {
-            UpdateState(s => s with
-            {
-                IsOperationRunning = false,
-                ErrorMessage = ex.Message
-            });
+            UpdateState(s => s with { IsOperationRunning = false, ErrorMessage = ex.Message });
         }
     }
 
@@ -335,7 +233,6 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
         }
 
         UpdateState(s => s with { IsOperationRunning = true, ErrorMessage = null });
-
         try
         {
             string initPath = await _gitService.InitializeRepositoryAsync(State.InitDirectoryPath);
@@ -349,26 +246,25 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
                 InitDirectoryPath = string.Empty
             });
 
-            HostScreen.Router.Navigate.Execute(new CommitLogViewModel(
-                HostScreen,
-                initPath,
-                _gitService,
-                _systemLauncherService,
-                _profileRepository,
-                _recentRepositoriesRepository,
-                aiCommitMessageService: _aiCommitMessageService,
-                aiConfigurationRepository: _aiConfigurationRepository,
-                applicationSettingsRepository: _applicationSettingsRepository)).Subscribe();
+            HostScreen.Router.Navigate.Execute(CreateCommitLogViewModel(initPath)).Subscribe();
         }
         catch (Exception ex)
         {
-            UpdateState(s => s with
-            {
-                IsOperationRunning = false,
-                ErrorMessage = ex.Message
-            });
+            UpdateState(s => s with { IsOperationRunning = false, ErrorMessage = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Updates the custom name input in the Edit Favorite modal.
+    /// </summary>
+    public void SetEditFavoriteNameInput(string name) =>
+        UpdateState(s => s with { EditFavoriteNameInput = name ?? string.Empty });
+
+    /// <summary>
+    /// Updates the group name input in the Edit Favorite modal.
+    /// </summary>
+    public void SetEditFavoriteGroupInput(string group) =>
+        UpdateState(s => s with { EditFavoriteGroupInput = group ?? string.Empty });
 
     [ReactiveCommand]
     private async Task TogglePin(string path)
@@ -387,7 +283,6 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
     private async Task SaveRecentRepositoryAsync(string path)
     {
         string name = new DirectoryInfo(path).Name;
-
         RecentRepository model = new()
         {
             Path = path,
@@ -395,48 +290,32 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
             LastOpenedAtUtc = DateTime.UtcNow,
             IsPinned = false
         };
-
         await _recentRepositoriesRepository.AddOrUpdateRecentRepositoryAsync(model);
     }
 
     private async Task ReloadRepositoriesAsync()
     {
-        IReadOnlyList<RecentRepository> repos = await _recentRepositoriesRepository.GetRecentRepositoriesAsync();
-        IReadOnlyList<RecentRepository> favorites = await _recentRepositoriesRepository.GetFavoriteRepositoriesAsync();
+        var repos = await _recentRepositoriesRepository.GetRecentRepositoriesAsync();
+        var favorites = await _recentRepositoriesRepository.GetFavoriteRepositoriesAsync();
 
-        var allList = repos.ToImmutableList();
-        var favList = favorites.ToImmutableList();
-
-        var filteredAll = FilterRepositories(allList, State.SearchQuery);
-        var filteredFav = FilterRepositories(favList, State.SearchQuery);
-        var (groups, ungrouped) = BuildFavoriteGroupsAndUngrouped(favList, State.CollapsedFavoriteGroupNames, State.SearchQuery);
-        var groupNames = ExtractDistinctGroupNames(favList);
-
-        var displayed = State.SelectedTab == RepositoryManagerTab.Favorites
-            ? filteredFav
-            : filteredAll;
+        var result = RepositoryGroupingHelper.BuildCollections(
+            repos,
+            favorites,
+            State.SearchQuery,
+            State.ExpandedFavoriteGroupNames,
+            State.SelectedTab);
 
         UpdateState(s => s with
         {
-            AllRepositories = allList,
-            FilteredRepositories = filteredAll,
-            FavoriteRepositories = favList,
-            FilteredFavoriteRepositories = filteredFav,
-            FavoriteGroups = groups,
-            UngroupedFavoriteRepositories = ungrouped,
-            ExistingGroupNames = groupNames,
-            DisplayedRepositories = displayed
+            AllRepositories = result.All,
+            FilteredRepositories = result.FilteredAll,
+            FavoriteRepositories = result.Favorites,
+            FilteredFavoriteRepositories = result.FilteredFavorites,
+            FavoriteGroups = result.Groups,
+            UngroupedFavoriteRepositories = result.Ungrouped,
+            ExistingGroupNames = result.GroupNames,
+            DisplayedRepositories = result.Displayed
         });
-    }
-
-    private static ImmutableList<string> ExtractDistinctGroupNames(ImmutableList<RecentRepository> favorites)
-    {
-        return favorites
-            .Where(r => !string.IsNullOrWhiteSpace(r.GroupName))
-            .Select(r => r.GroupName!.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
-            .ToImmutableList();
     }
 
     [ReactiveCommand]
@@ -447,14 +326,14 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
             return;
         }
 
-        var collapsed = State.CollapsedFavoriteGroupNames.Contains(groupName)
-            ? State.CollapsedFavoriteGroupNames.Remove(groupName)
-            : State.CollapsedFavoriteGroupNames.Add(groupName);
+        var expanded = State.ExpandedFavoriteGroupNames.Contains(groupName)
+            ? State.ExpandedFavoriteGroupNames.Remove(groupName)
+            : State.ExpandedFavoriteGroupNames.Add(groupName);
 
-        var (groups, ungrouped) = BuildFavoriteGroupsAndUngrouped(State.FavoriteRepositories, collapsed, State.SearchQuery);
+        var (groups, ungrouped) = RepositoryGroupingHelper.BuildFavoriteGroupsAndUngrouped(State.FavoriteRepositories, expanded, State.SearchQuery);
         UpdateState(s => s with
         {
-            CollapsedFavoriteGroupNames = collapsed,
+            ExpandedFavoriteGroupNames = expanded,
             FavoriteGroups = groups,
             UngroupedFavoriteRepositories = ungrouped
         });
@@ -466,23 +345,18 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
         RecentRepository? repo = State.FavoriteRepositories.FirstOrDefault(r => string.Equals(r.Path, path, StringComparison.OrdinalIgnoreCase))
             ?? State.AllRepositories.FirstOrDefault(r => string.Equals(r.Path, path, StringComparison.OrdinalIgnoreCase));
 
-        string name = repo?.CustomName ?? repo?.Name ?? string.Empty;
-        string group = repo?.GroupName ?? string.Empty;
-
         UpdateState(s => s with
         {
             IsEditFavoriteModalVisible = true,
             TargetFavoritePath = path,
-            EditFavoriteNameInput = name,
-            EditFavoriteGroupInput = group
+            EditFavoriteNameInput = repo?.CustomName ?? repo?.Name ?? string.Empty,
+            EditFavoriteGroupInput = repo?.GroupName ?? string.Empty
         });
     }
 
     [ReactiveCommand]
-    private void HideEditFavoriteModal()
-    {
+    private void HideEditFavoriteModal() =>
         UpdateState(s => s with { IsEditFavoriteModalVisible = false });
-    }
 
     [ReactiveCommand]
     private async Task ConfirmEditFavorite()
@@ -513,74 +387,14 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
         await ReloadRepositoriesAsync();
     }
 
-    private static (ImmutableList<FavoriteRepositoryGroup> Groups, ImmutableList<RecentRepository> Ungrouped) BuildFavoriteGroupsAndUngrouped(
-        ImmutableList<RecentRepository> favorites,
-        ImmutableHashSet<string> collapsedGroups,
-        string searchQuery)
-    {
-        bool hasSearch = !string.IsNullOrWhiteSpace(searchQuery);
-
-        var groups = favorites
-            .Where(r => !string.IsNullOrWhiteSpace(r.GroupName))
-            .GroupBy(r => r.GroupName!.Trim())
-            .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
-            .Where(g => !hasSearch || g.Key.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) || g.Any(r => MatchesSearch(r, searchQuery)))
-            .Select(g =>
-            {
-                var repos = hasSearch && !g.Key.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)
-                    ? g.Where(r => MatchesSearch(r, searchQuery)).ToImmutableList()
-                    : g.ToImmutableList();
-
-                return new FavoriteRepositoryGroup
-                {
-                    Name = g.Key,
-                    Repositories = repos,
-                    IsExpanded = hasSearch || !collapsedGroups.Contains(g.Key)
-                };
-            })
-            .Where(g => g.Repositories.Count > 0)
-            .ToImmutableList();
-
-        var ungrouped = favorites
-            .Where(r => string.IsNullOrWhiteSpace(r.GroupName))
-            .Where(r => !hasSearch || MatchesSearch(r, searchQuery))
-            .ToImmutableList();
-
-        return (groups, ungrouped);
-    }
-
-    private static bool MatchesSearch(RecentRepository repo, string query)
-    {
-        return repo.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-               repo.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-               repo.Path.Contains(query, StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static ImmutableList<RecentRepository> FilterRepositories(ImmutableList<RecentRepository> repos, string query)
-    {
-        if (string.IsNullOrWhiteSpace(query))
-        {
-            return repos;
-        }
-
-        return repos
-            .Where(r => MatchesSearch(r, query))
-            .ToImmutableList();
-    }
-
     [ReactiveCommand]
     private async Task LoadApplicationSettings()
     {
-        if (_applicationSettingsRepository == null)
-        {
-            return;
-        }
-
-        ApplicationSettings settings = await _applicationSettingsRepository.GetSettingsAsync();
+        string dir = await _settingsCoordinator.LoadDefaultProjectsDirectoryAsync();
         UpdateState(s => s with
         {
-            DefaultProjectsDirectory = settings.DefaultProjectsDirectory ?? string.Empty,
-            DefaultProjectsDirectoryInput = settings.DefaultProjectsDirectory ?? string.Empty
+            DefaultProjectsDirectory = dir,
+            DefaultProjectsDirectoryInput = dir
         });
     }
 
@@ -589,23 +403,18 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
     {
         try
         {
-            AiConfiguration aiConfig = _aiConfigurationRepository != null
-                ? await _aiConfigurationRepository.GetConfigurationAsync()
-                : new AiConfiguration();
-
-            ApplicationSettings appSettings = _applicationSettingsRepository != null
-                ? await _applicationSettingsRepository.GetSettingsAsync()
-                : new ApplicationSettings { DefaultProjectsDirectory = State.DefaultProjectsDirectory };
+            var (defaultDir, apiKey, model, style, tokenLimit) =
+                await _settingsCoordinator.LoadModalSettingsAsync(State.DefaultProjectsDirectory);
 
             UpdateState(s => s with
             {
                 IsSettingsModalVisible = true,
-                DefaultProjectsDirectory = appSettings.DefaultProjectsDirectory,
-                DefaultProjectsDirectoryInput = appSettings.DefaultProjectsDirectory,
-                AiApiKeyInput = aiConfig.ApiKey ?? string.Empty,
-                AiModelInput = aiConfig.Model,
-                AiCommitStyleInput = aiConfig.CommitStyle,
-                AiTokenLimitInput = aiConfig.TokenLimit.ToString()
+                DefaultProjectsDirectory = defaultDir,
+                DefaultProjectsDirectoryInput = defaultDir,
+                AiApiKeyInput = apiKey,
+                AiModelInput = model,
+                AiCommitStyleInput = style,
+                AiTokenLimitInput = tokenLimit
             });
         }
         catch (Exception ex)
@@ -615,10 +424,8 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
     }
 
     [ReactiveCommand]
-    private void HideSettingsModal()
-    {
+    private void HideSettingsModal() =>
         UpdateState(s => s with { IsSettingsModalVisible = false });
-    }
 
     [ReactiveCommand]
     private async Task ExecuteSaveSettings()
@@ -626,38 +433,14 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
         UpdateState(s => s with { IsSettingsModalVisible = false });
         try
         {
-            string trimmedDir = State.DefaultProjectsDirectoryInput?.Trim() ?? string.Empty;
-            if (_applicationSettingsRepository != null)
-            {
-                await _applicationSettingsRepository.SaveSettingsAsync(new ApplicationSettings
-                {
-                    DefaultProjectsDirectory = trimmedDir
-                });
-            }
+            string savedDir = await _settingsCoordinator.SaveModalSettingsAsync(
+                State.DefaultProjectsDirectoryInput,
+                State.AiApiKeyInput,
+                State.AiModelInput,
+                State.AiCommitStyleInput,
+                State.AiTokenLimitInput);
 
-            if (_aiConfigurationRepository != null)
-            {
-                int.TryParse(State.AiTokenLimitInput, out int tokenLimit);
-                if (tokenLimit <= 0)
-                {
-                    tokenLimit = 4000;
-                }
-
-                AiConfiguration updatedAiConfig = new()
-                {
-                    ApiKey = string.IsNullOrWhiteSpace(State.AiApiKeyInput) ? null : State.AiApiKeyInput.Trim(),
-                    Model = string.IsNullOrWhiteSpace(State.AiModelInput) ? "google/gemini-2.5-flash" : State.AiModelInput.Trim(),
-                    CommitStyle = string.IsNullOrWhiteSpace(State.AiCommitStyleInput) ? "Conventional Commits: <type>(<scope>): <subject>" : State.AiCommitStyleInput.Trim(),
-                    TokenLimit = tokenLimit
-                };
-
-                await _aiConfigurationRepository.SaveConfigurationAsync(updatedAiConfig);
-            }
-
-            UpdateState(s => s with
-            {
-                DefaultProjectsDirectory = trimmedDir
-            });
+            UpdateState(s => s with { DefaultProjectsDirectory = savedDir });
         }
         catch (Exception ex)
         {
@@ -667,51 +450,31 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
 
     /// <summary>
     /// Updates the default projects directory input field in settings modal.
-    /// Usages: RepositoryManagerView code-behind.
     /// </summary>
-    /// <param name="path">Selected directory path.</param>
-    public void SetDefaultProjectsDirectoryInput(string path)
-    {
+    public void SetDefaultProjectsDirectoryInput(string path) =>
         UpdateState(s => s with { DefaultProjectsDirectoryInput = path ?? string.Empty });
-    }
 
     /// <summary>
     /// Updates the AI API key input field in settings modal.
-    /// Usages: RepositoryManagerView code-behind.
     /// </summary>
-    /// <param name="apiKey">OpenRouter API key.</param>
-    public void SetAiApiKeyInput(string apiKey)
-    {
+    public void SetAiApiKeyInput(string apiKey) =>
         UpdateState(s => s with { AiApiKeyInput = apiKey ?? string.Empty });
-    }
 
     /// <summary>
     /// Updates the AI model input field in settings modal.
-    /// Usages: RepositoryManagerView code-behind.
     /// </summary>
-    /// <param name="model">Model identifier string.</param>
-    public void SetAiModelInput(string model)
-    {
+    public void SetAiModelInput(string model) =>
         UpdateState(s => s with { AiModelInput = model ?? string.Empty });
-    }
 
     /// <summary>
     /// Updates the AI commit style input field in settings modal.
-    /// Usages: RepositoryManagerView code-behind.
     /// </summary>
-    /// <param name="style">Commit style guideline.</param>
-    public void SetAiCommitStyleInput(string style)
-    {
+    public void SetAiCommitStyleInput(string style) =>
         UpdateState(s => s with { AiCommitStyleInput = style ?? string.Empty });
-    }
 
     /// <summary>
     /// Updates the AI token limit input field in settings modal.
-    /// Usages: RepositoryManagerView code-behind.
     /// </summary>
-    /// <param name="limit">Token limit integer string.</param>
-    public void SetAiTokenLimitInput(string limit)
-    {
+    public void SetAiTokenLimitInput(string limit) =>
         UpdateState(s => s with { AiTokenLimitInput = limit ?? string.Empty });
-    }
 }

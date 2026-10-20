@@ -622,4 +622,10 @@
   <data name="CommitProfileRequiredToolTip" xml:space="preserve">
     <value>Cannot commit without an active Git profile. Please select or configure a profile.</value>
   </data>
+  <data name="AutoFetchIntervalLabel" xml:space="preserve">
+    <value>Auto-Fetch Interval (seconds, 0 to disable)</value>
+  </data>
+  <data name="AutoFetchIntervalPlaceholder" xml:space="preserve">
+    <value>60</value>
+  </data>
 </root>
