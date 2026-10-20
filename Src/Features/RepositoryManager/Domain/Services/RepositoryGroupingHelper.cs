@@ -22,11 +22,14 @@ public record RepositoryCollectionsResult(
 /// </summary>
 public static class RepositoryGroupingHelper
 {
+    /// <summary>
+    /// Builds repository collections, filtered lists, and grouped favorites according to search and expanded groups state.
+    /// </summary>
     public static RepositoryCollectionsResult BuildCollections(
         IEnumerable<RecentRepository> repos,
         IEnumerable<RecentRepository> favorites,
         string searchQuery,
-        ImmutableHashSet<string> collapsedGroups,
+        ImmutableHashSet<string> expandedGroups,
         RepositoryManagerTab selectedTab)
     {
         var allList = repos.ToImmutableList();
@@ -34,7 +37,7 @@ public static class RepositoryGroupingHelper
 
         var filteredAll = FilterRepositories(allList, searchQuery);
         var filteredFav = FilterRepositories(favList, searchQuery);
-        var (groups, ungrouped) = BuildFavoriteGroupsAndUngrouped(favList, collapsedGroups, searchQuery);
+        var (groups, ungrouped) = BuildFavoriteGroupsAndUngrouped(favList, expandedGroups, searchQuery);
         var groupNames = ExtractDistinctGroupNames(favList);
 
         var displayed = selectedTab == RepositoryManagerTab.Favorites
@@ -44,6 +47,9 @@ public static class RepositoryGroupingHelper
         return new RepositoryCollectionsResult(allList, filteredAll, favList, filteredFav, groups, ungrouped, groupNames, displayed);
     }
 
+    /// <summary>
+    /// Extracts unique sorted group names from favorite repositories.
+    /// </summary>
     public static ImmutableList<string> ExtractDistinctGroupNames(ImmutableList<RecentRepository> favorites)
     {
         return favorites
@@ -54,9 +60,12 @@ public static class RepositoryGroupingHelper
             .ToImmutableList();
     }
 
+    /// <summary>
+    /// Builds grouped and ungrouped favorite repository lists reflecting search query and expanded group state.
+    /// </summary>
     public static (ImmutableList<FavoriteRepositoryGroup> Groups, ImmutableList<RecentRepository> Ungrouped) BuildFavoriteGroupsAndUngrouped(
         ImmutableList<RecentRepository> favorites,
-        ImmutableHashSet<string> collapsedGroups,
+        ImmutableHashSet<string> expandedGroups,
         string searchQuery)
     {
         bool hasSearch = !string.IsNullOrWhiteSpace(searchQuery);
@@ -76,7 +85,7 @@ public static class RepositoryGroupingHelper
                 {
                     Name = g.Key,
                     Repositories = repos,
-                    IsExpanded = hasSearch || !collapsedGroups.Contains(g.Key)
+                    IsExpanded = hasSearch || expandedGroups.Contains(g.Key)
                 };
             })
             .Where(g => g.Repositories.Count > 0)
@@ -90,6 +99,9 @@ public static class RepositoryGroupingHelper
         return (groups, ungrouped);
     }
 
+    /// <summary>
+    /// Determines whether a repository matches the provided search query.
+    /// </summary>
     public static bool MatchesSearch(RecentRepository repo, string query)
     {
         return repo.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
@@ -97,6 +109,9 @@ public static class RepositoryGroupingHelper
                repo.Path.Contains(query, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Filters a list of repositories by search query.
+    /// </summary>
     public static ImmutableList<RecentRepository> FilterRepositories(ImmutableList<RecentRepository> repos, string query)
     {
         if (string.IsNullOrWhiteSpace(query))
