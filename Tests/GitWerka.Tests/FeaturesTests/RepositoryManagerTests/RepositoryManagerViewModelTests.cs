@@ -176,4 +176,40 @@ public class RepositoryManagerViewModelTests
         Assert.False(vm.State.IsNotGitRepositoryModalVisible);
         Assert.Contains(screen.Router.NavigationStack, x => x is CommitLogViewModel);
     }
+
+    [Fact]
+    public async Task OpenRepositoryPathAsync_WhenSubdirectoryOfGitRepo_ShowsNotGitRepositoryModalAndDoesNotOpenParent()
+    {
+        MockScreen screen = new();
+        MockRecentRepositoriesRepository repo = new();
+        MockGitService gitService = new()
+        {
+            IsValidRepositoryFunc = p => p == "/parent/repo",
+            FindRepositoryRootFunc = _ => "/parent/repo"
+        };
+        RepositoryManagerViewModel vm = new(screen, repo, gitService);
+
+        await vm.OpenRepositoryPathAsync("/parent/repo/nested/subfolder");
+
+        Assert.True(vm.State.IsNotGitRepositoryModalVisible);
+        Assert.Equal("/parent/repo/nested/subfolder", vm.State.NotGitRepositoryPath);
+        Assert.DoesNotContain(screen.Router.NavigationStack, x => x is CommitLogViewModel);
+    }
+
+    [Fact]
+    public async Task OpenRepositoryPathAsync_WhenPathEndsWithGitFolder_ResolvesToParentDirectoryAndOpensIfValid()
+    {
+        MockScreen screen = new();
+        MockRecentRepositoriesRepository repo = new();
+        MockGitService gitService = new()
+        {
+            IsValidRepositoryFunc = p => p == "/parent/repo"
+        };
+        RepositoryManagerViewModel vm = new(screen, repo, gitService);
+
+        await vm.OpenRepositoryPathAsync("/parent/repo/.git");
+
+        Assert.False(vm.State.IsNotGitRepositoryModalVisible);
+        Assert.Contains(screen.Router.NavigationStack, x => x is CommitLogViewModel);
+    }
 }

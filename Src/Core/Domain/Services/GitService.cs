@@ -60,7 +60,7 @@ public class GitService : IGitService
 
     /// <summary>
     /// Finds the Git repository root directory for the given path.
-    /// Usages: RepositoryManagerViewModel, HostViewModel.
+    /// Usages: GitServiceTests.
     /// </summary>
     public string? FindRepositoryRoot(string path)
     {

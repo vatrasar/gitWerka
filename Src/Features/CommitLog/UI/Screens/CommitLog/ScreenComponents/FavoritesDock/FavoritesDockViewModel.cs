@@ -221,20 +221,35 @@ public partial class FavoritesDockViewModel : ViewModelBase<FavoritesDockState>
             return;
         }
 
-        string resolvedPath = _gitService.FindRepositoryRoot(path) ?? path;
-        if (!_gitService.IsValidRepository(resolvedPath))
+        string targetPath = ResolveTargetRepositoryPath(path);
+        if (!_gitService.IsValidRepository(targetPath))
         {
             UpdateState(s => s with
             {
                 IsNotGitRepositoryModalVisible = true,
-                NotGitRepositoryPath = resolvedPath,
+                NotGitRepositoryPath = targetPath,
                 ErrorMessage = null
             });
             return;
         }
 
         UpdateState(s => s with { IsFavoritesDockOpen = false });
-        _repositorySelectedSubject.OnNext(resolvedPath);
+        _repositorySelectedSubject.OnNext(targetPath);
+    }
+
+    private static string ResolveTargetRepositoryPath(string path)
+    {
+        string normalizedPath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+        if (Path.GetFileName(normalizedPath).Equals(".git", StringComparison.OrdinalIgnoreCase))
+        {
+            string? parentDirectory = Directory.GetParent(normalizedPath)?.FullName;
+            if (!string.IsNullOrEmpty(parentDirectory))
+            {
+                return Path.TrimEndingDirectorySeparator(Path.GetFullPath(parentDirectory));
+            }
+        }
+
+        return normalizedPath;
     }
 
     [ReactiveCommand]

@@ -82,7 +82,8 @@ internal sealed class MockGitService : IGitService
     public Func<string, bool>? IsValidRepositoryFunc { get; set; }
     public bool IsValidRepository(string path) => IsValidRepositoryFunc?.Invoke(path) ?? true;
 
-    public string? FindRepositoryRoot(string path) => path;
+    public Func<string, string?>? FindRepositoryRootFunc { get; set; }
+    public string? FindRepositoryRoot(string path) => FindRepositoryRootFunc?.Invoke(path) ?? path;
 
     public Task<string> InitializeRepositoryAsync(string directoryPath, bool isBare = false, CancellationToken cancellationToken = default)
     {

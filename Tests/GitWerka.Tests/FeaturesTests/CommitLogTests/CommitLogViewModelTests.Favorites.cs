@@ -379,4 +379,44 @@ public class CommitLogFavoritesTests
         Assert.False(dockVm.State.IsNotGitRepositoryModalVisible);
         Assert.Equal("/path/to/folder", selectedRepo);
     }
+
+    [Fact]
+    public void FavoritesDockViewModel_OpenRepository_WhenSubdirectoryOfGitRepo_ShowsNotGitRepositoryModalAndDoesNotOpenParent()
+    {
+        MockGitService gitService = new()
+        {
+            IsValidRepositoryFunc = p => p == "/parent/repo",
+            FindRepositoryRootFunc = _ => "/parent/repo"
+        };
+        TestRecentRepositoriesRepository repo = new();
+        GitWerka.Features.CommitLog.UI.Screens.CommitLog.ScreenComponents.FavoritesDock.FavoritesDockViewModel dockVm = new(repo, gitService, "/repo/current");
+
+        string? selectedRepo = null;
+        dockVm.RepositorySelected.Subscribe(p => selectedRepo = p);
+
+        dockVm.OpenRepositoryCommand.Execute("/parent/repo/nested/subfolder").Subscribe();
+
+        Assert.True(dockVm.State.IsNotGitRepositoryModalVisible);
+        Assert.Equal("/parent/repo/nested/subfolder", dockVm.State.NotGitRepositoryPath);
+        Assert.Null(selectedRepo);
+    }
+
+    [Fact]
+    public void FavoritesDockViewModel_OpenRepository_WhenPathEndsWithGitFolder_ResolvesToParentDirectory()
+    {
+        MockGitService gitService = new()
+        {
+            IsValidRepositoryFunc = p => p == "/parent/repo"
+        };
+        TestRecentRepositoriesRepository repo = new();
+        GitWerka.Features.CommitLog.UI.Screens.CommitLog.ScreenComponents.FavoritesDock.FavoritesDockViewModel dockVm = new(repo, gitService, "/repo/current");
+
+        string? selectedRepo = null;
+        dockVm.RepositorySelected.Subscribe(p => selectedRepo = p);
+
+        dockVm.OpenRepositoryCommand.Execute("/parent/repo/.git").Subscribe();
+
+        Assert.False(dockVm.State.IsNotGitRepositoryModalVisible);
+        Assert.Equal("/parent/repo", selectedRepo);
+    }
 }

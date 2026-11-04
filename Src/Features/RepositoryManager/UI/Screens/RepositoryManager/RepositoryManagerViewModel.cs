@@ -131,24 +131,37 @@ public partial class RepositoryManagerViewModel : ViewModelBase<RepositoryManage
             return;
         }
 
-        string normalizedPath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
-        string resolvedPath = _gitService.FindRepositoryRoot(normalizedPath) ?? normalizedPath;
-        resolvedPath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(resolvedPath));
-        if (!_gitService.IsValidRepository(resolvedPath))
+        string targetPath = ResolveTargetRepositoryPath(path);
+        if (!_gitService.IsValidRepository(targetPath))
         {
             UpdateState(s => s with
             {
                 IsNotGitRepositoryModalVisible = true,
-                NotGitRepositoryPath = resolvedPath,
+                NotGitRepositoryPath = targetPath,
                 ErrorMessage = null
             });
             return;
         }
 
-        await SaveRecentRepositoryAsync(resolvedPath);
+        await SaveRecentRepositoryAsync(targetPath);
         await ReloadRepositoriesAsync();
 
-        HostScreen.Router.Navigate.Execute(CreateCommitLogViewModel(resolvedPath)).Subscribe();
+        HostScreen.Router.Navigate.Execute(CreateCommitLogViewModel(targetPath)).Subscribe();
+    }
+
+    private static string ResolveTargetRepositoryPath(string path)
+    {
+        string normalizedPath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+        if (Path.GetFileName(normalizedPath).Equals(".git", StringComparison.OrdinalIgnoreCase))
+        {
+            string? parentDirectory = Directory.GetParent(normalizedPath)?.FullName;
+            if (!string.IsNullOrEmpty(parentDirectory))
+            {
+                return Path.TrimEndingDirectorySeparator(Path.GetFullPath(parentDirectory));
+            }
+        }
+
+        return normalizedPath;
     }
 
     private CommitLogViewModel CreateCommitLogViewModel(string repositoryPath) =>
